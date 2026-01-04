@@ -84,6 +84,22 @@ function extractTicket(quotedText, typedText) {
 }
 
 async function extractQuotedText(ctx, logger) {
+  // 0) Connector-provided quotedText (preferred, already extracted by connector)
+  try {
+    const qt = safeStr(
+      (ctx && ctx.quotedText) ||
+      (ctx && ctx.raw && ctx.raw.quotedText) ||
+      (ctx && ctx.raw && ctx.raw._data && ctx.raw._data.quotedText) ||
+      ''
+    );
+    if (qt) {
+      logger && logger.trace(`extract: connector quotedText found text=${qt.slice(0, 50)}`);
+      return qt;
+    }
+  } catch (e) {
+    logger && logger.trace(`extract: connector quotedText err=${e && e.message ? e.message : e}`);
+  }
+
   // 1) Kernel-wrapped quotedMessage (if exists)
   try {
     const m = ctx && ctx.message ? ctx.message : null;
@@ -126,6 +142,24 @@ async function extractQuotedText(ctx, logger) {
     }
   } catch (e) {
     logger && logger.trace(`extract: raw quotedMessage err=${e && e.message ? e.message : e}`);
+  }
+
+  // 3) Fallback: direct quotedMsg access in raw._data or raw
+  try {
+    const raw = ctx && ctx.raw ? ctx.raw : null;
+    if (raw) {
+      const qmBody = safeStr(
+        (raw._data && raw._data.quotedMsg && raw._data.quotedMsg.body) ||
+        (raw.quotedMsg && raw.quotedMsg.body) ||
+        ''
+      );
+      if (qmBody) {
+        logger && logger.trace(`extract: raw quotedMsg.body found text=${qmBody.slice(0, 50)}`);
+        return qmBody;
+      }
+    }
+  } catch (e) {
+    logger && logger.trace(`extract: raw quotedMsg.body err=${e && e.message ? e.message : e}`);
   }
 
   return '';
