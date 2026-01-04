@@ -135,6 +135,12 @@ async function resolve(meta, cfg, ticketType, ticket, opts = {}) {
   return { ok: true, ...t };
 }
 
+// Backward-compat: alias get -> resolve
+async function get(meta, cfg, ticket, opts = {}) {
+  const ticketType = opts.ticketType || opts.type || null;
+  return resolve(meta, cfg, ticketType, ticket, opts);
+}
+
 async function setStatus(meta, cfg, ticket, status, payload = {}) {
   const spec = parseJsonStoreSpec(cfg.ticketStoreSpec || cfg.storeSpec);
   const store = spec ? makeJsonStore(meta, spec) : makeMemStore();
@@ -172,6 +178,7 @@ async function list(meta, cfg, statusFilter = null) {
 module.exports = {
   touch,
   resolve,
+  get,          // new alias for compatibility
   setStatus,
   updateNote,
   list,
