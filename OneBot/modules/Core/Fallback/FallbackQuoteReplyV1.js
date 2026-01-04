@@ -201,7 +201,9 @@ module.exports.handle = async (meta, cfg, ctx, opts = {}) => {
   if (ctx.fromMe) return { ok: false, reason: 'fromme' };
 
   const raw = ctx.raw || null;
-  const hasMedia = !!(raw && raw.hasMedia);
+  // Enhanced media detection for all types
+  const hasMedia = !!(raw && (raw.hasMedia || raw.hasDocument || 
+                              (raw.type && ['image', 'video', 'audio', 'document', 'ptt', 'sticker'].includes(raw.type))));
   const typedText = safeStr(ctx.text || ctx.body || '');
 
   const ticketType = safeStr(cfg && cfg.ticketType) || 'T';

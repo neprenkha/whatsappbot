@@ -225,10 +225,17 @@ module.exports = function init(meta) {
   async function downloadMediaIfAny(msg) {
     try {
       if (!msg) return null;
-      if (!msg.hasMedia) return null;
+      // Check for any media type: hasMedia (image/video/audio), hasDocument, or type property
+      const hasAnyMedia = msg.hasMedia || msg.hasDocument || 
+                         (msg.type && ['image', 'video', 'audio', 'document', 'ptt', 'sticker'].includes(msg.type));
+      if (!hasAnyMedia) return null;
       if (typeof msg.downloadMedia !== 'function') return null;
       return await msg.downloadMedia();
-    } catch (_) {
+    } catch (e) {
+      // Log download error for debugging
+      if (meta && meta.log) {
+        meta.log(tag, `downloadMedia error: ${e && e.message ? e.message : e}`);
+      }
       return null;
     }
   }
@@ -292,14 +299,27 @@ module.exports = function init(meta) {
 
     const msg = ctx.message;
 
-    // detect text/media
+    // Enhanced media detection and type identification
     const media = await downloadMediaIfAny(msg);
     const attachTypes = [];
     let attachCount = 0;
 
     if (media) {
       attachCount += 1;
-      attachTypes.push('media');
+      // Determine media type from message
+      let mediaType = 'media';
+      if (msg && msg.type) {
+        mediaType = msg.type; // image, video, audio, document, ptt, sticker
+      } else if (msg && msg.hasDocument) {
+        mediaType = 'document';
+      } else if (media.mimetype) {
+        // Fallback: detect from mimetype
+        if (media.mimetype.startsWith('image/')) mediaType = 'image';
+        else if (media.mimetype.startsWith('video/')) mediaType = 'video';
+        else if (media.mimetype.startsWith('audio/')) mediaType = 'audio';
+        else mediaType = 'document';
+      }
+      attachTypes.push(mediaType);
     }
 
     const vars = buildVars(ctx, ticketInfo.ticket, ticketInfo.isNew ? 'NEW' : 'UPDATE', ticketInfo.seq, {
@@ -320,7 +340,7 @@ module.exports = function init(meta) {
 
     // forward media as separate message under same ticket
     if (media) {
-      const caption = `📎 Ticket ${ticketInfo.ticket} (seq ${ticketInfo.seq})`;
+      const caption = `📎 Ticket ${ticketInfo.ticket} (seq ${ticketInfo.seq}) [${attachTypes[0] || 'media'}]`;
       await send(groupId, media, { caption });
     }
   }
@@ -386,6 +406,11 @@ module.exports = function init(meta) {
       const media = await downloadMediaIfAny(msg);
       if (media) {
         const cap = text ? text : '';
+        // Enhanced: log media type being sent
+        let mediaType = 'media';
+        if (msg && msg.type) mediaType = msg.type;
+        else if (msg && msg.hasDocument) mediaType = 'document';
+        meta.log && meta.log(tag, `sending ${mediaType} to customer ticket=${ticketFromQuote} chatId=${customerChatId}`);
         await sendToCustomer(customerChatId, media, cap ? { caption: cap } : {});
       } else if (text) {
         await sendToCustomer(customerChatId, text, {});
