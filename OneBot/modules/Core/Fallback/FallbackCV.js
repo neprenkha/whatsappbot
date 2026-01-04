@@ -143,6 +143,12 @@ module.exports.init = async function init(meta) {
   const inboundTtlMs = 15000;
   const forwardTtlMs = 60000;
 
+  // Safe handler resolution for QuoteReply (module may export function or {handle})
+  const quoteReplyHandle =
+    (QuoteReply && typeof QuoteReply.handle === 'function')
+      ? QuoteReply.handle
+      : (typeof QuoteReply === 'function' ? QuoteReply : null);
+
   function inboundKey(ctx) {
     const mid = msgIdOf(ctx);
     if (mid) return `id:${mid}`;
@@ -291,7 +297,11 @@ module.exports.init = async function init(meta) {
   }
 
   async function handleQuoteReply(ctx) {
-    const res = await QuoteReply.handle(
+    if (!quoteReplyHandle) {
+      logger.warn('warn: QuoteReply handler missing');
+      return false;
+    }
+    const res = await quoteReplyHandle(
       meta,
       { ...conf.raw, ticketStoreSpec, ticketType, debugLog: debugEnabled, traceLog: traceEnabled },
       ctx,

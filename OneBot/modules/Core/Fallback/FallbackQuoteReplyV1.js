@@ -189,7 +189,7 @@ async function flushCollector(meta, cfg, logger, key) {
   }
 }
 
-module.exports.handle = async (meta, cfg, ctx, opts = {}) => {
+async function handle(meta, cfg, ctx, opts = {}) {
   const logger = makeLogger(meta, cfg);
 
   if (!ctx || !ctx.isGroup) return { ok: false, reason: 'notgroup' };
@@ -302,4 +302,7 @@ module.exports.handle = async (meta, cfg, ctx, opts = {}) => {
 
   await sendToCustomer(meta, cfg, logger, destChatId, media, caption ? { type: 'media', caption } : { type: 'media' });
   return { ok: true, ticket, chatId: destChatId };
-};
+}
+
+module.exports = handle;
+module.exports.handle = handle;
