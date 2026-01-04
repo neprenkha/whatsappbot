@@ -100,10 +100,12 @@ async function extractQuotedText(ctx) {
     if (raw && raw.hasQuotedMsg && typeof raw.getQuotedMessage === 'function') {
       const qmsg = await raw.getQuotedMessage();
       if (qmsg) {
+        // Try multiple properties to extract text from quoted message
         const t = safeStr(
           qmsg.body ||
           qmsg.caption ||
-          (qmsg._data && (qmsg._data.body || qmsg._data.caption)) ||
+          qmsg.text ||
+          (qmsg._data && (qmsg._data.body || qmsg._data.caption || qmsg._data.text)) ||
           ''
         );
         if (t) return t;
@@ -189,7 +191,7 @@ async function flushCollector(meta, cfg, logger, key) {
   }
 }
 
-module.exports.handle = async (meta, cfg, ctx, opts = {}) => {
+async function handle(meta, cfg, ctx, opts = {}) {
   const logger = makeLogger(meta, cfg);
 
   if (!ctx || !ctx.isGroup) return { ok: false, reason: 'notgroup' };
@@ -302,4 +304,6 @@ module.exports.handle = async (meta, cfg, ctx, opts = {}) => {
 
   await sendToCustomer(meta, cfg, logger, destChatId, media, caption ? { type: 'media', caption } : { type: 'media' });
   return { ok: true, ticket, chatId: destChatId };
-};
+}
+
+module.exports = { handle };
