@@ -275,7 +275,16 @@ module.exports.init = async function init(meta) {
       
       if (hasAnyMedia) {
         try {
-          const cap = hideTicketInCustomerReply ? '' : `Ticket ${ticketRes.ticket}`;
+          // Determine media type for caption
+          let mediaTypeStr = 'media';
+          if (raw.type) {
+            mediaTypeStr = raw.type;
+          } else if (raw.hasDocument) {
+            mediaTypeStr = 'document';
+          }
+          
+          // Build caption with ticket, seq, and media type
+          const cap = hideTicketInCustomerReply ? '' : `Ticket ${ticketRes.ticket} (seq ${ticketRes.seq || 1}) [${mediaTypeStr}]`;
           const mediaResult = await MediaQ.forward(meta, conf.raw, controlGroupId, ctx, cap, hideTicketInCustomerReply);
           if (mediaResult && !mediaResult.ok) {
             logger.error(`error media forward failed ticket=${ticketRes.ticket} reason=${mediaResult.reason || 'unknown'}`);
