@@ -201,7 +201,25 @@ module.exports.init = async function init(meta) {
   async function buildCard(ctx, ticket, seq, info) {
     const textRaw = toText(ctx.text || ctx.body || '');
     const body = includeBody ? textRaw.slice(0, maxBodyChars) : '';
-    const mediaHint = includeMediaHint && ctx && ctx.raw && ctx.raw.hasMedia ? 'Attachment: media' : '';
+    
+    // Enhanced media detection for all types
+    let mediaHint = '';
+    let mediaType = '';
+    if (includeMediaHint && ctx && ctx.raw) {
+      const raw = ctx.raw;
+      if (raw.hasMedia || raw.hasDocument || 
+          (raw.type && ['image', 'video', 'audio', 'document', 'ptt', 'sticker'].includes(raw.type))) {
+        // Determine specific media type
+        if (raw.type) {
+          mediaType = raw.type;
+        } else if (raw.hasDocument) {
+          mediaType = 'document';
+        } else if (raw.hasMedia) {
+          mediaType = 'media';
+        }
+        mediaHint = `Attachment: ${mediaType}`;
+      }
+    }
 
     const data = {
       ticket,
@@ -213,7 +231,7 @@ module.exports.init = async function init(meta) {
       text: [body, mediaHint].filter(Boolean).join('\n'),
       tips: tipsText,
       attachCount: mediaHint ? '1' : '',
-      attachTypes: mediaHint ? 'media' : '',
+      attachTypes: mediaType || '',
     };
 
     return TicketCard.render(meta, conf.raw, seq === 1 ? 'NEW' : 'UPDATE', data);
@@ -249,9 +267,25 @@ module.exports.init = async function init(meta) {
       await appendContact(contactsCsvFile, fromName || fromPhone, fromPhone, log);
     }
 
-    if (ctx && ctx.raw && ctx.raw.hasMedia) {
-      const cap = hideTicketInCustomerReply ? '' : `Ticket ${ticketRes.ticket}`;
-      await MediaQ.forward(meta, conf.raw, controlGroupId, ctx, cap, hideTicketInCustomerReply);
+    // Enhanced media detection and forwarding for all types
+    if (ctx && ctx.raw) {
+      const raw = ctx.raw;
+      const hasAnyMedia = raw.hasMedia || raw.hasDocument || 
+                         (raw.type && ['image', 'video', 'audio', 'document', 'ptt', 'sticker'].includes(raw.type));
+      
+      if (hasAnyMedia) {
+        try {
+          const cap = hideTicketInCustomerReply ? '' : `Ticket ${ticketRes.ticket}`;
+          const mediaResult = await MediaQ.forward(meta, conf.raw, controlGroupId, ctx, cap, hideTicketInCustomerReply);
+          if (mediaResult && !mediaResult.ok) {
+            logger.error(`error media forward failed ticket=${ticketRes.ticket} reason=${mediaResult.reason || 'unknown'}`);
+          } else if (mediaResult && mediaResult.ok) {
+            log(`media forwarded ticket=${ticketRes.ticket} sent=${mediaResult.sent || 0}`);
+          }
+        } catch (e) {
+          logger.error(`error media forward exception ticket=${ticketRes.ticket} err=${e && e.message ? e.message : e}`);
+        }
+      }
     }
     return true;
   }

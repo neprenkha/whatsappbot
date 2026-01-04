@@ -20,11 +20,23 @@ async function extractMediaList(ctx) {
   try {
     if (ctx && Array.isArray(ctx.attachments) && ctx.attachments.length) {
       for (const a of ctx.attachments) list.push(a);
-    } else if (ctx && ctx.raw && typeof ctx.raw.downloadMedia === 'function') {
-      const media = await ctx.raw.downloadMedia();
-      if (media) list.push(media);
+    } else if (ctx && ctx.raw) {
+      const raw = ctx.raw;
+      // Check for any media type: hasMedia (image/video/audio), hasDocument, or type property
+      const hasAnyMedia = raw.hasMedia || raw.hasDocument || 
+                         (raw.type && ['image', 'video', 'audio', 'document', 'ptt', 'sticker'].includes(raw.type));
+      
+      if (hasAnyMedia && typeof raw.downloadMedia === 'function') {
+        const media = await raw.downloadMedia();
+        if (media) list.push(media);
+      }
     }
-  } catch (_) {}
+  } catch (e) {
+    // Log error if meta is available
+    if (ctx && ctx.meta && typeof ctx.meta.log === 'function') {
+      ctx.meta.log('FallbackMediaForward', `extractMedia error: ${e && e.message ? e.message : e}`);
+    }
+  }
   return list;
 }
 
