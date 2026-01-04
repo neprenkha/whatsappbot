@@ -279,7 +279,7 @@ module.exports.init = async function init(meta) {
           const mediaResult = await MediaQ.forward(meta, conf.raw, controlGroupId, ctx, cap, hideTicketInCustomerReply);
           if (mediaResult && !mediaResult.ok) {
             logger.error(`error media forward failed ticket=${ticketRes.ticket} reason=${mediaResult.reason || 'unknown'}`);
-          } else {
+          } else if (mediaResult && mediaResult.ok) {
             log(`media forwarded ticket=${ticketRes.ticket} sent=${mediaResult.sent || 0}`);
           }
         } catch (e) {
