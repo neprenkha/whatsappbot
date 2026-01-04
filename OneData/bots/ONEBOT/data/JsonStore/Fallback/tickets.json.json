@@ -1,0 +1,73 @@
+{
+  "tickets": {
+    "2512T1836441": {
+      "ticketId": "2512T1836441",
+      "chatId": "60133335545@c.us",
+      "senderName": "Pa’Din",
+      "senderPhone": "60133335545",
+      "createdAt": "2025-12-28T04:23:17.029Z",
+      "status": "open"
+    },
+    "2512T3920365": {
+      "ticketId": "2512T3920365",
+      "chatId": "55791641985261@lid",
+      "senderName": "Ryusm/Pjang",
+      "senderPhone": "55791641985261",
+      "createdAt": "2025-12-28T04:24:08.818Z",
+      "status": "open"
+    },
+    "2512T3218304": {
+      "ticketId": "2512T3218304",
+      "chatId": "60133335545@c.us",
+      "senderName": "Pa’Din",
+      "senderPhone": "60133335545",
+      "createdAt": "2025-12-28T04:44:49.817Z",
+      "status": "open"
+    },
+    "2512T9513074": {
+      "ticketId": "2512T9513074",
+      "chatId": "60133335545@c.us",
+      "senderName": "Pa’Din",
+      "senderPhone": "60133335545",
+      "createdAt": "2025-12-28T05:20:34.268Z",
+      "status": "open"
+    },
+    "2512T4065177": {
+      "ticketId": "2512T4065177",
+      "chatId": "55791641985261@lid",
+      "senderName": "Ryusm/Pjang",
+      "senderPhone": "55791641985261",
+      "createdAt": "2025-12-28T06:08:37.334Z",
+      "status": "open"
+    },
+    "2512T7053887": {
+      "ticketId": "2512T7053887",
+      "chatId": "60133335545@c.us",
+      "senderName": "Pa’Din",
+      "senderPhone": "60133335545",
+      "createdAt": "2025-12-28T06:14:36.741Z",
+      "status": "open",
+      "lastInboundAt": 1766908207476,
+      "updatedAt": 1766908207491,
+      "lastAnnounceAt": 1766908207491
+    },
+    "2512T4657990": {
+      "ticketId": "2512T4657990",
+      "chatId": "55791641985261@lid",
+      "senderName": "Ryusm/Pjang",
+      "senderPhone": "55791641985261",
+      "createdAt": "2025-12-28T06:23:47.402Z",
+      "status": "open"
+    }
+  },
+  "openByChatId": {
+    "60133335545@c.us": "2512T7053887",
+    "55791641985261@lid": "2512T4657990"
+  },
+  "lastByChatId": {
+    "60133335545@c.us": 1766905248,
+    "55791641985261@lid": 1766904385
+  },
+  "lastSeq": 0,
+  "counterByYYMM": {}
+}

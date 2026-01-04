@@ -1,0 +1,695 @@
+2025-12-25 02:09:18.994 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Seri Padimas Canopy / Azka Printing"} text=
+2025-12-25 08:31:16.926 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"W M AMIRUL"} text=Elektrik ni senang.. pusing2 pun dlm segi tiga ni je.
+2025-12-25 08:50:09.676 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Hazri Merbok"} text=
+2025-12-25 08:51:16.924 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Hazri Merbok"} text=
+2025-12-25 09:44:17.184 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"shaabas93"} text=sedap sgt isap jari... goram tengok tangan tu
+2025-12-25 10:01:31.725 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Elaine Lee"} text=
+2025-12-25 10:06:22.486 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Elaine Lee"} text=
+2025-12-25 10:15:34.587 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Imanina"} text=Alfatihah
+2025-12-25 10:57:09.540 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"13783154065412@lid","phone":"13783154065412","lid":"","name":"bp taishier"} text=
+2025-12-25 10:57:09.758 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"13783154065412@lid","phone":"13783154065412","lid":"","name":"bp taishier"} text=
+2025-12-25 11:06:13.471 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"13783154065412@lid","phone":"13783154065412","lid":"","name":"bp taishier"} text=
+2025-12-25 11:20:29.517 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2025-12-25 11:20:29.526 [CommandV1] tips.loaded file=X:\OneData\bots\ONEBOT\config\ui\Tips.conf
+2025-12-25 11:20:30.742 [process] exit
+2025-12-25 11:20:31.557 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 11:20:31.563 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 11:20:31.573 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 11:20:31.574 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2025-12-25 11:20:31.582 [TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=25/12/2025, 11:20:31
+2025-12-25 11:20:31.584 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2025-12-25 11:20:31.594 [SendQueueV1] ready delayMs=800 maxQueue=500
+2025-12-25 11:20:31.595 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2025-12-25 11:20:31.602 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2025-12-25 11:20:31.602 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2025-12-25 11:20:31.608 [CommandV1] ready prefix="!" allowInDm=1 allowInGroups=1
+2025-12-25 11:20:31.610 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2025-12-25 11:20:31.622 [AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=2
+2025-12-25 11:20:31.623 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2025-12-25 11:20:31.627 [HelpV1] ready cmdHelp=help
+2025-12-25 11:20:31.627 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2025-12-25 11:20:31.644 [PingDiagV1] ready cmdPing=ping
+2025-12-25 11:20:31.646 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2025-12-25 11:20:31.652 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2025-12-25 11:20:31.653 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2025-12-25 11:20:31.662 [RateLimitV1] day.reset dateKey=2025-12-25
+2025-12-25 11:20:31.662 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2025-12-25 11:20:31.667 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2025-12-25 11:20:31.672 [OutboundGatewayV1] ready enabled=1 baseSend=send rl=ratelimit svc=sendout,outsend
+2025-12-25 11:20:31.674 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2025-12-25 11:20:31.690 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2025-12-25 11:20:31.691 [kernel] module.init_failed id=Outbox file=Modules/Core/OutboxHub.js
+2025-12-25 11:20:31.699 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2025-12-25 11:20:31.699 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2025-12-25 11:20:31.706 [RateLimitTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 11:20:31.706 [kernel] module.loaded id=RateLimitTest file=Modules/Features/RateLimitTestHub.js prio=4100
+2025-12-25 11:20:31.712 [OutboundGatewayTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 11:20:31.717 [kernel] module.loaded id=OutboundGatewayTest file=Modules/Features/OutboundGatewayTestHub.js prio=4050
+2025-12-25 11:20:31.722 [MessageJournalTestV1] ready controlGroupId=(any) requiredRole=staff
+2025-12-25 11:20:31.724 [kernel] module.loaded id=MessageJournalTest file=Modules/Features/MessageJournalTestHub.js prio=4020
+2025-12-25 11:20:31.728 [SchedulerTestV1] ready controlGroupId=120363402608825006@g.us handlerId=SchedulerTestV1.fire
+2025-12-25 11:20:31.729 [kernel] module.loaded id=SchedulerTest file=Modules/Features/SchedulerTestHub.js prio=4000
+2025-12-25 11:20:31.732 [kernel] ready modules=17
+2025-12-25 11:20:40.863 [connector] authenticated
+2025-12-25 11:20:54.283 [event] keys=type,at
+2025-12-25 11:20:54.465 [connector] ready
+2025-12-25 11:20:54.466 [event] keys=type,at
+2025-12-25 11:31:46.719 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"serah"} text=happy 1st birthday sayang ibupapa 🫶🏻❤️
+2025-12-25 11:35:06.541 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Baizura Zainuddin"} text=
+2025-12-25 11:39:27.603 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2025-12-25 11:39:27.612 [CommandV1] tips.loaded file=X:\OneData\bots\ONEBOT\config\ui\Tips.conf
+2025-12-25 11:39:28.822 [process] exit
+2025-12-25 11:39:29.641 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 11:39:29.647 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 11:39:29.662 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 11:39:29.663 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2025-12-25 11:39:29.668 [TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=25/12/2025, 11:39:29
+2025-12-25 11:39:29.669 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2025-12-25 11:39:29.671 [SendQueueV1] ready delayMs=800 maxQueue=500
+2025-12-25 11:39:29.674 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2025-12-25 11:39:29.681 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2025-12-25 11:39:29.682 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2025-12-25 11:39:29.688 [CommandV1] ready prefix="!" allowInDm=1 allowInGroups=1
+2025-12-25 11:39:29.689 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2025-12-25 11:39:29.693 [AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=2
+2025-12-25 11:39:29.694 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2025-12-25 11:39:29.698 [HelpV1] ready cmdHelp=help
+2025-12-25 11:39:29.702 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2025-12-25 11:39:29.707 [PingDiagV1] ready cmdPing=ping
+2025-12-25 11:39:29.708 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2025-12-25 11:39:29.713 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2025-12-25 11:39:29.713 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2025-12-25 11:39:29.721 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2025-12-25 11:39:29.721 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2025-12-25 11:39:29.725 [OutboundGatewayV1] ready enabled=1 baseSend=send rl=ratelimit svc=sendout,outsend
+2025-12-25 11:39:29.725 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2025-12-25 11:39:29.733 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2025-12-25 11:39:29.734 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2025-12-25 11:39:29.741 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2025-12-25 11:39:29.742 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2025-12-25 11:39:29.750 [RateLimitTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 11:39:29.751 [kernel] module.loaded id=RateLimitTest file=Modules/Features/RateLimitTestHub.js prio=4100
+2025-12-25 11:39:29.756 [OutboundGatewayTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 11:39:29.757 [kernel] module.loaded id=OutboundGatewayTest file=Modules/Features/OutboundGatewayTestHub.js prio=4050
+2025-12-25 11:39:29.762 [MessageJournalTestV1] ready controlGroupId=(any) requiredRole=staff
+2025-12-25 11:39:29.764 [kernel] module.loaded id=MessageJournalTest file=Modules/Features/MessageJournalTestHub.js prio=4020
+2025-12-25 11:39:29.769 [SchedulerTestV1] ready controlGroupId=120363402608825006@g.us handlerId=SchedulerTestV1.fire
+2025-12-25 11:39:29.772 [kernel] module.loaded id=SchedulerTest file=Modules/Features/SchedulerTestHub.js prio=4000
+2025-12-25 11:39:29.772 [kernel] ready modules=18
+2025-12-25 11:39:38.602 [connector] authenticated
+2025-12-25 11:39:38.603 [event] keys=type,at
+2025-12-25 11:39:40.936 [connector] ready
+2025-12-25 11:39:40.937 [event] keys=type,at
+2025-12-25 11:40:37.311 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!status
+2025-12-25 11:40:37.318 [CommandV1] tips.loaded file=X:\OneData\bots\ONEBOT\config\ui\Tips.conf
+2025-12-25 12:54:22.565 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"23893423169652@lid","phone":"23893423169652","lid":"","name":"sohan"} text=
+2025-12-25 13:48:38.240 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2025-12-25 13:48:39.456 [process] exit
+2025-12-25 13:48:40.252 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 13:48:40.258 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 13:48:40.266 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 13:49:33.833 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 13:49:33.836 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 13:49:33.841 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 15:40:37.480 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 15:40:37.483 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 15:40:37.488 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 16:00:50.852 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 16:00:50.855 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 16:00:50.860 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 16:00:50.861 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2025-12-25 16:00:50.864 [TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=25/12/2025, 16:00:50
+2025-12-25 16:00:50.867 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2025-12-25 16:00:50.869 [SendQueueV1] ready delayMs=800 maxQueue=500
+2025-12-25 16:00:50.870 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2025-12-25 16:00:50.871 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2025-12-25 16:00:50.872 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2025-12-25 16:00:50.874 [CommandV1] ready prefix="!" allowInDm=1 allowInGroups=1
+2025-12-25 16:00:50.874 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2025-12-25 16:00:50.877 [AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=2
+2025-12-25 16:00:50.878 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2025-12-25 16:13:49.003 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 16:13:49.005 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 16:13:49.010 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 16:36:48.141 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 16:36:48.144 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 16:36:48.150 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 17:43:15.963 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 17:43:15.965 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 17:43:16.017 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 17:43:16.018 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2025-12-25 17:43:16.061 [TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=25/12/2025, 17:43:16
+2025-12-25 17:43:16.065 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2025-12-25 17:43:16.102 [SendQueueV1] ready delayMs=800 maxQueue=500
+2025-12-25 17:43:16.103 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2025-12-25 17:43:16.151 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2025-12-25 17:43:16.152 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2025-12-25 17:43:16.198 [kernel] module.init_failed id=Command file=Modules/Core/CommandHub.js
+2025-12-25 17:43:16.256 [AccessRolesV1] error missing command service (load Command module before AccessRoles)
+2025-12-25 17:43:16.256 [AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=2
+2025-12-25 17:43:16.257 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2025-12-25 17:43:16.298 [HelpV1] error missing command service (load Command module before Help)
+2025-12-25 17:43:16.298 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2025-12-25 17:43:16.340 [PingDiagV1] error missing command service (load Command module before PingDiag)
+2025-12-25 17:43:16.341 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2025-12-25 17:43:16.399 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2025-12-25 17:43:16.399 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2025-12-25 17:43:16.460 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2025-12-25 17:43:16.461 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2025-12-25 17:43:16.504 [OutboundGatewayV1] ready enabled=1 baseSend=send rl=ratelimit svc=sendout,outsend
+2025-12-25 17:43:16.504 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2025-12-25 17:43:16.567 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2025-12-25 17:43:16.568 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2025-12-25 17:43:16.624 [SystemControlV2] error missing Command service (load Command module before SystemControl)
+2025-12-25 17:43:16.625 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2025-12-25 17:43:16.626 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2025-12-25 17:43:16.672 [RateLimitTestV1] error missing command service
+2025-12-25 17:43:16.672 [kernel] module.loaded id=RateLimitTest file=Modules/Features/RateLimitTestHub.js prio=4100
+2025-12-25 17:43:16.718 [OutboundGatewayTestV1] error missing command service
+2025-12-25 17:43:16.718 [kernel] module.loaded id=OutboundGatewayTest file=Modules/Features/OutboundGatewayTestHub.js prio=4050
+2025-12-25 17:43:16.763 [MessageJournalTestV1] command service missing
+2025-12-25 17:43:16.764 [kernel] module.loaded id=MessageJournalTest file=Modules/Features/MessageJournalTestHub.js prio=4020
+2025-12-25 17:43:16.811 [SchedulerTestV1] error missing command service
+2025-12-25 17:43:16.811 [kernel] module.loaded id=SchedulerTest file=Modules/Features/SchedulerTestHub.js prio=4000
+2025-12-25 17:43:16.834 [kernel] module.init_failed id=BootAnnounce file=Modules/Core/BootAnnounceHub.js
+2025-12-25 17:43:16.834 [kernel] ready modules=17
+2025-12-25 17:43:25.997 [connector] authenticated
+2025-12-25 17:43:25.998 [event] keys=type,at
+2025-12-25 17:43:28.551 [connector] ready
+2025-12-25 17:43:28.551 [event] keys=type,at
+2025-12-25 17:43:28.633 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Izul Dani"} text=
+2025-12-25 17:43:28.699 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Imanina"} text=🥺
+2025-12-25 17:43:28.754 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"23893423169652@lid","phone":"23893423169652","lid":"","name":"sohan"} text=
+2025-12-25 17:43:28.776 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"23893423169652@lid","phone":"23893423169652","lid":"","name":"sohan"} text=
+2025-12-25 17:43:28.876 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"23893423169652@lid","phone":"23893423169652","lid":"","name":"sohan"} text=
+2025-12-25 17:43:28.935 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"23893423169652@lid","phone":"23893423169652","lid":"","name":"sohan"} text=
+2025-12-25 17:43:29.070 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"23893423169652@lid","phone":"23893423169652","lid":"","name":"sohan"} text=
+2025-12-25 17:43:29.146 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"23893423169652@lid","phone":"23893423169652","lid":"","name":"sohan"} text=esok boleh pasang
+2025-12-25 17:43:29.215 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"23893423169652@lid","phone":"23893423169652","lid":"","name":"sohan"} text=Salak pardana
+2025-12-25 17:43:29.458 [msg] chatId=120363250037409420@g.us isGroup=true sender={"id":"179637174984749@lid","phone":"179637174984749","lid":"","name":"me"} text=
+2025-12-25 17:43:29.553 [msg] chatId=120363250037409420@g.us isGroup=true sender={"id":"82527981195280@lid","phone":"82527981195280","lid":"","name":"🫶🏻"} text=M2U_20251225_1627.pdf
+2025-12-25 17:43:29.680 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"HH"} text=Deep
+2025-12-25 17:43:45.673 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!group list
+2025-12-25 17:44:00.807 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!status
+2025-12-25 18:12:25.823 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2025-12-25 18:12:45.821 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 18:12:45.824 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 18:12:45.829 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 18:12:45.829 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2025-12-25 18:12:45.834 [TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=25/12/2025, 18:12:45
+2025-12-25 18:12:45.838 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2025-12-25 18:12:45.839 [SendQueueV1] ready delayMs=800 maxQueue=500
+2025-12-25 18:12:45.840 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2025-12-25 18:12:45.842 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2025-12-25 18:12:45.842 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2025-12-25 18:12:45.844 [CommandV1] ready prefix=! allowInDm=1 allowInGroups=1
+2025-12-25 18:12:45.845 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2025-12-25 18:12:45.849 [AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=2
+2025-12-25 18:12:45.850 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2025-12-25 18:12:45.852 [HelpV1] ready cmdHelp=help
+2025-12-25 18:12:45.852 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2025-12-25 18:12:45.854 [PingDiagV1] ready cmdPing=ping
+2025-12-25 18:12:45.855 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2025-12-25 18:12:45.858 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2025-12-25 18:12:45.858 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2025-12-25 18:12:45.861 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2025-12-25 18:12:45.862 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2025-12-25 18:12:45.864 [OutboundGatewayV1] ready enabled=1 baseSend=send rl=ratelimit svc=sendout,outsend
+2025-12-25 18:12:45.864 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2025-12-25 18:12:45.868 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2025-12-25 18:12:45.869 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2025-12-25 18:12:45.873 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2025-12-25 18:12:45.873 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2025-12-25 18:12:45.875 [RateLimitTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 18:12:45.875 [kernel] module.loaded id=RateLimitTest file=Modules/Features/RateLimitTestHub.js prio=4100
+2025-12-25 18:12:45.877 [OutboundGatewayTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 18:12:45.877 [kernel] module.loaded id=OutboundGatewayTest file=Modules/Features/OutboundGatewayTestHub.js prio=4050
+2025-12-25 18:12:45.880 [MessageJournalTestV1] ready controlGroupId=(any) requiredRole=staff
+2025-12-25 18:12:45.880 [kernel] module.loaded id=MessageJournalTest file=Modules/Features/MessageJournalTestHub.js prio=4020
+2025-12-25 18:12:45.883 [SchedulerTestV1] ready controlGroupId=120363402608825006@g.us handlerId=SchedulerTestV1.fire
+2025-12-25 18:12:45.883 [kernel] module.loaded id=SchedulerTest file=Modules/Features/SchedulerTestHub.js prio=4000
+2025-12-25 18:12:45.885 [kernel] module.init_failed id=BootAnnounce file=Modules/Core/BootAnnounceHub.js
+2025-12-25 18:12:45.887 [kernel] ready modules=18
+2025-12-25 18:12:53.961 [connector] authenticated
+2025-12-25 18:12:53.962 [event] keys=type,at
+2025-12-25 18:12:57.092 [connector] ready
+2025-12-25 18:12:57.093 [event] keys=type,at
+2025-12-25 18:12:57.253 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2025-12-25 18:12:57.273 [CommandV1] tips.loaded file=X:\OneData\bots\ONEBOT\config\ui\Tips.conf
+2025-12-25 18:12:58.481 [process] exit
+2025-12-25 18:12:59.321 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 18:12:59.324 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 18:12:59.329 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 18:12:59.330 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2025-12-25 18:12:59.334 [TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=25/12/2025, 18:12:59
+2025-12-25 18:12:59.335 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2025-12-25 18:12:59.337 [SendQueueV1] ready delayMs=800 maxQueue=500
+2025-12-25 18:12:59.337 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2025-12-25 18:12:59.343 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2025-12-25 18:12:59.343 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2025-12-25 18:12:59.345 [CommandV1] ready prefix=! allowInDm=1 allowInGroups=1
+2025-12-25 18:12:59.346 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2025-12-25 18:12:59.351 [AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=2
+2025-12-25 18:12:59.352 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2025-12-25 18:12:59.355 [HelpV1] ready cmdHelp=help
+2025-12-25 18:12:59.355 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2025-12-25 18:12:59.357 [PingDiagV1] ready cmdPing=ping
+2025-12-25 18:12:59.358 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2025-12-25 18:12:59.361 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2025-12-25 18:12:59.361 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2025-12-25 18:12:59.365 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2025-12-25 18:12:59.365 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2025-12-25 18:12:59.368 [OutboundGatewayV1] ready enabled=1 baseSend=send rl=ratelimit svc=sendout,outsend
+2025-12-25 18:12:59.368 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2025-12-25 18:12:59.373 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2025-12-25 18:12:59.373 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2025-12-25 18:12:59.377 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2025-12-25 18:12:59.377 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2025-12-25 18:12:59.379 [RateLimitTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 18:12:59.379 [kernel] module.loaded id=RateLimitTest file=Modules/Features/RateLimitTestHub.js prio=4100
+2025-12-25 18:12:59.381 [OutboundGatewayTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 18:12:59.381 [kernel] module.loaded id=OutboundGatewayTest file=Modules/Features/OutboundGatewayTestHub.js prio=4050
+2025-12-25 18:12:59.383 [MessageJournalTestV1] ready controlGroupId=(any) requiredRole=staff
+2025-12-25 18:12:59.383 [kernel] module.loaded id=MessageJournalTest file=Modules/Features/MessageJournalTestHub.js prio=4020
+2025-12-25 18:12:59.385 [SchedulerTestV1] ready controlGroupId=120363402608825006@g.us handlerId=SchedulerTestV1.fire
+2025-12-25 18:12:59.386 [kernel] module.loaded id=SchedulerTest file=Modules/Features/SchedulerTestHub.js prio=4000
+2025-12-25 18:12:59.387 [kernel] module.init_failed id=BootAnnounce file=Modules/Core/BootAnnounceHub.js
+2025-12-25 18:12:59.387 [kernel] ready modules=18
+2025-12-25 18:13:07.005 [connector] authenticated
+2025-12-25 18:13:07.005 [event] keys=type,at
+2025-12-25 18:13:09.133 [connector] ready
+2025-12-25 18:13:09.133 [event] keys=type,at
+2025-12-25 18:13:54.024 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!ping
+2025-12-25 18:13:54.031 [CommandV1] tips.loaded file=X:\OneData\bots\ONEBOT\config\ui\Tips.conf
+2025-12-25 18:13:58.215 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!status
+2025-12-25 18:25:25.468 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!whoami
+2025-12-25 18:41:27.528 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2025-12-25 18:41:28.737 [process] exit
+2025-12-25 18:41:29.623 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 18:41:29.627 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 18:41:29.633 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 18:41:29.634 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2025-12-25 18:41:29.639 [TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=25/12/2025, 18:41:29
+2025-12-25 18:41:29.639 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2025-12-25 18:41:29.643 [SendQueueV1] ready delayMs=800 maxQueue=500
+2025-12-25 18:41:29.645 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2025-12-25 18:41:29.657 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2025-12-25 18:41:29.658 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2025-12-25 18:41:29.661 [CommandV1] ready prefix=! allowInDm=1 allowInGroups=1
+2025-12-25 18:41:29.663 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2025-12-25 18:41:29.668 [AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=2
+2025-12-25 18:41:29.668 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2025-12-25 18:41:29.671 [HelpV1] ready cmdHelp=help
+2025-12-25 18:41:29.672 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2025-12-25 18:41:29.679 [PingDiagV1] ready cmdPing=ping
+2025-12-25 18:41:29.679 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2025-12-25 18:41:29.692 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2025-12-25 18:41:29.693 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2025-12-25 18:41:29.701 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2025-12-25 18:41:29.703 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2025-12-25 18:41:29.709 [OutboundGatewayV1] ready enabled=1 baseSend=send rl=ratelimit svc=sendout,outsend
+2025-12-25 18:41:29.711 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2025-12-25 18:41:29.723 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2025-12-25 18:41:29.724 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2025-12-25 18:41:29.729 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2025-12-25 18:41:29.730 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2025-12-25 18:41:29.734 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2025-12-25 18:41:29.738 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2025-12-25 18:41:29.741 [RateLimitTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 18:41:29.744 [kernel] module.loaded id=RateLimitTest file=Modules/Features/RateLimitTestHub.js prio=4100
+2025-12-25 18:41:29.748 [OutboundGatewayTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 18:41:29.749 [kernel] module.loaded id=OutboundGatewayTest file=Modules/Features/OutboundGatewayTestHub.js prio=4050
+2025-12-25 18:41:29.752 [MessageJournalTestV1] ready controlGroupId=(any) requiredRole=staff
+2025-12-25 18:41:29.752 [kernel] module.loaded id=MessageJournalTest file=Modules/Features/MessageJournalTestHub.js prio=4020
+2025-12-25 18:41:29.755 [SchedulerTestV1] ready controlGroupId=120363402608825006@g.us handlerId=SchedulerTestV1.fire
+2025-12-25 18:41:29.755 [kernel] module.loaded id=SchedulerTest file=Modules/Features/SchedulerTestHub.js prio=4000
+2025-12-25 18:41:29.756 [kernel] ready modules=19
+2025-12-25 18:41:38.142 [connector] authenticated
+2025-12-25 18:41:38.142 [event] keys=type,at
+2025-12-25 18:41:40.491 [connector] ready
+2025-12-25 18:41:40.492 [event] keys=type,at
+2025-12-25 18:41:41.503 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!whoami
+2025-12-25 18:41:41.511 [CommandV1] tips.loaded file=X:\OneData\bots\ONEBOT\config\ui\Tips.conf
+2025-12-25 18:41:46.989 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!status
+2025-12-25 18:59:58.016 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Seri Padimas Canopy / Azka Printing"} text=
+2025-12-25 19:00:13.335 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Seri Padimas Canopy / Azka Printing"} text=
+2025-12-25 19:04:52.645 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"🫶🏻"} text=
+2025-12-25 19:33:26.116 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2025-12-25 19:33:27.338 [process] exit
+2025-12-25 19:33:34.386 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 19:33:34.393 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 19:33:34.404 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 19:33:34.405 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2025-12-25 19:33:34.434 [TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=25/12/2025, 19:33:34
+2025-12-25 19:33:34.437 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2025-12-25 19:33:34.445 [SendQueueV1] ready delayMs=800 maxQueue=500
+2025-12-25 19:33:34.446 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2025-12-25 19:33:34.451 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2025-12-25 19:33:34.452 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2025-12-25 19:33:34.486 [CommandV1] ready prefix=! allowInDm=1 allowInGroups=1
+2025-12-25 19:33:34.487 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2025-12-25 19:33:34.513 [AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=2
+2025-12-25 19:33:34.514 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2025-12-25 19:33:34.542 [HelpV1] ready cmdHelp=help
+2025-12-25 19:33:34.543 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2025-12-25 19:33:34.568 [PingDiagV1] ready cmdPing=ping
+2025-12-25 19:33:34.568 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2025-12-25 19:33:34.614 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2025-12-25 19:33:34.614 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2025-12-25 19:33:34.655 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2025-12-25 19:33:34.655 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2025-12-25 19:33:34.684 [OutboundGatewayV1] ready enabled=1 baseSend=send rl=ratelimit svc=sendout,outsend
+2025-12-25 19:33:34.685 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2025-12-25 19:33:34.754 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2025-12-25 19:33:34.754 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2025-12-25 19:33:34.759 [FallbackV1] ready controlGroupId=120363402608825006@g.us forwardDm=1 forwardGroups=0 send=outsend
+2025-12-25 19:33:34.762 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9205
+2025-12-25 19:33:34.769 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2025-12-25 19:33:34.769 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2025-12-25 19:33:34.874 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2025-12-25 19:33:34.875 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2025-12-25 19:33:34.883 [RateLimitTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 19:33:34.883 [kernel] module.loaded id=RateLimitTest file=Modules/Features/RateLimitTestHub.js prio=4100
+2025-12-25 19:33:34.918 [OutboundGatewayTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 19:33:34.919 [kernel] module.loaded id=OutboundGatewayTest file=Modules/Features/OutboundGatewayTestHub.js prio=4050
+2025-12-25 19:33:34.949 [MessageJournalTestV1] ready controlGroupId=(any) requiredRole=staff
+2025-12-25 19:33:34.949 [kernel] module.loaded id=MessageJournalTest file=Modules/Features/MessageJournalTestHub.js prio=4020
+2025-12-25 19:33:34.997 [SchedulerTestV1] ready controlGroupId=120363402608825006@g.us handlerId=SchedulerTestV1.fire
+2025-12-25 19:33:34.997 [kernel] module.loaded id=SchedulerTest file=Modules/Features/SchedulerTestHub.js prio=4000
+2025-12-25 19:33:34.999 [kernel] ready modules=20
+2025-12-25 19:33:45.331 [connector] authenticated
+2025-12-25 19:33:45.332 [event] keys=type,at
+2025-12-25 19:33:47.247 [connector] ready
+2025-12-25 19:33:47.248 [event] keys=type,at
+2025-12-25 19:33:54.409 [msg] chatId=60198833700@c.us isGroup=false sender={"id":"60198833700@c.us","phone":"60198833700","lid":"","name":"RINTIK JAYA"} text=test
+2025-12-25 19:46:43.519 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"alongfatbike84"} text=
+2025-12-25 20:17:57.601 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"rAdZi - cibOb"} text=
+2025-12-25 20:18:52.901 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=test
+2025-12-25 20:19:00.428 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=reply
+2025-12-25 22:02:29.224 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"kamalsidri"} text=https://www.facebook.com/share/r/17mHE7q5KK/
+2025-12-25 22:34:45.487 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2025-12-25 22:34:45.496 [CommandV1] tips.loaded file=X:\OneData\bots\ONEBOT\config\ui\Tips.conf
+2025-12-25 22:34:46.700 [process] exit
+2025-12-25 22:34:47.460 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 22:34:47.465 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 22:34:47.482 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 22:34:47.484 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2025-12-25 22:34:47.491 [TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=25/12/2025, 22:34:47
+2025-12-25 22:34:47.492 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2025-12-25 22:34:47.497 [SendQueueV1] ready delayMs=800 maxQueue=500
+2025-12-25 22:34:47.498 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2025-12-25 22:34:47.503 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2025-12-25 22:34:47.503 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2025-12-25 22:34:47.508 [CommandV1] ready prefix=! allowInDm=1 allowInGroups=1
+2025-12-25 22:34:47.512 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2025-12-25 22:34:47.520 [AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=2
+2025-12-25 22:34:47.521 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2025-12-25 22:34:47.528 [[WorkGroupsV1] ready stateFile=WorkGroups/state.json control=(none)] undefined
+2025-12-25 22:34:47.528 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9450
+2025-12-25 22:34:47.532 [HelpV1] ready cmdHelp=help
+2025-12-25 22:34:47.534 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2025-12-25 22:34:47.537 [PingDiagV1] ready cmdPing=ping
+2025-12-25 22:34:47.538 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2025-12-25 22:34:47.544 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2025-12-25 22:34:47.545 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2025-12-25 22:34:47.559 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2025-12-25 22:34:47.560 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2025-12-25 22:34:47.564 [OutboundGatewayV1] ready enabled=1 baseSend=send rl=ratelimit svc=sendout,outsend
+2025-12-25 22:34:47.565 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2025-12-25 22:34:47.574 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2025-12-25 22:34:47.575 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2025-12-25 22:34:47.579 [FallbackV1] ready controlGroupId=120363402608825006@g.us forwardDm=1 forwardGroups=0 send=outsend
+2025-12-25 22:34:47.580 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9205
+2025-12-25 22:34:47.584 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2025-12-25 22:34:47.584 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2025-12-25 22:34:47.593 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2025-12-25 22:34:47.593 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2025-12-25 22:34:47.597 [RateLimitTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 22:34:47.598 [kernel] module.loaded id=RateLimitTest file=Modules/Features/RateLimitTestHub.js prio=4100
+2025-12-25 22:34:47.601 [OutboundGatewayTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 22:34:47.605 [kernel] module.loaded id=OutboundGatewayTest file=Modules/Features/OutboundGatewayTestHub.js prio=4050
+2025-12-25 22:34:47.611 [MessageJournalTestV1] ready controlGroupId=(any) requiredRole=staff
+2025-12-25 22:34:47.611 [kernel] module.loaded id=MessageJournalTest file=Modules/Features/MessageJournalTestHub.js prio=4020
+2025-12-25 22:34:47.615 [SchedulerTestV1] ready controlGroupId=120363402608825006@g.us handlerId=SchedulerTestV1.fire
+2025-12-25 22:34:47.616 [kernel] module.loaded id=SchedulerTest file=Modules/Features/SchedulerTestHub.js prio=4000
+2025-12-25 22:34:47.616 [kernel] ready modules=21
+2025-12-25 22:34:55.934 [connector] authenticated
+2025-12-25 22:34:55.935 [event] keys=type,at
+2025-12-25 22:34:58.312 [connector] ready
+2025-12-25 22:34:58.313 [event] keys=type,at
+2025-12-25 22:49:44.548 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2025-12-25 22:49:44.559 [CommandV1] tips.loaded file=X:\OneData\bots\ONEBOT\config\ui\Tips.conf
+2025-12-25 22:49:45.769 [process] exit
+2025-12-25 22:49:46.520 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 22:49:46.524 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 22:49:46.530 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 22:49:46.532 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2025-12-25 22:49:46.536 [TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=25/12/2025, 22:49:46
+2025-12-25 22:49:46.543 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2025-12-25 22:49:46.546 [SendQueueV1] ready delayMs=800 maxQueue=500
+2025-12-25 22:49:46.548 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2025-12-25 22:49:46.551 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2025-12-25 22:49:46.552 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2025-12-25 22:49:46.557 [CommandV1] ready prefix=! allowInDm=1 allowInGroups=1
+2025-12-25 22:49:46.558 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2025-12-25 22:49:46.563 [AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=2
+2025-12-25 22:49:46.564 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2025-12-25 22:49:46.568 [WorkGroupsV1] ready stateFile=WorkGroups/state.json control=(none)
+2025-12-25 22:49:46.568 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9450
+2025-12-25 22:49:46.571 [HelpV1] ready cmdHelp=help
+2025-12-25 22:49:46.571 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2025-12-25 22:49:46.584 [PingDiagV1] ready cmdPing=ping
+2025-12-25 22:49:46.586 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2025-12-25 22:49:46.595 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2025-12-25 22:49:46.595 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2025-12-25 22:49:46.603 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2025-12-25 22:49:46.604 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2025-12-25 22:49:46.609 [OutboundGatewayV1] ready enabled=1 baseSend=send rl=ratelimit svc=sendout,outsend
+2025-12-25 22:49:46.610 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2025-12-25 22:49:46.619 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2025-12-25 22:49:46.620 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2025-12-25 22:49:46.624 [FallbackV1] ready controlGroupId=120363402608825006@g.us forwardDm=1 forwardGroups=0 send=outsend
+2025-12-25 22:49:46.625 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9205
+2025-12-25 22:49:46.632 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2025-12-25 22:49:46.632 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2025-12-25 22:49:46.636 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2025-12-25 22:49:46.637 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2025-12-25 22:49:46.641 [RateLimitTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 22:49:46.641 [kernel] module.loaded id=RateLimitTest file=Modules/Features/RateLimitTestHub.js prio=4100
+2025-12-25 22:49:46.645 [OutboundGatewayTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 22:49:46.647 [kernel] module.loaded id=OutboundGatewayTest file=Modules/Features/OutboundGatewayTestHub.js prio=4050
+2025-12-25 22:49:46.654 [MessageJournalTestV1] ready controlGroupId=(any) requiredRole=staff
+2025-12-25 22:49:46.654 [kernel] module.loaded id=MessageJournalTest file=Modules/Features/MessageJournalTestHub.js prio=4020
+2025-12-25 22:49:46.657 [SchedulerTestV1] ready controlGroupId=120363402608825006@g.us handlerId=SchedulerTestV1.fire
+2025-12-25 22:49:46.662 [kernel] module.loaded id=SchedulerTest file=Modules/Features/SchedulerTestHub.js prio=4000
+2025-12-25 22:49:46.664 [kernel] ready modules=21
+2025-12-25 22:49:55.636 [connector] authenticated
+2025-12-25 22:49:55.637 [event] keys=type,at
+2025-12-25 22:49:57.386 [connector] ready
+2025-12-25 22:49:57.386 [event] keys=type,at
+2025-12-25 22:59:00.685 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2025-12-25 22:59:00.695 [CommandV1] tips.loaded file=X:\OneData\bots\ONEBOT\config\ui\Tips.conf
+2025-12-25 22:59:01.912 [process] exit
+2025-12-25 22:59:02.686 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 22:59:02.690 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 22:59:02.696 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 22:59:02.697 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2025-12-25 22:59:02.702 [TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=25/12/2025, 22:59:02
+2025-12-25 22:59:02.703 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2025-12-25 22:59:02.706 [SendQueueV1] ready delayMs=800 maxQueue=500
+2025-12-25 22:59:02.707 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2025-12-25 22:59:02.716 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2025-12-25 22:59:02.717 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2025-12-25 22:59:02.720 [CommandV1] ready prefix=! allowInDm=1 allowInGroups=1
+2025-12-25 22:59:02.720 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2025-12-25 22:59:02.726 [AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=2
+2025-12-25 22:59:02.727 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2025-12-25 22:59:02.731 [[WorkGroupsV1] ready stateFile=WorkGroups/state.json control=(none)] undefined
+2025-12-25 22:59:02.732 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9450
+2025-12-25 22:59:02.734 [HelpV1] ready cmdHelp=help
+2025-12-25 22:59:02.734 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2025-12-25 22:59:02.736 [PingDiagV1] ready cmdPing=ping
+2025-12-25 22:59:02.738 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2025-12-25 22:59:02.750 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2025-12-25 22:59:02.751 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2025-12-25 22:59:02.758 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2025-12-25 22:59:02.759 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2025-12-25 22:59:02.762 [OutboundGatewayV1] ready enabled=1 baseSend=send rl=ratelimit svc=sendout,outsend
+2025-12-25 22:59:02.763 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2025-12-25 22:59:02.771 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2025-12-25 22:59:02.772 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2025-12-25 22:59:02.779 [FallbackV1] ready controlGroupId=120363402608825006@g.us forwardDm=1 forwardGroups=0 send=outsend
+2025-12-25 22:59:02.781 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9205
+2025-12-25 22:59:02.784 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2025-12-25 22:59:02.785 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2025-12-25 22:59:02.789 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2025-12-25 22:59:02.790 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2025-12-25 22:59:02.794 [RateLimitTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 22:59:02.795 [kernel] module.loaded id=RateLimitTest file=Modules/Features/RateLimitTestHub.js prio=4100
+2025-12-25 22:59:02.797 [OutboundGatewayTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 22:59:02.798 [kernel] module.loaded id=OutboundGatewayTest file=Modules/Features/OutboundGatewayTestHub.js prio=4050
+2025-12-25 22:59:02.801 [MessageJournalTestV1] ready controlGroupId=(any) requiredRole=staff
+2025-12-25 22:59:02.802 [kernel] module.loaded id=MessageJournalTest file=Modules/Features/MessageJournalTestHub.js prio=4020
+2025-12-25 22:59:02.809 [SchedulerTestV1] ready controlGroupId=120363402608825006@g.us handlerId=SchedulerTestV1.fire
+2025-12-25 22:59:02.809 [kernel] module.loaded id=SchedulerTest file=Modules/Features/SchedulerTestHub.js prio=4000
+2025-12-25 22:59:02.809 [kernel] ready modules=21
+2025-12-25 22:59:11.035 [connector] authenticated
+2025-12-25 22:59:11.880 [event] keys=type,at
+2025-12-25 22:59:13.048 [connector] ready
+2025-12-25 22:59:13.049 [event] keys=type,at
+2025-12-25 23:08:43.350 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2025-12-25 23:08:43.364 [CommandV1] tips.loaded file=X:\OneData\bots\ONEBOT\config\ui\Tips.conf
+2025-12-25 23:08:44.580 [process] exit
+2025-12-25 23:08:45.359 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 23:08:45.363 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 23:08:45.370 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 23:08:45.372 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2025-12-25 23:08:45.376 [TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=25/12/2025, 23:08:45
+2025-12-25 23:08:45.380 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2025-12-25 23:08:45.382 [SendQueueV1] ready delayMs=800 maxQueue=500
+2025-12-25 23:08:45.384 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2025-12-25 23:08:45.387 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2025-12-25 23:08:45.388 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2025-12-25 23:08:45.400 [CommandV1] ready prefix=! allowInDm=1 allowInGroups=1
+2025-12-25 23:08:45.401 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2025-12-25 23:08:45.406 [AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=2
+2025-12-25 23:08:45.406 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2025-12-25 23:08:45.412 [WorkGroupsV1] ready stateFile=WorkGroups/state.json control=120363402608825006@g.us
+2025-12-25 23:08:45.413 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9450
+2025-12-25 23:08:45.417 [HelpV1] ready cmdHelp=help
+2025-12-25 23:08:45.419 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2025-12-25 23:08:45.422 [PingDiagV1] ready cmdPing=ping
+2025-12-25 23:08:45.425 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2025-12-25 23:08:45.428 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2025-12-25 23:08:45.428 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2025-12-25 23:08:45.433 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2025-12-25 23:08:45.433 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2025-12-25 23:08:45.438 [OutboundGatewayV1] ready enabled=1 baseSend=send rl=ratelimit svc=sendout,outsend
+2025-12-25 23:08:45.443 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2025-12-25 23:08:45.451 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2025-12-25 23:08:45.452 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2025-12-25 23:08:45.456 [FallbackHub] impl init failed file=Modules/Core/FallbackV1.js msg=[FallbackV1] Missing send service (outsend)
+2025-12-25 23:08:45.457 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9205
+2025-12-25 23:08:45.462 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2025-12-25 23:08:45.462 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2025-12-25 23:08:45.471 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2025-12-25 23:08:45.471 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2025-12-25 23:08:45.476 [RateLimitTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 23:08:45.476 [kernel] module.loaded id=RateLimitTest file=Modules/Features/RateLimitTestHub.js prio=4100
+2025-12-25 23:08:45.480 [OutboundGatewayTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 23:08:45.480 [kernel] module.loaded id=OutboundGatewayTest file=Modules/Features/OutboundGatewayTestHub.js prio=4050
+2025-12-25 23:08:45.486 [MessageJournalTestV1] ready controlGroupId=(any) requiredRole=staff
+2025-12-25 23:08:45.487 [kernel] module.loaded id=MessageJournalTest file=Modules/Features/MessageJournalTestHub.js prio=4020
+2025-12-25 23:08:45.493 [SchedulerTestV1] ready controlGroupId=120363402608825006@g.us handlerId=SchedulerTestV1.fire
+2025-12-25 23:08:45.494 [kernel] module.loaded id=SchedulerTest file=Modules/Features/SchedulerTestHub.js prio=4000
+2025-12-25 23:08:45.494 [kernel] ready modules=21
+2025-12-25 23:08:53.659 [connector] authenticated
+2025-12-25 23:08:53.660 [event] keys=type,at
+2025-12-25 23:08:55.571 [connector] ready
+2025-12-25 23:08:55.572 [event] keys=type,at
+2025-12-25 23:20:07.166 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!whoami
+2025-12-25 23:20:07.177 [CommandV1] tips.loaded file=X:\OneData\bots\ONEBOT\config\ui\Tips.conf
+2025-12-25 23:20:14.329 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!status
+2025-12-25 23:21:21.031 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2025-12-25 23:21:22.246 [process] exit
+2025-12-25 23:21:23.022 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 23:21:23.027 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 23:21:23.033 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 23:21:23.034 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2025-12-25 23:21:23.039 [TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=25/12/2025, 23:21:23
+2025-12-25 23:21:23.044 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2025-12-25 23:21:23.049 [SendQueueV1] ready delayMs=800 maxQueue=500
+2025-12-25 23:21:23.052 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2025-12-25 23:21:23.056 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2025-12-25 23:21:23.056 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2025-12-25 23:21:23.063 [CommandV1] ready prefix=! allowInDm=1 allowInGroups=1
+2025-12-25 23:21:23.064 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2025-12-25 23:21:23.068 [AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=2
+2025-12-25 23:21:23.069 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2025-12-25 23:21:23.075 [WorkGroupsV1] ready stateFile=WorkGroups/state.json control=120363402608825006@g.us
+2025-12-25 23:21:23.076 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9450
+2025-12-25 23:21:23.078 [HelpV1] ready cmdHelp=help
+2025-12-25 23:21:23.080 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2025-12-25 23:21:23.083 [PingDiagV1] ready cmdPing=ping
+2025-12-25 23:21:23.083 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2025-12-25 23:21:23.088 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2025-12-25 23:21:23.090 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2025-12-25 23:21:23.105 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2025-12-25 23:21:23.106 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2025-12-25 23:21:23.110 [OutboundGatewayV1] ready enabled=1 baseSend=send rl=ratelimit svc=sendout,outsend
+2025-12-25 23:21:23.111 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2025-12-25 23:21:23.117 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2025-12-25 23:21:23.118 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2025-12-25 23:21:23.125 [FallbackV1] disabled: missing controlGroupId
+2025-12-25 23:21:23.125 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9205
+2025-12-25 23:21:23.129 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2025-12-25 23:21:23.129 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2025-12-25 23:21:23.133 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2025-12-25 23:21:23.133 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2025-12-25 23:21:23.138 [RateLimitTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 23:21:23.139 [kernel] module.loaded id=RateLimitTest file=Modules/Features/RateLimitTestHub.js prio=4100
+2025-12-25 23:21:23.145 [OutboundGatewayTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 23:21:23.146 [kernel] module.loaded id=OutboundGatewayTest file=Modules/Features/OutboundGatewayTestHub.js prio=4050
+2025-12-25 23:21:23.148 [MessageJournalTestV1] ready controlGroupId=(any) requiredRole=staff
+2025-12-25 23:21:23.149 [kernel] module.loaded id=MessageJournalTest file=Modules/Features/MessageJournalTestHub.js prio=4020
+2025-12-25 23:21:23.154 [SchedulerTestV1] ready controlGroupId=120363402608825006@g.us handlerId=SchedulerTestV1.fire
+2025-12-25 23:21:23.154 [kernel] module.loaded id=SchedulerTest file=Modules/Features/SchedulerTestHub.js prio=4000
+2025-12-25 23:21:23.159 [kernel] ready modules=21
+2025-12-25 23:21:31.397 [connector] authenticated
+2025-12-25 23:21:31.398 [event] keys=type,at
+2025-12-25 23:21:33.506 [connector] ready
+2025-12-25 23:21:33.507 [event] keys=type,at
+2025-12-25 23:40:15.626 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2025-12-25 23:40:15.639 [CommandV1] tips.loaded file=X:\OneData\bots\ONEBOT\config\ui\Tips.conf
+2025-12-25 23:40:16.854 [process] exit
+2025-12-25 23:40:17.639 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2025-12-25 23:40:17.644 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2025-12-25 23:40:17.660 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2025-12-25 23:40:17.661 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2025-12-25 23:40:17.666 [TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=25/12/2025, 23:40:17
+2025-12-25 23:40:17.670 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2025-12-25 23:40:17.673 [SendQueueV1] ready delayMs=800 maxQueue=500
+2025-12-25 23:40:17.675 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2025-12-25 23:40:17.679 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2025-12-25 23:40:17.680 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2025-12-25 23:40:17.683 [CommandV1] ready prefix=! allowInDm=1 allowInGroups=1
+2025-12-25 23:40:17.688 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2025-12-25 23:40:17.695 [AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=2
+2025-12-25 23:40:17.695 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2025-12-25 23:40:17.702 [WorkGroupsV1] ready stateFile=WorkGroups/state.json control=120363402608825006@g.us
+2025-12-25 23:40:17.703 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9450
+2025-12-25 23:40:17.705 [HelpV1] ready cmdHelp=help
+2025-12-25 23:40:17.706 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2025-12-25 23:40:17.708 [PingDiagV1] ready cmdPing=ping
+2025-12-25 23:40:17.712 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2025-12-25 23:40:17.720 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2025-12-25 23:40:17.720 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2025-12-25 23:40:17.725 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2025-12-25 23:40:17.729 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2025-12-25 23:40:17.732 [OutboundGatewayV1] ready enabled=1 baseSend=send rl=ratelimit svc=sendout,outsend
+2025-12-25 23:40:17.735 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2025-12-25 23:40:17.741 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2025-12-25 23:40:17.743 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2025-12-25 23:40:17.748 [FallbackV1] ready controlGroupId=120363402608825006@g.us forwardDm=1 forwardGroups=0 send=outsend
+2025-12-25 23:40:17.749 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9205
+2025-12-25 23:40:17.754 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2025-12-25 23:40:17.754 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2025-12-25 23:40:17.760 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2025-12-25 23:40:17.761 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2025-12-25 23:40:17.766 [RateLimitTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 23:40:17.766 [kernel] module.loaded id=RateLimitTest file=Modules/Features/RateLimitTestHub.js prio=4100
+2025-12-25 23:40:17.770 [OutboundGatewayTestV1] ready controlGroupId=120363402608825006@g.us
+2025-12-25 23:40:17.770 [kernel] module.loaded id=OutboundGatewayTest file=Modules/Features/OutboundGatewayTestHub.js prio=4050
+2025-12-25 23:40:17.775 [MessageJournalTestV1] ready controlGroupId=(any) requiredRole=staff
+2025-12-25 23:40:17.776 [kernel] module.loaded id=MessageJournalTest file=Modules/Features/MessageJournalTestHub.js prio=4020
+2025-12-25 23:40:17.782 [SchedulerTestV1] ready controlGroupId=120363402608825006@g.us handlerId=SchedulerTestV1.fire
+2025-12-25 23:40:17.784 [kernel] module.loaded id=SchedulerTest file=Modules/Features/SchedulerTestHub.js prio=4000
+2025-12-25 23:40:17.784 [kernel] ready modules=21
+2025-12-25 23:40:25.824 [connector] authenticated
+2025-12-25 23:40:25.825 [event] keys=type,at
+2025-12-25 23:40:28.002 [connector] ready
+2025-12-25 23:40:28.002 [event] keys=type,at
+2025-12-25 23:48:57.767 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!status
+2025-12-25 23:48:57.781 [CommandV1] tips.loaded file=X:\OneData\bots\ONEBOT\config\ui\Tips.conf
+2025-12-25 23:49:10.111 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!whoami
+2025-12-25 23:50:07.272 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!status

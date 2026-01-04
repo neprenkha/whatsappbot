@@ -1,0 +1,31 @@
+{
+  "contacts": {
+    "60198833700@c.us": {
+      "chatId": "60198833700@c.us",
+      "phoneCandidate": "60198833700",
+      "name": "RINTIK JAYA",
+      "firstSeenAt": 1766662434416,
+      "lastSeenAt": 1766662434416,
+      "lastSnippet": "test",
+      "source": "fallback"
+    },
+    "status@broadcast": {
+      "chatId": "status@broadcast",
+      "phoneCandidate": "",
+      "name": "kamalsidri",
+      "firstSeenAt": 1766663203528,
+      "lastSeenAt": 1766671349231,
+      "lastSnippet": "https://www.facebook.com/share/r/17mHE7q5KK/",
+      "source": "fallback"
+    },
+    "60133335545@c.us": {
+      "chatId": "60133335545@c.us",
+      "phoneCandidate": "60133335545",
+      "name": "Pa’Din",
+      "firstSeenAt": 1766665132906,
+      "lastSeenAt": 1766665132906,
+      "lastSnippet": "test",
+      "source": "fallback"
+    }
+  }
+}

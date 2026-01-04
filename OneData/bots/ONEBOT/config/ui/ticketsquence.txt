@@ -1,0 +1,40 @@
+[NEW]
+🟠 NEW INBOUND
+🎫 Ticket: {{TICKET}}
+👤 From: {{FROM_NAME}} ({{FROM_PHONE}})
+🆔 ChatId: {{FROM_CHATID}}
+🕒 Time: {{TIME}}
+
+📝 Text:
+{{TEXT}}
+
+📎 Attachments: {{ATTACH_COUNT}} ({{ATTACH_TYPES}})
+
+Tips:
+- Reply (quote) this message in group to send back to customer (fast, no need type !)
+- Or type: !r {{TICKET}} your text
+
+
+[UPDATE]
+🟡 UPDATE
+🎫 Ticket: {{TICKET}} (seq {{SEQ}})
+👤 From: {{FROM_NAME}} ({{FROM_PHONE}})
+🕒 Time: {{TIME}}
+
+📝 Text:
+{{TEXT}}
+
+📎 Attachments: {{ATTACH_COUNT}} ({{ATTACH_TYPES}})
+
+Tips:
+- Reply (quote) this message to send back to customer
+- Or type: !r {{TICKET}} your text
+
+
+[ACK]
+{{STATUS}} Ticket {{TICKET}}
+{{NOTE}}
+
+Tips:
+- Reply (quote) fallback card to send
+- !r <ticket> <text>

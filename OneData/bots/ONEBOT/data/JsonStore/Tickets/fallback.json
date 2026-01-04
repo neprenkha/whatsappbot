@@ -1,0 +1,49 @@
+{
+  "meta": {
+    "ym": "202601",
+    "seq": 1,
+    "updatedAt": 1767200099034
+  },
+  "openByChatId": {
+    "60133335545@c.us": "202601T0000000001"
+  },
+  "lastByChatId": {
+    "60133335545@c.us": {
+      "ticket": "202601T0000000001",
+      "lastAt": 1767200099034,
+      "seq": 2
+    }
+  },
+  "byTicket": {
+    "202512T0000000001": {
+      "ticket": "202512T0000000001",
+      "type": "fallback",
+      "chatId": "60133335545@c.us",
+      "status": "closed",
+      "createdAt": 1767031509086,
+      "lastAt": 1767036314426,
+      "seq": 3,
+      "fromName": "Pa’Din",
+      "fromPhone": "60133335545",
+      "fromChatId": "60133335545@c.us",
+      "lastText": "aaaa",
+      "lastAttachCount": 0,
+      "lastAttachTypes": ""
+    },
+    "202601T0000000001": {
+      "ticket": "202601T0000000001",
+      "type": "fallback",
+      "chatId": "60133335545@c.us",
+      "status": "open",
+      "createdAt": 1767200028049,
+      "lastAt": 1767200099034,
+      "seq": 2,
+      "fromName": "Pa’Din",
+      "fromPhone": "60133335545",
+      "fromChatId": "60133335545@c.us",
+      "lastText": "test",
+      "lastAttachCount": 0,
+      "lastAttachTypes": "chat"
+    }
+  }
+}
