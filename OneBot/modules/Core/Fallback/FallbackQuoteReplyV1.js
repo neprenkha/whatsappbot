@@ -83,21 +83,27 @@ function extractTicket(quotedText, typedText) {
   return '';
 }
 
-async function extractQuotedText(ctx) {
+async function extractQuotedText(ctx, logger) {
   // 1) Kernel-wrapped quotedMessage (if exists)
   try {
     const m = ctx && ctx.message ? ctx.message : null;
     const q = m && m.quotedMessage ? m.quotedMessage : null;
     if (q) {
       const t = safeStr(q.body || q.text || q.caption || '');
-      if (t) return t;
+      if (t) {
+        logger && logger.trace(`extract: kernel quotedMessage found text=${t.slice(0, 50)}`);
+        return t;
+      }
     }
-  } catch (_) {}
+  } catch (e) {
+    logger && logger.trace(`extract: kernel quotedMessage err=${e && e.message ? e.message : e}`);
+  }
 
   // 2) WhatsApp Web raw message API: hasQuotedMsg + getQuotedMessage()
   try {
     const raw = ctx && ctx.raw ? ctx.raw : null;
     if (raw && raw.hasQuotedMsg && typeof raw.getQuotedMessage === 'function') {
+      logger && logger.trace(`extract: raw hasQuotedMsg=true, calling getQuotedMessage`);
       const qmsg = await raw.getQuotedMessage();
       if (qmsg) {
         const t = safeStr(
@@ -106,10 +112,21 @@ async function extractQuotedText(ctx) {
           (qmsg._data && (qmsg._data.body || qmsg._data.caption)) ||
           ''
         );
-        if (t) return t;
+        if (t) {
+          logger && logger.trace(`extract: raw quotedMessage found text=${t.slice(0, 50)}`);
+          return t;
+        } else {
+          logger && logger.trace(`extract: raw quotedMessage found but no text`);
+        }
+      } else {
+        logger && logger.trace(`extract: getQuotedMessage returned null`);
       }
+    } else {
+      logger && logger.trace(`extract: raw hasQuotedMsg=${raw ? raw.hasQuotedMsg : 'no raw'}`);
     }
-  } catch (_) {}
+  } catch (e) {
+    logger && logger.trace(`extract: raw quotedMessage err=${e && e.message ? e.message : e}`);
+  }
 
   return '';
 }
@@ -213,7 +230,7 @@ async function handle(meta, cfg, ctx, opts = {}) {
   const collectorKey = `${groupId}|${senderKey}`;
 
   // Try extract from quoted text
-  const quotedText = await extractQuotedText(ctx);
+  const quotedText = await extractQuotedText(ctx, logger);
 
   // Ticket detection from quote or typed text
   let ticket = extractTicket(quotedText, typedText);
