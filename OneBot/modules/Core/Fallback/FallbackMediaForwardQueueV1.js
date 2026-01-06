@@ -1,79 +1,98 @@
 'use strict';
 
-// Enhanced: multi-attachment forward, hide-ticket caption support, dedupe per message.
-const SafeSend = require('../Shared/SharedSafeSendV1');
+const SharedLog = require('../Shared/SharedLogV1');
+const MediaSend = require('../Shared/SharedMediaSendV1');
 
-function safeStr(v) { return String(v || '').trim(); }
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function _safeStr(x) { return String(x == null ? '' : x); }
+function _getRaw(ctx) { return ctx ? (ctx.raw || ctx.message || null) : null; }
 
-function pickSendFn(meta, cfg) {
-  const prefer = (cfg && cfg.sendPrefer) || ['outsend', 'sendout', 'send'];
-  const picks = SafeSend.pickSend(meta, prefer);
-  if (picks.length > 0) return picks[0].fn;
-  const base = meta.getService ? meta.getService('send') : null;
-  return typeof base === 'function' ? base : null;
+function _getSendTransport(meta) {
+  const fn = meta.getService('outsend') || meta.getService('sendout');
+  if (typeof fn === 'function') return { sendDirect: fn };
+  const transport = meta.getService('transport');
+  if (transport && typeof transport.sendDirect === 'function') return transport;
+  return null;
 }
 
-async function extractMediaList(ctx) {
-  // whatsapp-web.js typical: raw has downloadMedia(), attachments array possible.
-  const list = [];
-  try {
-    if (ctx && Array.isArray(ctx.attachments) && ctx.attachments.length) {
-      for (const a of ctx.attachments) list.push(a);
-    } else if (ctx && ctx.raw) {
-      const raw = ctx.raw;
-      // Check for any media type: hasMedia (image/video/audio), hasDocument, or type property
-      const hasAnyMedia = raw.hasMedia || raw.hasDocument || 
-                         (raw.type && ['image', 'video', 'audio', 'document', 'ptt', 'sticker'].includes(raw.type));
-      
-      if (hasAnyMedia && typeof raw.downloadMedia === 'function') {
-        const media = await raw.downloadMedia();
-        if (media) list.push(media);
-      }
-    }
-  } catch (e) {
-    // Log error if meta is available
-    if (ctx && ctx.meta && typeof ctx.meta.log === 'function') {
-      ctx.meta.log('FallbackMediaForward', `extractMedia error: ${e && e.message ? e.message : e}`);
-    }
-  }
-  return list;
-}
-
-async function forward(meta, cfg, targetChatId, ctx, captionPrefix, hideTicket) {
-  const enabled = Number(cfg && cfg.mediaForwardEnabled) || 0;
-  if (!enabled) return { ok: true, sent: 0 };
-
-  const sendFn = pickSendFn(meta, cfg);
-  if (!sendFn) return { ok: false, sent: 0 };
-
-  const list = await extractMediaList(ctx);
-  if (!list.length) return { ok: true, sent: 0 };
-
-  const delayMs = Number(cfg && cfg.dmForwardDelayMs) || 300;
-  let sent = 0;
-
-  for (let i = 0; i < list.length; i++) {
-    const baseCap = safeStr(captionPrefix);
-    const capParts = [];
-    if (baseCap && !hideTicket) capParts.push(baseCap);
-    if (list.length > 1) capParts.push(`(${i + 1}/${list.length})`);
-    const caption = capParts.join(' ').trim();
-
+async function _downloadWithRetry(log, rawMsg, maxRetry, baseDelayMs) {
+  for (let attempt = 1; attempt <= maxRetry; attempt++) {
     try {
-      await sendFn(targetChatId, list[i], caption ? { caption } : {});
-      sent++;
+      const media = await rawMsg.downloadMedia();
+      if (media) return media;
+      log.error('downloadMedia returned empty (attempt ' + attempt + '/' + maxRetry + ')');
     } catch (e) {
-      meta.log && meta.log('FallbackMediaForward', `send fail: ${e && e.message ? e.message : e}`);
+      log.error('downloadMedia error attempt=' + attempt + ' err=' + _safeStr(e && e.message ? e.message : e));
     }
-
-    if (i < list.length - 1 && delayMs > 0) await sleep(delayMs);
+    if (attempt < maxRetry) {
+      const wait = baseDelayMs + (attempt * 800);
+      await _sleep(wait);
+    }
   }
-
-  return { ok: sent > 0, sent };
+  return null;
 }
 
-module.exports = {
-  forward,
-  extractMedia: extractMediaList,
-};
+const _queue = [];
+let _running = false;
+
+async function _runItem(item) {
+  const { meta, cfg, log, groupChatId, rawMsg, caption } = item;
+
+  const transport = _getSendTransport(meta);
+  if (!transport) {
+    log.error('no send transport');
+    return false;
+  }
+
+  const maxRetry = Number(cfg.mediaForwardRetry || 6);
+  const baseDelayMs = Number(cfg.mediaForwardRetryDelayMs || 2000);
+
+  if (!rawMsg || typeof rawMsg.downloadMedia !== 'function') {
+    log.error('rawMsg.downloadMedia not available');
+    return false;
+  }
+
+  const media = await _downloadWithRetry(log, rawMsg, maxRetry, baseDelayMs);
+  if (!media) return false;
+
+  const opt = { caption: _safeStr(caption || '') };
+
+  try {
+    const r = await MediaSend.sendDirectWithFallback(log, transport, groupChatId, media, opt, rawMsg);
+    return !!(r && r.ok);
+  } catch (e) {
+    log.error('forward failed err=' + _safeStr(e && e.message ? e.message : e));
+    return false;
+  }
+}
+
+async function _pump() {
+  if (_running) return;
+  _running = true;
+  try {
+    while (_queue.length > 0) {
+      const item = _queue.shift();
+      await _runItem(item);
+      await _sleep(50);
+    }
+  } finally {
+    _running = false;
+  }
+}
+
+async function forward(meta, cfgRaw, groupChatId, ctx, caption) {
+  const cfg = (cfgRaw && typeof cfgRaw === 'object') ? cfgRaw : {};
+  const debugEnabled = !!(cfg.debugLog || cfg.debug);
+  const traceEnabled = !!(cfg.traceLog || cfg.trace);
+  const log = SharedLog.create(meta, 'FallbackMediaForwardQueueV1', { debugEnabled, traceEnabled });
+
+  const raw = _getRaw(ctx);
+  if (!raw) return { ok: false, reason: 'noraw' };
+  if (!groupChatId) return { ok: false, reason: 'nogroup' };
+
+  _queue.push({ meta, cfg, log, groupChatId, rawMsg: raw, caption: caption || '' });
+  _pump().catch(() => {});
+  return { ok: true };
+}
+
+module.exports = { forward };

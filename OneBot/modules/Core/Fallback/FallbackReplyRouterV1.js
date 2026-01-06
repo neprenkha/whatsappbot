@@ -1,39 +1,63 @@
 'use strict';
 
 /**
- * FallbackReplyRouterV1
- * - Routes Control Group replies to customer.
- * - Processes quote-reply and command-reply `!r <ticket> <text>`.
+ * FallbackReplyRouterV1.js
+ * Optional router to send a reply to the last pending ticket/customer.
+ * (Some setups use this for non-quote “quick reply” flows.)
  */
 
 const TicketCore = require('../Shared/SharedTicketCoreV1');
 const SafeSend = require('../Shared/SharedSafeSendV1');
 
+function safeStr(v) { return String(v || '').trim(); }
+
 async function reply(meta, ctx, args) {
-  const config = meta.implConf || {};
-  const sendService = SafeSend.pickSend(meta, config.sendPrefer);
-  const ticket = args[0] ? String(args[0]).trim() : null;
-  const replyText = args.slice(1).join(' ').trim();
+  const sendServiceName = safeStr(args && args.sendService) || 'send';
+  const sendService = meta.getService(sendServiceName);
+  if (typeof sendService !== 'function') return { ok: false, reason: 'nosend' };
 
-  if (!ticket || !replyText) {
-    ctx.reply('Usage: !r <ticket> <text>');
-    return { ok: false, reason: 'bad.command' };
-  }
+  const replyText = safeStr(args && args.text);
+  if (!replyText) return { ok: false, reason: 'empty' };
 
-  const ticketInfo = await TicketCore.resolve(meta, config, ticket);
-  if (!ticketInfo || !ticketInfo.chatId) {
-    ctx.reply(`Ticket not found: ${ticket}`);
-    return { ok: false, reason: 'ticket.not.found' };
-  }
+  const ticketType = safeStr(args && args.ticketType) || 'T';
 
-  const result = await SafeSend.safeSend(meta, sendService, ticketInfo.chatId, replyText, { ticket });
-  if (result.ok) {
-    ctx.reply(`✅ Sent reply for ticket ${ticket}`);
+  // Prefer explicitly provided ticket
+  const ticket = safeStr(args && args.ticket);
+  let ticketInfo = null;
+
+  if (ticket) {
+    ticketInfo = await TicketCore.resolve(meta, args, ticketType, ticket);
   } else {
-    ctx.reply(`❌ Failed to send reply. Ticket: ${ticket}`);
+    // Fallback to last pending ticket
+    ticketInfo = await TicketCore.getLastPending(meta, args, ticketType);
+    if (!ticketInfo || ticketInfo.ok !== true) {
+      ctx.reply('No pending ticket/customer. Use quote reply or !r.');
+      return { ok: true };
+    }
   }
 
-  return result;
+  if (!ticketInfo || ticketInfo.ok !== true || !ticketInfo.chatId) {
+    ctx.reply('Ticket/customer not resolved.');
+    return { ok: true };
+  }
+
+  const result = await SafeSend.safeSend(
+    meta,
+    sendService,
+    ticketInfo.chatId,
+    replyText,
+    { ticket, bypass: true }
+  );
+
+  if (!result || result.ok !== true) {
+    ctx.reply('Send failed.');
+    return { ok: true };
+  }
+
+  if (ticket) ctx.reply(`Sent reply for ticket ${ticket}.`);
+  else ctx.reply('Sent reply to last pending customer.');
+
+  return { ok: true };
 }
 
 module.exports = { reply };

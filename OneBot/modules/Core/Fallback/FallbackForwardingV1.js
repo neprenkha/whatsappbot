@@ -1,26 +1,83 @@
 'use strict';
 
-// FallbackForwardingV1
-// Purpose: forward inbound DM to control group with ticket card + optional media forwarding.
+const SharedLog = require('../Shared/SharedLogV1');
+const TicketCore = require('../Shared/SharedTicketCoreV1');
+const TypeUtil = require('./FallbackTypeUtilV1');
 
-const SafeSend = require('../Shared/SharedSafeSendV1');
-const MediaQ = require('./FallbackMediaForwardQueueV1');
+const ForwardText = require('./FallbackForwardTextV1');
+const ForwardMedia = require('./FallbackForwardMediaV1');
+const ForwardAv = require('./FallbackForwardAvV1');
 
-function safeStr(v) {
-  return String(v || '').trim();
+function createLogger(meta, cfg) {
+  const make = SharedLog.createLogger || SharedLog.create;
+  return make('FallbackForwardingV1', meta, {
+    debug: !!cfg.debug,
+    trace: !!cfg.trace,
+  });
 }
 
-async function forward(meta, cfg, targetGroupId, cardText, ctx, ticketId) {
-  const gid = safeStr(targetGroupId);
-  if (!gid) return { ok: false, reason: 'nogroup' };
-
-  const textRes = await SafeSend.sendOrQueue(meta, cfg, gid, safeStr(cardText), {});
-  const prefix = ticketId ? `🎫 Ticket: ${ticketId}` : '';
-  const mediaRes = await MediaQ.forward(meta, cfg, gid, ctx, prefix);
-
-  return { ok: !!textRes.ok, text: textRes, media: mediaRes };
+function getSenderInfo(ctx) {
+  const s = (ctx && ctx.sender) || {};
+  return {
+    phone: s.phone || '',
+    name: s.name || '',
+  };
 }
 
-module.exports = {
-  forward,
-};
+async function handle(meta, cfg, ctx) {
+  cfg = TypeUtil.normalizeTicketCfg(cfg || {});
+  const log = createLogger(meta, cfg);
+
+  if (!ctx) return { ok: false, reason: 'noCtx' };
+  if (ctx.isGroup) return { ok: false, reason: 'skipGroup' };
+
+  const raw = ctx.raw;
+  const text = TypeUtil.cleanText(ctx.text || (raw && raw.body) || '', 6000);
+
+  if (!cfg.controlGroupId) {
+    log.error('missing controlGroupId');
+    return { ok: false, reason: 'missingControlGroupId' };
+  }
+
+  const sender = getSenderInfo(ctx);
+
+  // Use chatId as key so 1 customer = 1 ticket
+  const key = ctx.chatId || '';
+  if (!key) return { ok: false, reason: 'noChatId' };
+
+  const t = await TicketCore.touch(meta, cfg, cfg.ticketType || 'fallback', key, {
+    sourceChatId: key,
+    controlGroupId: cfg.controlGroupId,
+    fromPhone: sender.phone,
+    fromName: sender.name,
+  });
+
+  if (!t || !t.ok) {
+    log.error(`ticket touch failed key=${key}`);
+    return { ok: false, reason: 'ticketTouchFailed' };
+  }
+
+  const ticketCtx = {
+    controlGroupId: cfg.controlGroupId,
+    ticketId: t.ticketId,
+    seq: t.seq,
+    fromPhone: sender.phone,
+    fromName: sender.name,
+  };
+
+  const lane = TypeUtil.classify(raw, text);
+
+  log.trace(`inbound lane=${lane} chatId=${key} ticket=${ticketCtx.ticketId} seq=${ticketCtx.seq}`);
+
+  if (lane === 'av') {
+    return await ForwardAv.handle(meta, cfg, ticketCtx, ctx);
+  }
+
+  if (lane === 'media') {
+    return await ForwardMedia.handle(meta, cfg, ticketCtx, ctx);
+  }
+
+  return await ForwardText.handle(meta, cfg, ticketCtx, ctx);
+}
+
+module.exports = { handle };
