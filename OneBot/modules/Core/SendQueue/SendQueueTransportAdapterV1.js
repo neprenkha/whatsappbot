@@ -10,9 +10,9 @@ function create(meta, transportServiceName) {
     const t = getTransport();
     if (!t || typeof t.sendDirect !== 'function') return { ok: false, reason: 'transport.missing' };
 
-    const text = (typeof content === 'string') ? content : String(content || '');
+    // Pass-through content (media object dibenarkan)
     try {
-      await t.sendDirect(chatId, text, options || {});
+      await t.sendDirect(chatId, content, options || {});
       return { ok: true };
     } catch (e) {
       return { ok: false, reason: (e && e.message) ? e.message : String(e) };
