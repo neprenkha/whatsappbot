@@ -24,7 +24,7 @@ function pickSendFn(meta, preferCsv, log) {
         return fn;
       }
     } catch (_e) {
-      if (log && log.warn) log.warn('pickSendFn service ' + name + ' threw error: ' + (_e && _e.message ? _e.message : _e));
+      if (log && log.warn) log.warn('pickSendFn service ' + name + ' threw error: ' + getErrorMessage(_e));
     }
   }
 
@@ -47,6 +47,10 @@ function stripTicket(text) {
 
 function isAudioLike(type) {
   return type === "audio" || type === "ptt";
+}
+
+function getErrorMessage(e) {
+  return e && e.message ? e.message : String(e);
 }
 
 module.exports.sendMedia = async function sendMedia(meta, cfg, toChatId, rawMsg, caption) {
@@ -80,7 +84,7 @@ module.exports.sendMedia = async function sendMedia(meta, cfg, toChatId, rawMsg,
       if (log && log.info) log.info('sendMedia: forward success type=' + type);
       return { ok: true, mode: 'forward', type };
     } catch (e) {
-      if (log && log.warn) log.warn('sendMedia: forward failed type=' + type + ' err=' + (e && e.message ? e.message : e));
+      if (log && log.warn) log.warn('sendMedia: forward failed type=' + type + ' err=' + getErrorMessage(e));
     }
   }
 
@@ -92,8 +96,8 @@ module.exports.sendMedia = async function sendMedia(meta, cfg, toChatId, rawMsg,
         if (log && log.info) log.info('sendMedia: fallback forward success type=' + type);
         return { ok: true, mode: 'fallbackForward', type };
       } catch (e) {
-        if (log && log.error) log.error('sendMedia: fallback forward failed type=' + type + ' err=' + (e && e.message ? e.message : e));
-        return { ok: false, reason: 'forwardFailed', error: e && e.message ? e.message : String(e) };
+        if (log && log.error) log.error('sendMedia: fallback forward failed type=' + type + ' err=' + getErrorMessage(e));
+        return { ok: false, reason: 'forwardFailed', error: getErrorMessage(e) };
       }
     }
     if (log && log.error) log.error('sendMedia: no download or forward available');
@@ -106,7 +110,7 @@ module.exports.sendMedia = async function sendMedia(meta, cfg, toChatId, rawMsg,
     media = await rawMsg.downloadMedia();
     if (log && log.debug) log.debug('sendMedia: downloadMedia success type=' + type);
   } catch (e) {
-    if (log && log.warn) log.warn('sendMedia: downloadMedia failed type=' + type + ' err=' + (e && e.message ? e.message : e));
+    if (log && log.warn) log.warn('sendMedia: downloadMedia failed type=' + type + ' err=' + getErrorMessage(e));
     media = null;
   }
 
@@ -118,8 +122,8 @@ module.exports.sendMedia = async function sendMedia(meta, cfg, toChatId, rawMsg,
         if (log && log.info) log.info('sendMedia: forward after download fail success type=' + type);
         return { ok: true, mode: 'forwardAfterDownloadFail', type };
       } catch (e) {
-        if (log && log.error) log.error('sendMedia: forward after download fail failed type=' + type + ' err=' + (e && e.message ? e.message : e));
-        return { ok: false, reason: 'downloadAndForwardFailed', error: e && e.message ? e.message : String(e) };
+        if (log && log.error) log.error('sendMedia: forward after download fail failed type=' + type + ' err=' + getErrorMessage(e));
+        return { ok: false, reason: 'downloadAndForwardFailed', error: getErrorMessage(e) };
       }
     }
     if (log && log.error) log.error('sendMedia: download failed and no forward available');
@@ -135,7 +139,7 @@ module.exports.sendMedia = async function sendMedia(meta, cfg, toChatId, rawMsg,
     if (log && log.info) log.info('sendMedia: send success type=' + type);
     return { ok: true, mode: 'send', type };
   } catch (e) {
-    if (log && log.error) log.error('sendMedia: send failed type=' + type + ' err=' + (e && e.message ? e.message : e));
-    return { ok: false, reason: 'sendFailed', error: e && e.message ? e.message : String(e) };
+    if (log && log.error) log.error('sendMedia: send failed type=' + type + ' err=' + getErrorMessage(e));
+    return { ok: false, reason: 'sendFailed', error: getErrorMessage(e) };
   }
 };

@@ -72,6 +72,11 @@ function _isStableMedia(rawMsg) {
   return t === 'image' || t === 'document';
 }
 
+function _formatStackTrace(error, maxLines) {
+  if (!error || !error.stack) return '';
+  return error.stack.split('\n').slice(0, maxLines || 3).join(' ');
+}
+
 function _stripTicketFromText(text, ticket) {
   const t = _s(text);
   if (!t || !ticket) return t;
@@ -246,7 +251,7 @@ async function handle(meta, cfg, ctx) {
         ticket, 
         type: msgType, 
         err: (e && e.message) ? e.message : _s(e),
-        stack: e && e.stack ? e.stack.split('\n').slice(0, 3).join(' ') : ''
+        stack: _formatStackTrace(e, 3)
       }));
     }
     return true;
