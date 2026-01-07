@@ -83,7 +83,10 @@ function _stripTicketFromText(text, ticket) {
 }
 
 async function handle(meta, cfg, ctx) {
-  const log = SharedLog.makeLog(meta, 'FallbackQuoteReplyV1');
+  const log = SharedLog.makeLog(meta, 'FallbackQuoteReplyV1', {
+    debugEnabled: cfg && cfg.debugLog,
+    traceEnabled: cfg && cfg.traceLog
+  });
 
   cfg = cfg || {};
   ctx = ctx || {};
@@ -104,12 +107,13 @@ async function handle(meta, cfg, ctx) {
 
   _cleanupSticky(now);
   _cleanupSeen(now, eventDedupeMs);
+  if (log && log.trace) log.trace('cleanup done - sticky=' + _sticky.size + ' seen=' + _seen.size);
 
   const msgKey = _getMsgKey(rawMsg);
   if (msgKey) {
     const last = _seen.get(msgKey);
     if (last && (now - last) < eventDedupeMs) {
-      log.trace('dedupe drop msgKey=' + msgKey);
+      if (log && log.trace) log.trace('dedupe drop msgKey=' + msgKey);
       return true;
     }
     _seen.set(msgKey, now);
@@ -134,7 +138,7 @@ async function handle(meta, cfg, ctx) {
     ticket = _s(parseRes.ticket);
     if (stickyEnabled && ticket && senderKey) {
       _sticky.set(stickyKey, { ticket, exp: now + stickyMs });
-      log.trace('sticky set ticket=' + ticket + ' sender=' + senderKey);
+      if (log && log.debug) log.debug('sticky SET ticket=' + ticket + ' sender=' + senderKey + ' exp=' + (now + stickyMs));
     }
   }
   // 2) Sticky path: next media without quote (album / burst)
@@ -145,14 +149,15 @@ async function handle(meta, cfg, ctx) {
       fromSticky = true;
       st.exp = now + stickyMs; // extend while media still coming
       _sticky.set(stickyKey, st);
-      log.trace('sticky use ticket=' + ticket + ' sender=' + senderKey);
+      if (log && log.debug) log.debug('sticky USE ticket=' + ticket + ' sender=' + senderKey + ' exp=' + st.exp);
     } else {
       const reason = parseRes && parseRes.reason ? parseRes.reason : 'noTicket';
-      log.info('noTicket ' + JSON.stringify({ reason, sender: senderKey, type: _getMsgType(rawMsg) }));
+      if (log && log.info) log.info('noTicket ' + JSON.stringify({ reason, sender: senderKey, type: _getMsgType(rawMsg), hasSticky: !!st, stickyExpired: st && st.exp <= now }));
       return false;
     }
   } else {
     // Avoid accidental routing for random unquoted text
+    if (log && log.trace) log.trace('no ticket match - parseRes=' + JSON.stringify({ ok: parseRes && parseRes.ok, hasTicket: parseRes && !!parseRes.ticket, sticky: stickyEnabled, hasMedia: _isStableMedia(rawMsg) }));
     return false;
   }
 
@@ -188,18 +193,62 @@ async function handle(meta, cfg, ctx) {
     // Stable media (image/document)
     if (_isStableMedia(rawMsg)) {
       const caption = hideTicket ? _stripTicketFromText(ctx.text, ticket) : _s(ctx.text);
-      const ok = await ReplyMedia.sendMedia(meta, cfg, toChatId, rawMsg, caption);
-      log.info('replyMedia ' + JSON.stringify({ ticket, ok: !!ok, type: msgType, sticky: fromSticky ? 1 : 0 }));
+      if (log && log.debug) log.debug('replyMedia START ticket=' + ticket + ' type=' + msgType + ' sticky=' + (fromSticky ? 1 : 0));
+      
+      const result = await ReplyMedia.sendMedia(meta, cfg, toChatId, rawMsg, caption);
+      const ok = result && result.ok;
+      
+      if (log && log.info) {
+        log.info('replyMedia ' + JSON.stringify({ 
+          ticket, 
+          ok: !!ok, 
+          type: msgType, 
+          sticky: fromSticky ? 1 : 0,
+          mode: result && result.mode ? result.mode : 'unknown',
+          reason: result && result.reason ? result.reason : '',
+          error: result && result.error ? result.error : ''
+        }));
+      }
+      
+      if (!ok && log && log.error) {
+        log.error('replyMedia FAILED ticket=' + ticket + ' reason=' + (result && result.reason ? result.reason : 'unknown'));
+      }
+      
       return true;
     }
 
     // Text
     const txt = hideTicket ? _stripTicketFromText(ctx.text, ticket) : _s(ctx.text);
-    const ok = await ReplyText.sendText(meta, cfg, toChatId, txt);
-    log.info('replyText ' + JSON.stringify({ ticket, ok: !!ok, type: msgType, sticky: fromSticky ? 1 : 0 }));
+    if (log && log.debug) log.debug('replyText START ticket=' + ticket + ' type=' + msgType + ' sticky=' + (fromSticky ? 1 : 0));
+    
+    const result = await ReplyText.sendText(meta, cfg, toChatId, txt);
+    const ok = result && result.ok;
+    
+    if (log && log.info) {
+      log.info('replyText ' + JSON.stringify({ 
+        ticket, 
+        ok: !!ok, 
+        type: msgType, 
+        sticky: fromSticky ? 1 : 0,
+        via: result && result.via ? result.via : '',
+        reason: result && result.reason ? result.reason : ''
+      }));
+    }
+    
+    if (!ok && log && log.error) {
+      log.error('replyText FAILED ticket=' + ticket + ' reason=' + (result && result.reason ? result.reason : 'unknown'));
+    }
+    
     return true;
   } catch (e) {
-    log.warn('replyError ' + JSON.stringify({ ticket, type: msgType, err: (e && e.message) ? e.message : _s(e) }));
+    if (log && log.warn) {
+      log.warn('replyError ' + JSON.stringify({ 
+        ticket, 
+        type: msgType, 
+        err: (e && e.message) ? e.message : _s(e),
+        stack: e && e.stack ? e.stack.split('\n').slice(0, 3).join(' ') : ''
+      }));
+    }
     return true;
   }
 }
