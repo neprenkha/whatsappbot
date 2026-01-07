@@ -6,11 +6,13 @@
   - Sticky ticket support even when message has filename/caption (document/image).
   - Media replies routed via FallbackReplyMediaV1 (media-safe).
   - Text replies routed via replySendPrefer (can use outbox).
+  - Uses message ID mapping to resolve tickets from quoted messages.
 */
 
 const SharedLog = require('../Shared/SharedLogV1');
 const TicketCore = require('../Shared/SharedTicketCoreV1');
 const ReplyMedia = require('./FallbackReplyMediaV1');
+const MessageTicketMap = require('../Shared/SharedMessageTicketMapV1');
 
 function getStr(cfg, key, defVal) {
   if (cfg && typeof cfg.getStr === 'function') return cfg.getStr(key, defVal);
@@ -98,15 +100,30 @@ function stickySet(senderKey, ticketId, ttlSec) {
   sticky.set(senderKey, { ticketId, expAt: Date.now() + (ttlSec * 1000) });
 }
 
-async function getQuotedText(msg) {
+async function getQuotedInfo(msg) {
   try {
     if (msg && typeof msg.getQuotedMessage === 'function') {
       const q = await msg.getQuotedMessage();
-      if (!q) return '';
-      return String(q.body || (q._data && q._data.caption) || '').trim();
+      if (!q) return { text: '', msgId: '' };
+      
+      const text = String(q.body || (q._data && q._data.caption) || '').trim();
+      
+      // Extract message ID for mapping lookup
+      let msgId = '';
+      if (q.id) {
+        msgId = String(q.id);
+      } else if (q._data && q._data.id) {
+        if (q._data.id._serialized) {
+          msgId = String(q._data.id._serialized);
+        } else if (typeof q._data.id === 'string') {
+          msgId = String(q._data.id);
+        }
+      }
+      
+      return { text, msgId };
     }
   } catch (_e) {}
-  return '';
+  return { text: '', msgId: '' };
 }
 
 async function handle(meta, cfg, ctx) {
@@ -135,21 +152,45 @@ async function handle(meta, cfg, ctx) {
 
   const textNow = String(ctx.text || msg.body || '').trim();
 
-  // 1) try quoted ticket
-  const quotedText = await getQuotedText(msg);
-  let ticketId = extractTicket(quotedText);
+  // 1) try quoted message ID mapping (most reliable)
+  const quotedInfo = await getQuotedInfo(msg);
+  let ticketId = '';
+  
+  if (quotedInfo.msgId) {
+    ticketId = MessageTicketMap.get(quotedInfo.msgId);
+    if (ticketId) {
+      log.trace('ticket.from.msgmap', { msgId: quotedInfo.msgId, ticketId });
+    }
+  }
+  
+  // 2) try quoted text ticket extraction
+  if (!ticketId) {
+    ticketId = extractTicket(quotedInfo.text);
+    if (ticketId) {
+      log.trace('ticket.from.quoted.text', { ticketId });
+    }
+  }
 
-  // 2) try direct text/caption
-  if (!ticketId) ticketId = extractTicket(textNow);
+  // 3) try direct text/caption
+  if (!ticketId) {
+    ticketId = extractTicket(textNow);
+    if (ticketId) {
+      log.trace('ticket.from.direct.text', { ticketId });
+    }
+  }
 
-  // 3) sticky fallback (IMPORTANT: even if filename exists)
+  // 4) sticky fallback (IMPORTANT: even if filename exists)
   if (!ticketId && allowSticky) {
     ticketId = stickyGet(senderKey);
     if (ticketId) log.trace('sticky.use', { senderKey, ticketId });
   }
 
   if (!ticketId) {
-    log.debug('noTicket', { reason: (quotedText ? 'noMatch' : 'noQuoted'), type: msg.type || '' });
+    log.debug('noTicket', { 
+      reason: (quotedInfo.msgId ? 'noMapping' : (quotedInfo.text ? 'noMatch' : 'noQuoted')), 
+      type: msg.type || '',
+      hadQuotedMsg: !!quotedInfo.msgId
+    });
     return { handled: false };
   }
 

@@ -13,6 +13,7 @@ const SharedLog = require('../Shared/SharedLogV1');
 const TicketCore = require('../Shared/SharedTicketCoreV1');
 const TicketCard = require('./FallbackTicketCardV1');
 const QuoteReply = require('./FallbackQuoteReplyV1');
+const MessageTicketMap = require('../Shared/SharedMessageTicketMapV1');
 
 function safeStr(v) {
   return String(v || '').trim();
@@ -37,6 +38,25 @@ function mkLog(meta, conf, tag) {
     debug: (...a) => { if (debugOn) base.debug(...a); },
     trace: (...a) => { if (traceOn) base.trace(...a); }
   };
+}
+
+function hasMediaContent(raw) {
+  if (!raw) return false;
+  
+  // Check hasMedia property
+  if (raw.hasMedia) return true;
+  
+  // Explicitly check for audio/video/ptt types that might not set hasMedia
+  const type = String(raw.type || '').toLowerCase();
+  if (type === 'audio' || type === 'video' || type === 'ptt') return true;
+  
+  // Check if downloadMedia function exists (indicates media presence)
+  if (typeof raw.downloadMedia === 'function') {
+    // Additional type checks
+    if (type === 'image' || type === 'document' || type === 'sticker') return true;
+  }
+  
+  return false;
 }
 
 function pickSendFn(meta, preferCsv, mode) {
@@ -79,15 +99,23 @@ function pickSendFn(meta, preferCsv, mode) {
   };
 }
 
-async function forwardMedia(log, mediaSendFn, toChatId, rawMsg) {
+async function forwardMedia(log, mediaSendFn, toChatId, rawMsg, ticketId) {
   try {
+    const msgType = rawMsg && rawMsg.type ? String(rawMsg.type) : 'unknown';
+    log.debug('media.forward.attempt', { type: msgType, hasDownload: typeof rawMsg?.downloadMedia === 'function', hasForward: typeof rawMsg?.forward === 'function' });
+    
     let media = null;
 
     if (rawMsg && typeof rawMsg.downloadMedia === 'function') {
       try {
         media = await rawMsg.downloadMedia();
+        if (media) {
+          log.debug('media.download.ok', { type: msgType, size: media?.data?.length || 0 });
+        } else {
+          log.warn('media.download.null', { type: msgType });
+        }
       } catch (e) {
-        log.warn('media.download.fail', { err: e && e.message ? e.message : String(e) });
+        log.warn('media.download.fail', { type: msgType, err: e && e.message ? e.message : String(e) });
       }
     }
 
@@ -98,17 +126,48 @@ async function forwardMedia(log, mediaSendFn, toChatId, rawMsg) {
     } catch (_e) {}
 
     if (media) {
-      await mediaSendFn(toChatId, media, caption ? { caption } : {});
+      const result = await mediaSendFn(toChatId, media, caption ? { caption } : {});
+      log.info('media.forward.sent', { type: msgType, via: 'download' });
+      
+      // Store message ID mapping
+      if (ticketId && result) {
+        const MessageTicketMap = require('../Shared/SharedMessageTicketMapV1');
+        if (result.id) {
+          MessageTicketMap.set(result.id, ticketId);
+          log.trace('msgmap.set.media', { msgId: result.id, ticket: ticketId, type: msgType });
+        } else if (result._data && result._data.id && result._data.id._serialized) {
+          MessageTicketMap.set(result._data.id._serialized, ticketId);
+          log.trace('msgmap.set.media', { msgId: result._data.id._serialized, ticket: ticketId, type: msgType });
+        }
+      }
+      
       return true;
     }
 
     // fallback: forward raw message if download failed
     if (rawMsg && typeof rawMsg.forward === 'function') {
-      await rawMsg.forward(toChatId);
+      log.debug('media.forward.trying.forward', { type: msgType });
+      const result = await rawMsg.forward(toChatId);
+      log.info('media.forward.sent', { type: msgType, via: 'forward' });
+      
+      // Store message ID mapping (result from forward is the forwarded message)
+      if (ticketId && result) {
+        const MessageTicketMap = require('../Shared/SharedMessageTicketMapV1');
+        if (result.id) {
+          MessageTicketMap.set(result.id, ticketId);
+          log.trace('msgmap.set.media.fwd', { msgId: result.id, ticket: ticketId, type: msgType });
+        } else if (result._data && result._data.id && result._data.id._serialized) {
+          MessageTicketMap.set(result._data.id._serialized, ticketId);
+          log.trace('msgmap.set.media.fwd', { msgId: result._data.id._serialized, ticket: ticketId, type: msgType });
+        }
+      }
+      
       return true;
     }
+    
+    log.error('media.forward.no.method', { type: msgType });
   } catch (e) {
-    log.error('media.forward.failed', { error: e && e.message ? e.message : String(e) });
+    log.error('media.forward.failed', { type: rawMsg && rawMsg.type, error: e && e.message ? e.message : String(e) });
   }
   return false;
 }
@@ -160,7 +219,10 @@ async function init(meta) {
       if (txt) combinedText.push(txt);
 
       const raw = ctx.message || ctx.msg || ctx.raw || ctx.rawMsg;
-      if (raw && raw.hasMedia) mediaItems.push(raw);
+      if (raw && hasMediaContent(raw)) {
+        log.trace('media.detected', { type: raw.type, hasMedia: raw.hasMedia });
+        mediaItems.push(raw);
+      }
 
       if (ctx.sender) {
         senderInfo = {
@@ -194,15 +256,24 @@ async function init(meta) {
     });
 
     try {
-      await textSender.fn(controlGroupId, cardText, {});
+      const cardResult = await textSender.fn(controlGroupId, cardText, {});
       log.info('ticket.card.sent', { ticket: ticketId, media: mediaItems.length });
+      
+      // Store message ID mapping for quote-reply resolution
+      if (cardResult && cardResult.id) {
+        MessageTicketMap.set(cardResult.id, ticketId);
+        log.trace('msgmap.set', { msgId: cardResult.id, ticket: ticketId });
+      } else if (cardResult && cardResult._data && cardResult._data.id && cardResult._data.id._serialized) {
+        MessageTicketMap.set(cardResult._data.id._serialized, ticketId);
+        log.trace('msgmap.set', { msgId: cardResult._data.id._serialized, ticket: ticketId });
+      }
     } catch (e) {
       log.error('ticket.card.send.fail', { error: e && e.message ? e.message : String(e) });
       return;
     }
 
     for (const rawMsg of mediaItems) {
-      await forwardMedia(log, mediaSender.fn, controlGroupId, rawMsg);
+      const mediaResult = await forwardMedia(log, mediaSender.fn, controlGroupId, rawMsg, ticketId);
       if (mediaDelayMs > 0) {
         await new Promise(r => setTimeout(r, mediaDelayMs));
       }
@@ -228,7 +299,7 @@ async function init(meta) {
     // Customer DM: buffer burst
     const raw = ctx.message || ctx.msg || ctx.raw || ctx.rawMsg;
     const text = safeStr(ctx.text);
-    const hasMedia = Boolean(raw && raw.hasMedia);
+    const hasMedia = hasMediaContent(raw);
 
     if (!text && !hasMedia) return;
 
