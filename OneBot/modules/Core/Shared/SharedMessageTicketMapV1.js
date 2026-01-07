@@ -24,6 +24,27 @@ function cleanupOld(ttlMs = DEFAULT_TTL_MS) {
   }
 }
 
+function extractMessageId(msgObj) {
+  if (!msgObj) return '';
+  
+  // Direct id property
+  if (msgObj.id && typeof msgObj.id === 'string') {
+    return String(msgObj.id).trim();
+  }
+  
+  // Nested in _data.id._serialized (whatsapp-web.js format)
+  if (msgObj._data && msgObj._data.id) {
+    if (msgObj._data.id._serialized) {
+      return String(msgObj._data.id._serialized).trim();
+    }
+    if (typeof msgObj._data.id === 'string') {
+      return String(msgObj._data.id).trim();
+    }
+  }
+  
+  return '';
+}
+
 function set(messageId, ticketId) {
   if (!messageId || !ticketId) return;
   
@@ -42,6 +63,18 @@ function set(messageId, ticketId) {
   if (setCounter % 100 === 0) {
     cleanupOld();
   }
+}
+
+function setFromResult(resultObj, ticketId) {
+  if (!resultObj || !ticketId) return;
+  
+  const msgId = extractMessageId(resultObj);
+  if (msgId) {
+    set(msgId, ticketId);
+    return msgId;
+  }
+  
+  return '';
 }
 
 function get(messageId) {
@@ -64,6 +97,7 @@ function get(messageId) {
 
 function clear() {
   messageMap.clear();
+  setCounter = 0; // Reset counter for consistent cleanup behavior
 }
 
 function size() {
@@ -72,8 +106,10 @@ function size() {
 
 module.exports = {
   set,
+  setFromResult,
   get,
   clear,
   size,
-  cleanupOld
+  cleanupOld,
+  extractMessageId
 };

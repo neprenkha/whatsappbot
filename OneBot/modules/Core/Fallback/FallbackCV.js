@@ -131,12 +131,9 @@ async function forwardMedia(log, mediaSendFn, toChatId, rawMsg, ticketId) {
       
       // Store message ID mapping
       if (ticketId && result) {
-        if (result.id) {
-          MessageTicketMap.set(result.id, ticketId);
-          log.trace('msgmap.set.media', { msgId: result.id, ticket: ticketId, type: msgType });
-        } else if (result._data && result._data.id && result._data.id._serialized) {
-          MessageTicketMap.set(result._data.id._serialized, ticketId);
-          log.trace('msgmap.set.media', { msgId: result._data.id._serialized, ticket: ticketId, type: msgType });
+        const msgId = MessageTicketMap.setFromResult(result, ticketId);
+        if (msgId) {
+          log.trace('msgmap.set.media', { msgId, ticket: ticketId, type: msgType });
         }
       }
       
@@ -151,12 +148,9 @@ async function forwardMedia(log, mediaSendFn, toChatId, rawMsg, ticketId) {
       
       // Store message ID mapping (result from forward is the forwarded message)
       if (ticketId && result) {
-        if (result.id) {
-          MessageTicketMap.set(result.id, ticketId);
-          log.trace('msgmap.set.media.fwd', { msgId: result.id, ticket: ticketId, type: msgType });
-        } else if (result._data && result._data.id && result._data.id._serialized) {
-          MessageTicketMap.set(result._data.id._serialized, ticketId);
-          log.trace('msgmap.set.media.fwd', { msgId: result._data.id._serialized, ticket: ticketId, type: msgType });
+        const msgId = MessageTicketMap.setFromResult(result, ticketId);
+        if (msgId) {
+          log.trace('msgmap.set.media.fwd', { msgId, ticket: ticketId, type: msgType });
         }
       }
       
@@ -260,12 +254,11 @@ async function init(meta) {
       log.info('ticket.card.sent', { ticket: ticketId, media: mediaItems.length });
       
       // Store message ID mapping for quote-reply resolution
-      if (cardResult && cardResult.id) {
-        MessageTicketMap.set(cardResult.id, ticketId);
-        log.trace('msgmap.set', { msgId: cardResult.id, ticket: ticketId });
-      } else if (cardResult && cardResult._data && cardResult._data.id && cardResult._data.id._serialized) {
-        MessageTicketMap.set(cardResult._data.id._serialized, ticketId);
-        log.trace('msgmap.set', { msgId: cardResult._data.id._serialized, ticket: ticketId });
+      if (cardResult) {
+        const msgId = MessageTicketMap.setFromResult(cardResult, ticketId);
+        if (msgId) {
+          log.trace('msgmap.set', { msgId, ticket: ticketId });
+        }
       }
     } catch (e) {
       log.error('ticket.card.send.fail', { error: e && e.message ? e.message : String(e) });

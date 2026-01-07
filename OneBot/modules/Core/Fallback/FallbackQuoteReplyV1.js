@@ -116,17 +116,8 @@ async function getQuotedInfo(msg) {
       
       const text = String(q.body || (q._data && q._data.caption) || '').trim();
       
-      // Extract message ID for mapping lookup
-      let msgId = '';
-      if (q.id) {
-        msgId = String(q.id);
-      } else if (q._data && q._data.id) {
-        if (q._data.id._serialized) {
-          msgId = String(q._data.id._serialized);
-        } else if (typeof q._data.id === 'string') {
-          msgId = String(q._data.id);
-        }
-      }
+      // Extract message ID for mapping lookup using shared utility
+      const msgId = MessageTicketMap.extractMessageId(q);
       
       return { text, msgId };
     }
