@@ -1,145 +1,169 @@
-"use strict";
+'use strict';
+
+/*
+  FallbackReplyMediaV1.js
+  - Media must NOT use outbox/send (text-only).
+  - Uses outsend/sendout/transport only.
+  - Returns boolean ok so caller logs are correct.
+  - Hides ticket from customer caption when hideTicket=1.
+*/
 
 const SharedLog = require('../Shared/SharedLogV1');
 
-const TICKET_RE = /\b\d{6}T\d{10}\b/g;
-
-function splitCsv(s) {
-  if (!s) return [];
-  return String(s)
-    .split(",")
-    .map((x) => x.trim())
+function splitCsv(str) {
+  return String(str || '')
+    .split(',')
+    .map(s => s.trim())
     .filter(Boolean);
 }
 
-function pickSendFn(meta, preferCsv, log) {
-  const prefer = splitCsv(preferCsv);
-  if (log && log.debug) log.debug('pickSendFn trying services: ' + prefer.join(', '));
-  
-  for (const name of prefer) {
-    try {
-      const fn = meta && meta.getService ? meta.getService(name) : null;
-      if (typeof fn === "function") {
-        if (log && log.debug) log.debug('pickSendFn selected service: ' + name);
-        return fn;
-      }
-    } catch (_e) {
-      if (log && log.warn) log.warn('pickSendFn service ' + name + ' threw error: ' + getErrorMessage(_e));
-    }
-  }
+function getStr(cfg, key, defVal) {
+  if (cfg && typeof cfg.getStr === 'function') return cfg.getStr(key, defVal);
+  if (cfg && Object.prototype.hasOwnProperty.call(cfg, key)) return String(cfg[key]);
+  return String(defVal || '');
+}
 
-  const transport = meta && meta.getService ? meta.getService("transport") : null;
-  if (transport && typeof transport.sendDirect === "function") {
-    if (log && log.debug) log.debug('pickSendFn using transport.sendDirect');
-    return async (chatId, payload, opts) => transport.sendDirect(chatId, payload, opts);
-  }
+function getInt(cfg, key, defVal) {
+  if (cfg && typeof cfg.getInt === 'function') return Number(cfg.getInt(key, defVal));
+  if (cfg && Object.prototype.hasOwnProperty.call(cfg, key)) return Number(cfg[key]);
+  return Number(defVal || 0);
+}
 
-  if (log && log.error) log.error('pickSendFn: No outbound send service available from: ' + prefer.join(', '));
-  return async () => {
-    throw new Error("No outbound send service");
+function mkLog(meta, cfg, tag) {
+  const base = SharedLog.create(meta, tag);
+  const debugOn = getInt(cfg, 'debugLog', 0) === 1;
+  const traceOn = getInt(cfg, 'traceLog', 0) === 1;
+
+  return {
+    info: (...a) => base.info(...a),
+    warn: (...a) => base.warn(...a),
+    error: (...a) => base.error(...a),
+    debug: (...a) => { if (debugOn) base.debug(...a); },
+    trace: (...a) => { if (traceOn) base.trace(...a); }
   };
 }
 
 function stripTicket(text) {
-  const s = text == null ? "" : String(text);
-  return s.replace(TICKET_RE, " ").replace(/\s+/g, " ").trim();
+  const s = String(text || '');
+  // ticket format: 6 digits + 'T' + 10+ digits (e.g., 202601T2891165231)
+  return s.replace(/\b\d{6}T\d{10,}\b/g, '').replace(/\s{2,}/g, ' ').trim();
 }
 
-function isAudioLike(type) {
-  return type === "audio" || type === "ptt";
-}
+function pickMediaSendFn(meta, preferCsv) {
+  const prefer = splitCsv(preferCsv || 'outsend,sendout,transport');
 
-function getErrorMessage(e) {
-  return e && e.message ? e.message : String(e);
-}
+  for (const rawName of prefer) {
+    const name = String(rawName || '').toLowerCase();
 
-module.exports.sendMedia = async function sendMedia(meta, cfg, toChatId, rawMsg, caption) {
-  const log = SharedLog.makeLog(meta, 'FallbackReplyMediaV1', {
-    debugEnabled: cfg && cfg.debugLog,
-    traceEnabled: cfg && cfg.traceLog
-  });
+    // Never for media:
+    if (name === 'outbox' || name === 'send') continue;
 
-  if (!toChatId || !rawMsg) {
-    if (log && log.warn) log.warn('sendMedia: missing toChatId or rawMsg');
-    return { ok: false, reason: 'missingParams' };
-  }
+    if (name === 'transport') break;
 
-  const type = String(rawMsg.type || "").toLowerCase();
-  if (log && log.debug) log.debug('sendMedia: type=' + type + ' to=' + toChatId);
-
-  const prefer = cfg && cfg.sendPrefer ? cfg.sendPrefer : "outsend,sendout,send";
-  const sendFn = pickSendFn(meta, prefer, log);
-
-  let cap = caption == null ? "" : String(caption);
-  if (cfg && cfg.stripTicketInCustomerReply) cap = stripTicket(cap);
-  if (isAudioLike(type)) cap = "";
-
-  const isAv = isAudioLike(type) || type === "video";
-
-  // for audio/video, forwarding is most reliable
-  if (isAv && typeof rawMsg.forward === "function") {
-    if (log && log.debug) log.debug('sendMedia: attempting forward for AV type=' + type);
     try {
-      await rawMsg.forward(toChatId);
-      if (log && log.info) log.info('sendMedia: forward success type=' + type);
-      return { ok: true, mode: 'forward', type };
-    } catch (e) {
-      if (log && log.warn) log.warn('sendMedia: forward failed type=' + type + ' err=' + getErrorMessage(e));
-    }
-  }
-
-  if (typeof rawMsg.downloadMedia !== "function") {
-    if (log && log.warn) log.warn('sendMedia: downloadMedia not available, attempting forward');
-    if (typeof rawMsg.forward === "function") {
-      try {
-        await rawMsg.forward(toChatId);
-        if (log && log.info) log.info('sendMedia: fallback forward success type=' + type);
-        return { ok: true, mode: 'fallbackForward', type };
-      } catch (e) {
-        if (log && log.error) log.error('sendMedia: fallback forward failed type=' + type + ' err=' + getErrorMessage(e));
-        return { ok: false, reason: 'forwardFailed', error: getErrorMessage(e) };
+      const svc = meta.getService(name);
+      if (typeof svc === 'function') return { via: name, fn: svc };
+      if (svc && typeof svc.sendDirect === 'function') {
+        return { via: name, fn: async (chatId, payload, opts) => svc.sendDirect(chatId, payload, opts || {}) };
       }
-    }
-    if (log && log.error) log.error('sendMedia: no download or forward available');
-    return { ok: false, reason: 'noDownloadOrForward' };
+    } catch (_e) {}
   }
 
-  let media = null;
-  if (log && log.debug) log.debug('sendMedia: attempting downloadMedia type=' + type);
   try {
-    media = await rawMsg.downloadMedia();
-    if (log && log.debug) log.debug('sendMedia: downloadMedia success type=' + type);
+    const transport = meta.getService('transport');
+    if (transport && typeof transport.sendDirect === 'function') {
+      return { via: 'transport', fn: async (chatId, payload, opts) => transport.sendDirect(chatId, payload, opts || {}) };
+    }
+  } catch (_e) {}
+
+  return { via: 'none', fn: async () => { throw new Error('No media send function'); } };
+}
+
+async function downloadMedia(meta, rawMsg) {
+  if (!rawMsg) return null;
+
+  // Preferred: rawMsg.downloadMedia (wwebjs)
+  if (typeof rawMsg.downloadMedia === 'function') {
+    return await rawMsg.downloadMedia();
+  }
+
+  // Alternate: transport helper if exists
+  try {
+    const transport = meta.getService('transport');
+    if (transport && typeof transport.downloadMedia === 'function') {
+      return await transport.downloadMedia(rawMsg);
+    }
+  } catch (_e) {}
+
+  return null;
+}
+
+async function sendMedia(meta, cfg, toChatId, rawMsg, caption) {
+  const log = mkLog(meta, cfg, 'FallbackReplyMediaV1');
+
+  if (!toChatId) {
+    log.warn('send.skip.missingChatId');
+    return false;
+  }
+  if (!rawMsg || !rawMsg.hasMedia) {
+    log.warn('send.skip.noMedia');
+    return false;
+  }
+
+  const hideTicket = getInt(cfg, 'hideTicket', 1) === 1;
+  const isToCustomer = String(toChatId).endsWith('@c.us');
+
+  const preferKey = isToCustomer ? 'replyMediaSendPrefer' : 'forwardMediaSendPrefer';
+  const prefer = getStr(cfg, preferKey, '');
+  const fallbackPrefer = isToCustomer ? getStr(cfg, 'replySendPrefer', '') : getStr(cfg, 'sendPrefer', '');
+  const finalPrefer = prefer || fallbackPrefer || 'outsend,sendout,transport';
+
+  const sender = pickMediaSendFn(meta, finalPrefer);
+
+  let media;
+  try {
+    media = await downloadMedia(meta, rawMsg);
   } catch (e) {
-    if (log && log.warn) log.warn('sendMedia: downloadMedia failed type=' + type + ' err=' + getErrorMessage(e));
+    log.warn('media.download.fail', { err: e && e.message ? e.message : String(e) });
     media = null;
   }
 
   if (!media) {
-    if (log && log.warn) log.warn('sendMedia: media is null after download, attempting forward');
-    if (typeof rawMsg.forward === "function") {
-      try {
-        await rawMsg.forward(toChatId);
-        if (log && log.info) log.info('sendMedia: forward after download fail success type=' + type);
-        return { ok: true, mode: 'forwardAfterDownloadFail', type };
-      } catch (e) {
-        if (log && log.error) log.error('sendMedia: forward after download fail failed type=' + type + ' err=' + getErrorMessage(e));
-        return { ok: false, reason: 'downloadAndForwardFailed', error: getErrorMessage(e) };
-      }
-    }
-    if (log && log.error) log.error('sendMedia: download failed and no forward available');
-    return { ok: false, reason: 'downloadFailed' };
+    log.warn('media.none');
+    return false;
   }
+
+  let cap = String(caption || '').trim();
+  if (isToCustomer && hideTicket && cap) cap = stripTicket(cap);
+
+  // Try preserve doc/ptt behavior
+  const type = String(rawMsg.type || '').toLowerCase();
+  const filename =
+    rawMsg.filename ||
+    (rawMsg._data && (rawMsg._data.filename || rawMsg._data.fileName)) ||
+    '';
 
   const opts = {};
-  if (cap.trim() && !isAudioLike(type)) opts.caption = cap.trim();
+  if (cap) opts.caption = cap;
 
-  if (log && log.debug) log.debug('sendMedia: attempting send with sendFn type=' + type);
-  try {
-    await sendFn(toChatId, media, opts);
-    if (log && log.info) log.info('sendMedia: send success type=' + type);
-    return { ok: true, mode: 'send', type };
-  } catch (e) {
-    if (log && log.error) log.error('sendMedia: send failed type=' + type + ' err=' + getErrorMessage(e));
-    return { ok: false, reason: 'sendFailed', error: getErrorMessage(e) };
+  if (type === 'document') {
+    opts.sendMediaAsDocument = true;
+    if (filename) opts.filename = String(filename);
   }
-};
+
+  // voice note
+  if (type === 'ptt') {
+    opts.sendAudioAsVoice = true;
+  }
+
+  try {
+    await sender.fn(toChatId, media, opts);
+    log.debug('send.ok', { via: sender.via, to: toChatId, type });
+    return true;
+  } catch (e) {
+    log.error('send.fail', { via: sender.via, error: e && e.message ? e.message : String(e) });
+    return false;
+  }
+}
+
+module.exports = { sendMedia };

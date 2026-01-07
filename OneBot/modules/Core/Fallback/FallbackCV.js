@@ -1,184 +1,244 @@
 'use strict';
 
 /*
-  FixedFallback.js (Buffered Version)
-  - Fix: Added missing 'FallbackReplyMediaV1' require (fixes load failure).
-  - Fix: Uses 3s buffer to merge bulk messages/media into ONE ticket card.
-  - Fix: Appends [Ticket:ID] to forwarded media captions so staff can reply easily.
+  FallbackCV.js (Stable Buffered)
+  - Fail-soft: no missing requires.
+  - Buffer DM burst to ONE ticket card (bufferMs from conf).
+  - Media forward uses media-safe send prefer (skips outbox/send).
+  - No ticket appended into every media caption (ticket stays in ticket card).
 */
 
 const Conf = require('../Shared/SharedConfV1');
 const SharedLog = require('../Shared/SharedLogV1');
 const TicketCore = require('../Shared/SharedTicketCoreV1');
 const TicketCard = require('./FallbackTicketCardV1');
-const ReplyText = require('./FallbackReplyTextV1');
-const ReplyMedia = require('./FallbackReplyMediaV1'); // Added missing require
 const QuoteReply = require('./FallbackQuoteReplyV1');
 
 function safeStr(v) {
-  if (v === null || v === undefined) return '';
-  return String(v);
+  return String(v || '').trim();
 }
 
-function pickSendFn(meta, sendPrefer) {
-  const prefer = safeStr(sendPrefer).split(',').map(s => s.trim()).filter(Boolean);
+function splitCsv(str) {
+  return String(str || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+}
 
-  for (const name of prefer) {
-    const svc = meta.getService(name);
-    if (svc && typeof svc === 'function') return svc;
+function mkLog(meta, conf, tag) {
+  const base = SharedLog.create(meta, tag);
+  const debugOn = Number(conf.getInt('debugLog', 0)) === 1;
+  const traceOn = Number(conf.getInt('traceLog', 0)) === 1;
+
+  return {
+    info: (...a) => base.info(...a),
+    warn: (...a) => base.warn(...a),
+    error: (...a) => base.error(...a),
+    debug: (...a) => { if (debugOn) base.debug(...a); },
+    trace: (...a) => { if (traceOn) base.trace(...a); }
+  };
+}
+
+function pickSendFn(meta, preferCsv, mode) {
+  const prefer = splitCsv(preferCsv || 'outsend,sendout,send');
+
+  for (const rawName of prefer) {
+    const name = String(rawName || '').toLowerCase();
+
+    // Media must never go through outbox/send (text-only).
+    if (mode === 'media') {
+      if (name === 'outbox' || name === 'send') continue;
+    }
+
+    try {
+      const svc = meta.getService(name);
+      if (typeof svc === 'function') return { via: name, fn: svc };
+      if (svc && typeof svc.sendDirect === 'function') {
+        return {
+          via: name,
+          fn: async (chatId, payload, opts) => svc.sendDirect(chatId, payload, opts || {})
+        };
+      }
+    } catch (_e) {}
   }
 
-  // fallback
-  const send = meta.getService('send');
-  if (send && typeof send === 'function') return send;
+  // fallback to transport
+  try {
+    const transport = meta.getService('transport');
+    if (transport && typeof transport.sendDirect === 'function') {
+      return {
+        via: 'transport',
+        fn: async (chatId, payload, opts) => transport.sendDirect(chatId, payload, opts || {})
+      };
+    }
+  } catch (_e) {}
 
-  throw new Error('No send function available.');
+  return {
+    via: 'none',
+    fn: async () => { throw new Error('No outbound send service'); }
+  };
+}
+
+async function forwardMedia(log, mediaSendFn, toChatId, rawMsg) {
+  try {
+    let media = null;
+
+    if (rawMsg && typeof rawMsg.downloadMedia === 'function') {
+      try {
+        media = await rawMsg.downloadMedia();
+      } catch (e) {
+        log.warn('media.download.fail', { err: e && e.message ? e.message : String(e) });
+      }
+    }
+
+    // keep original caption only (no ticket injected)
+    let caption = '';
+    try {
+      caption = safeStr(rawMsg && (rawMsg.body || (rawMsg._data && rawMsg._data.caption)));
+    } catch (_e) {}
+
+    if (media) {
+      await mediaSendFn(toChatId, media, caption ? { caption } : {});
+      return true;
+    }
+
+    // fallback: forward raw message if download failed
+    if (rawMsg && typeof rawMsg.forward === 'function') {
+      await rawMsg.forward(toChatId);
+      return true;
+    }
+  } catch (e) {
+    log.error('media.forward.failed', { error: e && e.message ? e.message : String(e) });
+  }
+  return false;
 }
 
 async function init(meta) {
   const conf = Conf.load(meta);
-  const log = SharedLog.create(meta, 'FixedFallback');
-
-  // Plain config object for handlers (do NOT pass Conf wrapper to TicketCore/QuoteReply)
-  const cfg = (conf && conf.raw && typeof conf.raw === 'object') ? conf.raw : {};
-  if (cfg.enabled === undefined) cfg.enabled = 1;
+  const log = mkLog(meta, conf, 'FallbackCV');
 
   const controlGroupId = conf.getStr('controlGroupId', '');
-  if (!controlGroupId) {
-    log.error('controlGroupId missing, module disabled.');
-    return { onMessage: async () => {} };
-  }
+  if (!controlGroupId) throw new Error('controlGroupId must not be empty');
 
-  cfg.controlGroupId = controlGroupId;
-
-  const sendPrefer = conf.getStr('sendPrefer', 'outsend,sendout,send');
   const ticketType = conf.getStr('ticketType', 'fallback');
 
-  cfg.ticketType = ticketType;
-  cfg.sendPrefer = sendPrefer;
+  const bufferMs = Number(conf.getInt('bufferMs', 3000));
+  const mediaDelayMs = Number(conf.getInt('mediaDelayMs', 500));
 
-  // Ticket store mapping (SharedTicketCoreV1 expects ticketStoreSpec or storeSpec)
-  cfg.ticketStoreSpec = cfg.ticketStoreSpec || cfg.ticketStore || cfg.storeSpec || conf.getStr('ticketStore', '');
-  if (!cfg.storeSpec && cfg.ticketStoreSpec) cfg.storeSpec = cfg.ticketStoreSpec;
+  const sendPrefer = conf.getStr('sendPrefer', 'outsend,sendout,send');
 
-  // Visibility rules
-  cfg.hideTicket = conf.getBool('hideTicket', true) ? 1 : 0;
-  cfg.groupCardHideTicket = conf.getBool('groupCardHideTicket', false) ? 1 : 0;
-  cfg.groupMediaHideTicket = conf.getBool('groupMediaHideTicket', true) ? 1 : 0;
+  const textSender = pickSendFn(meta, sendPrefer, 'text');
+  const mediaSender = pickSendFn(meta, sendPrefer, 'media');
 
-  cfg.debugLog = conf.getBool('debugLog', conf.getBool('debug', false)) ? 1 : 0;
-  cfg.traceLog = conf.getBool('traceLog', conf.getBool('trace', false)) ? 1 : 0;
+  log.info('ready', {
+    controlGroupId,
+    ticketType,
+    bufferMs,
+    mediaDelayMs,
+    textVia: textSender.via,
+    mediaVia: mediaSender.via
+  });
 
-  const bufferMs = conf.getInt('burstMs', 3000); // buffer window
-  const sendFn = pickSendFn(meta, sendPrefer);
-
-  // Buffer Storage: { chatId: { timer, items: [] } }
+  // buffers[chatId] = { timer, items: [] }
   const buffers = {};
 
-  function scheduleFlush(chatId) {
-    if (!buffers[chatId]) return;
-    if (buffers[chatId].timer) return;
+  async function flushBuffer(chatId) {
+    const entry = buffers[chatId];
+    if (!entry) return;
 
-    buffers[chatId].timer = setTimeout(async () => {
-      const batch = buffers[chatId].items || [];
-      delete buffers[chatId];
+    const batch = entry.items || [];
+    delete buffers[chatId];
 
-      if (!batch.length) return;
+    if (!batch.length) return;
 
-      // 1. Analyze Batch
-      let combinedText = [];
-      let mediaItems = [];
-      let senderInfo = {};
+    const combinedText = [];
+    const mediaItems = [];
+    let senderInfo = {};
 
-      for (const ctx of batch) {
-        const txt = safeStr(ctx.text);
-        if (txt) combinedText.push(txt);
+    for (const ctx of batch) {
+      const txt = safeStr(ctx.text);
+      if (txt) combinedText.push(txt);
 
-        const raw = ctx.message || ctx.raw;
-        if (raw && raw.hasMedia) {
-          mediaItems.push(raw);
-        }
+      const raw = ctx.message || ctx.msg || ctx.raw || ctx.rawMsg;
+      if (raw && raw.hasMedia) mediaItems.push(raw);
 
-        if (ctx.sender) {
-          senderInfo = {
-            name: ctx.sender.name || '',
-            phone: ctx.sender.phone || ''
-          };
-        }
+      if (ctx.sender) {
+        senderInfo = {
+          name: ctx.sender.name || '',
+          phone: ctx.sender.phone || ''
+        };
       }
+    }
 
-      const finalText = combinedText.join('\n\n');
+    const finalText = combinedText.join('\n\n');
 
-      // 2. Touch Ticket (MUST use cfg for JsonStore persistence)
-      const ticketData = await TicketCore.touch(meta, cfg, ticketType, batch[0].chatId, {
-        sender: senderInfo,
-        lastText: finalText,
-        mediaCount: mediaItems.length,
-      });
+    let ticketData;
+    try {
+      ticketData = await TicketCore.touch(meta, conf, ticketType, chatId, senderInfo);
+    } catch (e) {
+      log.error('ticket.touch.failed', { error: e && e.message ? e.message : String(e) });
+      return;
+    }
 
-      const ticket = ticketData && ticketData.ticket ? ticketData.ticket : '';
+    const ticketId = ticketData.ticket;
 
-      // 3. Send Ticket Card to Control Group (ONE per batch)
-      const cardText = await TicketCard.render(meta, cfg, 'UPDATE', {
-        ticket,
-        fromChatId: batch[0].chatId,
-        fromPhone: senderInfo.phone || '',
-        fromName: senderInfo.name || '',
-        text: finalText,
-        mediaCount: mediaItems.length,
-      });
+    const cardText = await TicketCard.render(meta, conf, 'UPDATE', {
+      ticket: ticketId,
+      text: finalText,
+      attachCount: mediaItems.length,
+      fromChatId: chatId,
+      fromName: senderInfo.name,
+      fromPhone: senderInfo.phone,
+      seq: ticketData.seq,
+      status: ticketData.status
+    });
 
-      await sendFn(controlGroupId, cardText, {});
-      log.info(`Ticket card sent: ${ticket} (${mediaItems.length} media)`);
+    try {
+      await textSender.fn(controlGroupId, cardText, {});
+      log.info('ticket.card.sent', { ticket: ticketId, media: mediaItems.length });
+    } catch (e) {
+      log.error('ticket.card.send.fail', { error: e && e.message ? e.message : String(e) });
+      return;
+    }
 
-      // 4. Forward Media Items (optional, keep ticket in caption for staff)
-      for (const raw of mediaItems) {
-        try {
-          const captionBase = safeStr(raw && raw._data ? raw._data.caption : '');
-          let caption = captionBase;
-
-          // Optional: hide ticket in media caption to reduce spam
-          if (!cfg.groupMediaHideTicket) {
-            if (ticket) caption = (caption ? caption + '\n' : '') + `[Ticket:${ticket}]`;
-          }
-
-          // Reuse ReplyMedia sender (Control Group target)
-          await ReplyMedia.sendMedia(meta, cfg, controlGroupId, raw, caption);
-        } catch (e) {
-          log.error('Failed to forward media', { error: e.message });
-        }
+    for (const rawMsg of mediaItems) {
+      await forwardMedia(log, mediaSender.fn, controlGroupId, rawMsg);
+      if (mediaDelayMs > 0) {
+        await new Promise(r => setTimeout(r, mediaDelayMs));
       }
-
-    }, bufferMs);
+    }
   }
 
   async function processMessage(ctx) {
-    const chatId = safeStr(ctx.chatId);
-    const isGroup = !!ctx.isGroup;
+    if (!ctx) return;
 
-    // Group Logic - Quote Reply
+    const chatId = ctx.chatId || (ctx.msg && ctx.msg.chatId) || (ctx.message && ctx.message.from) || '';
+    if (!chatId) return;
+
+    const isGroup = Boolean(ctx.isGroup);
+
+    // Control Group: handle quote-reply (text/media) only
     if (isGroup) {
       if (chatId === controlGroupId) {
-        await QuoteReply.handle(meta, cfg, ctx);
-        return;
+        await QuoteReply.handle(meta, conf, ctx);
       }
       return;
     }
 
-    // Customer Logic - Buffer for Anti-Spam
+    // Customer DM: buffer burst
+    const raw = ctx.message || ctx.msg || ctx.raw || ctx.rawMsg;
     const text = safeStr(ctx.text);
-    const rawMessage = ctx.message || ctx.raw;
-    const hasMedia = rawMessage ? rawMessage.hasMedia : false;
+    const hasMedia = Boolean(raw && raw.hasMedia);
 
     if (!text && !hasMedia) return;
 
-    // Initialize buffer
-    if (!buffers[chatId]) {
-      buffers[chatId] = { items: [] };
-    }
-
+    if (!buffers[chatId]) buffers[chatId] = { items: [], timer: null };
     buffers[chatId].items.push(ctx);
-    scheduleFlush(chatId);
+
+    if (buffers[chatId].timer) clearTimeout(buffers[chatId].timer);
+    buffers[chatId].timer = setTimeout(() => {
+      flushBuffer(chatId).catch(e => log.error('flush.fail', { error: e && e.message ? e.message : String(e) }));
+    }, bufferMs);
   }
 
   return {
@@ -186,9 +246,9 @@ async function init(meta) {
       try {
         await processMessage(ctx);
       } catch (e) {
-        log.error('Error processing message', { error: e.message });
+        log.error('onMessage.error', { error: e && e.message ? e.message : String(e) });
       }
-    },
+    }
   };
 }
 

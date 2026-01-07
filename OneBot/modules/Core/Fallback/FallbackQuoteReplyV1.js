@@ -1,260 +1,191 @@
 'use strict';
 
-/**
- * FallbackQuoteReplyV1
- * Control Group quote-reply -> Customer DM
- *
- * Step 2 (stable media):
- * - Supports sending image/document without requiring every media item to be quote-replied.
- * - Keeps a short-lived "sticky ticket" per staff sender so album/media bursts can reuse the ticket.
- *
- * Note: No bot-facing templates/keywords here. Only routing + logging.
- */
+/*
+  FallbackQuoteReplyV1.js
+  - Staff reply via quote-reply in Control Group.
+  - Sticky ticket support even when message has filename/caption (document/image).
+  - Media replies routed via FallbackReplyMediaV1 (media-safe).
+  - Text replies routed via replySendPrefer (can use outbox).
+*/
 
 const SharedLog = require('../Shared/SharedLogV1');
-const SharedTicketCore = require('../Shared/SharedTicketCoreV1');
-const QuoteParse = require('./FallbackQuoteParseV1');
-const ReplyText = require('./FallbackReplyTextV1');
+const TicketCore = require('../Shared/SharedTicketCoreV1');
 const ReplyMedia = require('./FallbackReplyMediaV1');
 
-const _sticky = new Map(); // key -> { ticket, exp }
-const _seen = new Map();   // msgKey -> ts
-
-function _n(v, d) {
-  const x = Number(v);
-  return Number.isFinite(x) ? x : d;
-}
-function _s(v) {
-  return v === null || v === undefined ? '' : String(v);
+function getStr(cfg, key, defVal) {
+  if (cfg && typeof cfg.getStr === 'function') return cfg.getStr(key, defVal);
+  if (cfg && Object.prototype.hasOwnProperty.call(cfg, key)) return String(cfg[key]);
+  return String(defVal || '');
 }
 
-function _getMsgType(rawMsg) {
-  return _s(rawMsg && (rawMsg.type || (rawMsg._data && rawMsg._data.type))).toLowerCase();
+function getInt(cfg, key, defVal) {
+  if (cfg && typeof cfg.getInt === 'function') return Number(cfg.getInt(key, defVal));
+  if (cfg && Object.prototype.hasOwnProperty.call(cfg, key)) return Number(cfg[key]);
+  return Number(defVal || 0);
 }
 
-function _getMsgKey(rawMsg) {
-  if (!rawMsg) return '';
-  const id = rawMsg.id;
-  if (id && typeof id === 'object') {
-    if (id._serialized) return _s(id._serialized);
-    if (id.id) return _s(id.id);
+function mkLog(meta, cfg, tag) {
+  const base = SharedLog.create(meta, tag);
+  const debugOn = getInt(cfg, 'debugLog', 0) === 1;
+  const traceOn = getInt(cfg, 'traceLog', 0) === 1;
+
+  return {
+    info: (...a) => base.info(...a),
+    warn: (...a) => base.warn(...a),
+    error: (...a) => base.error(...a),
+    debug: (...a) => { if (debugOn) base.debug(...a); },
+    trace: (...a) => { if (traceOn) base.trace(...a); }
+  };
+}
+
+function splitCsv(str) {
+  return String(str || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function stripTicket(text) {
+  const s = String(text || '');
+  return s.replace(/\b\d{6}T\d{10,}\b/g, '').replace(/\s{2,}/g, ' ').trim();
+}
+
+function extractTicket(text) {
+  const s = String(text || '');
+  const m = s.match(/\b(\d{6}T\d{10,})\b/);
+  return m ? m[1] : '';
+}
+
+function pickTextSendFn(meta, preferCsv) {
+  const prefer = splitCsv(preferCsv || 'outbox,outsend,sendout,send');
+
+  for (const rawName of prefer) {
+    const name = String(rawName || '').toLowerCase();
+    try {
+      const svc = meta.getService(name);
+      if (typeof svc === 'function') return { via: name, fn: svc };
+      if (svc && typeof svc.sendDirect === 'function') {
+        return { via: name, fn: async (chatId, payload, opts) => svc.sendDirect(chatId, payload, opts || {}) };
+      }
+    } catch (_e) {}
   }
-  if (rawMsg._data && rawMsg._data.id && rawMsg._data.id._serialized) return _s(rawMsg._data.id._serialized);
-  const at = rawMsg.timestamp || (rawMsg._data && rawMsg._data.t) || '';
-  const from = rawMsg.from || (rawMsg._data && rawMsg._data.from) || '';
-  const author = rawMsg.author || (rawMsg._data && rawMsg._data.author) || '';
-  return [from, author, at].filter(Boolean).join('|');
+
+  try {
+    const transport = meta.getService('transport');
+    if (transport && typeof transport.sendDirect === 'function') {
+      return { via: 'transport', fn: async (chatId, payload, opts) => transport.sendDirect(chatId, payload, opts || {}) };
+    }
+  } catch (_e) {}
+
+  return { via: 'none', fn: async () => { throw new Error('No text send function'); } };
 }
 
-function _getSenderKey(ctx, rawMsg) {
-  const s = ctx && ctx.sender;
-  const k = (s && (s.id || s.phone || s.lid)) || rawMsg.author || '';
-  return _s(k);
-}
+// Sticky per sender (memory only)
+const sticky = new Map(); // senderKey -> { ticketId, expAt }
 
-function _cleanupSticky(now) {
-  for (const [k, v] of _sticky.entries()) {
-    if (!v || !v.exp || v.exp <= now) _sticky.delete(k);
+function stickyGet(senderKey) {
+  const it = sticky.get(senderKey);
+  if (!it) return '';
+  if (Date.now() > it.expAt) {
+    sticky.delete(senderKey);
+    return '';
   }
+  return it.ticketId || '';
 }
 
-function _cleanupSeen(now, ttlMs) {
-  for (const [k, ts] of _seen.entries()) {
-    if (!ts || (now - ts) > ttlMs) _seen.delete(k);
-  }
+function stickySet(senderKey, ticketId, ttlSec) {
+  if (!senderKey || !ticketId) return;
+  sticky.set(senderKey, { ticketId, expAt: Date.now() + (ttlSec * 1000) });
 }
 
-function _isStableMedia(rawMsg) {
-  if (!rawMsg) return false;
-  if (rawMsg.hasMedia !== true) return false;
-  const t = _getMsgType(rawMsg);
-  // Step 2 scope: image + document
-  return t === 'image' || t === 'document';
-}
-
-function _formatStackTrace(error, maxLines) {
-  if (!error || !error.stack) return '';
-  return error.stack.split('\n').slice(0, maxLines || 3).join(' ');
-}
-
-function _stripTicketFromText(text, ticket) {
-  const t = _s(text);
-  if (!t || !ticket) return t;
-  const esc = ticket.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  let out = t.replace(new RegExp('\\[\\s*Ticket\\s*:\\s*' + esc + '\\s*\\]', 'ig'), '');
-  out = out.replace(new RegExp('\\bTicket\\s*:\\s*' + esc + '\\b', 'ig'), '');
-  out = out.replace(new RegExp('^!r\\s+' + esc + '\\b', 'ig'), '');
-  return out.trim();
+async function getQuotedText(msg) {
+  try {
+    if (msg && typeof msg.getQuotedMessage === 'function') {
+      const q = await msg.getQuotedMessage();
+      if (!q) return '';
+      return String(q.body || (q._data && q._data.caption) || '').trim();
+    }
+  } catch (_e) {}
+  return '';
 }
 
 async function handle(meta, cfg, ctx) {
-  const log = SharedLog.makeLog(meta, 'FallbackQuoteReplyV1', {
-    debugEnabled: cfg && cfg.debugLog,
-    traceEnabled: cfg && cfg.traceLog
-  });
+  const log = mkLog(meta, cfg, 'FallbackQuoteReplyV1');
 
-  cfg = cfg || {};
-  ctx = ctx || {};
+  const msg = ctx.message || ctx.msg || ctx.raw || ctx.rawMsg;
+  if (!msg) return { handled: false };
 
-  const controlGroupId = _s(cfg.controlGroupId);
-  if (!controlGroupId) return false;
+  // Only for group messages
+  if (!ctx.isGroup) return { handled: false };
 
-  if (ctx.chatId !== controlGroupId) return false;
-  if (ctx.isGroup !== true) return false;
+  const ticketType = getStr(cfg, 'ticketType', 'fallback');
+  const hideTicket = getInt(cfg, 'hideTicket', 1) === 1;
 
-  const rawMsg = ctx.raw || ctx.msg || ctx.message;
-  if (!rawMsg) return false;
+  const allowSticky = getInt(cfg, 'allowStickyReply', 1) === 1;
+  const stickyTtlSec = Number(getInt(cfg, 'stickyTtlSec', 900));
 
-  const now = Date.now();
-  const eventDedupeMs = _n(cfg.replyEventDedupeMs, 5000);
-  const stickyMs = _n(cfg.replyStickyMs, _n(cfg.albumWindowMs, 3000));
-  const stickyEnabled = _n(cfg.replyStickyEnabled, 1) === 1;
+  const replyPrefer = getStr(cfg, 'replySendPrefer', 'outbox,outsend,sendout,send');
+  const textSender = pickTextSendFn(meta, replyPrefer);
 
-  _cleanupSticky(now);
-  _cleanupSeen(now, eventDedupeMs);
-  if (log && log.trace) log.trace('cleanup done - sticky=' + _sticky.size + ' seen=' + _seen.size);
+  const senderKey =
+    (ctx.sender && (ctx.sender.lid || ctx.sender.id)) ||
+    (msg.author || '') ||
+    (ctx.sender && ctx.sender.phone) ||
+    '';
 
-  const msgKey = _getMsgKey(rawMsg);
-  if (msgKey) {
-    const last = _seen.get(msgKey);
-    if (last && (now - last) < eventDedupeMs) {
-      if (log && log.trace) log.trace('dedupe drop msgKey=' + msgKey);
-      return true;
-    }
-    _seen.set(msgKey, now);
+  const textNow = String(ctx.text || msg.body || '').trim();
+
+  // 1) try quoted ticket
+  const quotedText = await getQuotedText(msg);
+  let ticketId = extractTicket(quotedText);
+
+  // 2) try direct text/caption
+  if (!ticketId) ticketId = extractTicket(textNow);
+
+  // 3) sticky fallback (IMPORTANT: even if filename exists)
+  if (!ticketId && allowSticky) {
+    ticketId = stickyGet(senderKey);
+    if (ticketId) log.trace('sticky.use', { senderKey, ticketId });
   }
 
-  const senderKey = _getSenderKey(ctx, rawMsg);
-  const stickyKey = controlGroupId + '|' + senderKey;
-
-  let parseRes = null;
-  try {
-    parseRes = await QuoteParse.parse(meta, cfg, ctx);
-  } catch (e) {
-    log.warn('QuoteParse threw: ' + (e && e.message ? e.message : e));
-    return false;
+  if (!ticketId) {
+    log.debug('noTicket', { reason: (quotedText ? 'noMatch' : 'noQuoted'), type: msg.type || '' });
+    return { handled: false };
   }
 
-  let ticket = '';
-  let fromSticky = false;
-
-  // 1) Normal path: quoted/explicit ticket
-  if (parseRes && parseRes.ok && parseRes.ticket) {
-    ticket = _s(parseRes.ticket);
-    if (stickyEnabled && ticket && senderKey) {
-      _sticky.set(stickyKey, { ticket, exp: now + stickyMs });
-      if (log && log.debug) log.debug('sticky SET ticket=' + ticket + ' sender=' + senderKey + ' exp=' + (now + stickyMs));
-    }
-  }
-  // 2) Sticky path: next media without quote (album / burst)
-  else if (stickyEnabled && senderKey && _isStableMedia(rawMsg)) {
-    const st = _sticky.get(stickyKey);
-    if (st && st.ticket && st.exp > now) {
-      ticket = _s(st.ticket);
-      fromSticky = true;
-      st.exp = now + stickyMs; // extend while media still coming
-      _sticky.set(stickyKey, st);
-      if (log && log.debug) log.debug('sticky USE ticket=' + ticket + ' sender=' + senderKey + ' exp=' + st.exp);
-    } else {
-      const reason = parseRes && parseRes.reason ? parseRes.reason : 'noTicket';
-      if (log && log.info) log.info('noTicket ' + JSON.stringify({ reason, sender: senderKey, type: _getMsgType(rawMsg), hasSticky: !!st, stickyExpired: st && st.exp <= now }));
-      return false;
-    }
-  } else {
-    // Avoid accidental routing for random unquoted text
-    if (log && log.trace) log.trace('no ticket match - parseRes=' + JSON.stringify({ ok: parseRes && parseRes.ok, hasTicket: parseRes && !!parseRes.ticket, sticky: stickyEnabled, hasMedia: _isStableMedia(rawMsg) }));
-    return false;
+  if (allowSticky) {
+    stickySet(senderKey, ticketId, stickyTtlSec);
+    log.trace('sticky.set', { senderKey, ticketId, ttlSec: stickyTtlSec });
   }
 
-  if (!ticket) return false;
-
-  const ticketType = _s(cfg.ticketType || 'fallback');
-  const strictType = _n(cfg.strictTicketType, 1) === 1;
-  const typeForResolve = strictType ? ticketType : '';
-
-  let tinfo = null;
-  try {
-    tinfo = await SharedTicketCore.resolve(meta, cfg, typeForResolve, ticket);
-  } catch (e) {
-    log.warn('Ticket resolve error: ' + (e && e.message ? e.message : e));
-    return true;
+  // Resolve ticket -> customer chatId
+  const res = await TicketCore.resolve(meta, cfg, ticketType, ticketId, {});
+  if (!res || !res.ok || !res.chatId) {
+    log.warn('ticket.resolve.fail', { ticketId });
+    return { handled: false };
   }
 
-  if (!tinfo || !tinfo.ok) {
-    log.info('ticketNotResolved ' + JSON.stringify({ ticket, reason: tinfo && tinfo.reason ? tinfo.reason : 'unknown' }));
-    return true;
+  const toChatId = res.chatId;
+
+  // MEDIA reply
+  if (msg.hasMedia) {
+    const ok = await ReplyMedia.sendMedia(meta, cfg, toChatId, msg, textNow);
+    log.info('replyMedia', { ok, ticketId, toChatId, type: msg.type || '' });
+    return { handled: true, ok };
   }
 
-  const toChatId = _s(tinfo.chatId);
-  if (!toChatId) {
-    log.warn('ticket resolved but missing chatId ticket=' + ticket);
-    return true;
-  }
-
-  const hideTicket = _n(cfg.hideTicket, 1) === 1;
-  const msgType = _getMsgType(rawMsg);
+  // TEXT reply
+  let outText = textNow;
+  if (hideTicket && outText) outText = stripTicket(outText);
+  if (!outText) return { handled: true, ok: true };
 
   try {
-    // Stable media (image/document)
-    if (_isStableMedia(rawMsg)) {
-      const caption = hideTicket ? _stripTicketFromText(ctx.text, ticket) : _s(ctx.text);
-      if (log && log.debug) log.debug('replyMedia START ticket=' + ticket + ' type=' + msgType + ' sticky=' + (fromSticky ? 1 : 0));
-      
-      const result = await ReplyMedia.sendMedia(meta, cfg, toChatId, rawMsg, caption);
-      const ok = result && result.ok;
-      
-      if (log && log.info) {
-        log.info('replyMedia ' + JSON.stringify({ 
-          ticket, 
-          ok: !!ok, 
-          type: msgType, 
-          sticky: fromSticky ? 1 : 0,
-          mode: result && result.mode ? result.mode : 'unknown',
-          reason: result && result.reason ? result.reason : '',
-          error: result && result.error ? result.error : ''
-        }));
-      }
-      
-      if (!ok && log && log.error) {
-        log.error('replyMedia FAILED ticket=' + ticket + ' reason=' + (result && result.reason ? result.reason : 'unknown'));
-      }
-      
-      return true;
-    }
-
-    // Text
-    const txt = hideTicket ? _stripTicketFromText(ctx.text, ticket) : _s(ctx.text);
-    if (log && log.debug) log.debug('replyText START ticket=' + ticket + ' type=' + msgType + ' sticky=' + (fromSticky ? 1 : 0));
-    
-    const result = await ReplyText.sendText(meta, cfg, toChatId, txt);
-    const ok = result && result.ok;
-    
-    if (log && log.info) {
-      log.info('replyText ' + JSON.stringify({ 
-        ticket, 
-        ok: !!ok, 
-        type: msgType, 
-        sticky: fromSticky ? 1 : 0,
-        via: result && result.via ? result.via : '',
-        reason: result && result.reason ? result.reason : ''
-      }));
-    }
-    
-    if (!ok && log && log.error) {
-      log.error('replyText FAILED ticket=' + ticket + ' reason=' + (result && result.reason ? result.reason : 'unknown'));
-    }
-    
-    return true;
+    await textSender.fn(toChatId, outText, {});
+    log.info('replyText', { ok: true, ticketId, toChatId, via: textSender.via });
+    return { handled: true, ok: true };
   } catch (e) {
-    if (log && log.warn) {
-      log.warn('replyError ' + JSON.stringify({ 
-        ticket, 
-        type: msgType, 
-        err: (e && e.message) ? e.message : _s(e),
-        stack: _formatStackTrace(e, 3)
-      }));
-    }
-    return true;
+    log.error('replyText.fail', { via: textSender.via, error: e && e.message ? e.message : String(e) });
+    return { handled: true, ok: false };
   }
 }
 
