@@ -1,74 +1,76 @@
 'use strict';
 
 /*
-  SharedLogV1
-  - Standard logger wrapper for ONEBOT modules
-  - Primary sink: meta.log(tag, message) (Log module pipeline)
-  - Fallback sink: console.log (only if meta.log missing)
-  - Supports debug/trace gating via opts.debugEnabled / opts.traceEnabled
+SharedLogV1
+Minimal logger wrapper.
+
+Exports:
+- create(meta, tag)
+- makeLog(meta, tag) (back-compat alias)
 */
 
-function safeStr(v) {
-  return String(v == null ? '' : v);
+function _ts(meta) {
+  try {
+    if (meta && typeof meta.now === 'function') return meta.now();
+  } catch (e) {}
+  return new Date().toISOString();
 }
 
-function nowIso() {
-  try { return new Date().toISOString(); } catch (_) { return ''; }
-}
-
-function makeSink(meta) {
-  if (meta && typeof meta.log === 'function') {
-    return (tag, msg) => meta.log(tag, msg);
+function _safe(v) {
+  try {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'string') return v;
+    if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+    if (v instanceof Error) return v.stack || v.message || String(v);
+    return JSON.stringify(v);
+  } catch (e) {
+    try { return String(v); } catch (e2) { return ''; }
   }
-
-  // Optional: if in future you expose a log service, we can detect it here.
-  // For now, fallback to console.
-  return (tag, msg) => {
-    // Keep ASCII only
-    const line = `${nowIso()} [${tag}] ${msg}`;
-    console.log(line);
-  };
 }
 
-function create(meta, tag, opts) {
-  const o = opts || {};
-  const sink = makeSink(meta);
+function create(meta, tag) {
+  const tg = tag ? String(tag) : 'Log';
 
-  const debugEnabled = !!o.debugEnabled;
-  const traceEnabled = !!o.traceEnabled;
+  function write(level, args) {
+    const t = _ts(meta);
+    const lv = level ? String(level) : 'info';
+    let msg = '';
+    try {
+      msg = Array.prototype.slice.call(args || []).map(_safe).filter(Boolean).join(' ');
+    } catch (e) {
+      msg = '';
+    }
 
-  function emit(level, msg) {
-    const t = safeStr(tag).trim() || 'Log';
-    const m = safeStr(msg).trim();
-    if (!m) return;
-    // Put level inside message so Log module stays the single output format owner
-    sink(t, `${level} ${m}`);
+    const line = `${t} [${tg}] ${lv} ${msg}`.trim();
+
+    try {
+      if (meta && typeof meta.log === 'function') {
+        meta.log(line);
+        return;
+      }
+    } catch (e) {}
+
+    try {
+      if (lv === 'error') return console.error(line);
+      if (lv === 'warn') return console.warn(line);
+      return console.log(line);
+    } catch (e) {}
   }
 
   return {
-    info: (msg) => emit('info', msg),
-    warn: (msg) => emit('warn', msg),
-    error: (msg) => emit('error', msg),
-    debug: (msg) => { if (debugEnabled) emit('debug', msg); },
-    trace: (msg) => { if (traceEnabled) emit('trace', msg); },
-
-    // helper: build a child logger that prefixes messages
-    child: (prefix) => {
-      const p = safeStr(prefix).trim();
-      return {
-        info: (msg) => emit('info', p ? `${p} ${safeStr(msg)}` : msg),
-        warn: (msg) => emit('warn', p ? `${p} ${safeStr(msg)}` : msg),
-        error: (msg) => emit('error', p ? `${p} ${safeStr(msg)}` : msg),
-        debug: (msg) => { if (debugEnabled) emit('debug', p ? `${p} ${safeStr(msg)}` : msg); },
-        trace: (msg) => { if (traceEnabled) emit('trace', p ? `${p} ${safeStr(msg)}` : msg); },
-      };
-    }
+    info: function() { write('info', arguments); },
+    warn: function() { write('warn', arguments); },
+    error: function() { write('error', arguments); },
+    debug: function() { write('debug', arguments); },
+    trace: function() { write('trace', arguments); }
   };
 }
 
-// Backward compatibility alias
-function makeLog(meta, tag, opts) {
-  return create(meta, tag, opts);
+function makeLog(meta, tag) {
+  return create(meta, tag);
 }
 
-module.exports = { create, makeLog };
+module.exports = {
+  create,
+  makeLog
+};
