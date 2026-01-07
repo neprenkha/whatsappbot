@@ -9,6 +9,7 @@
 
 // Map: messageId -> { ticketId, timestamp }
 const messageMap = new Map();
+let setCounter = 0; // Track total sets regardless of deletions
 
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -37,7 +38,8 @@ function set(messageId, ticketId) {
   });
   
   // Cleanup old entries periodically (every 100th set)
-  if (messageMap.size % 100 === 0) {
+  setCounter++;
+  if (setCounter % 100 === 0) {
     cleanupOld();
   }
 }

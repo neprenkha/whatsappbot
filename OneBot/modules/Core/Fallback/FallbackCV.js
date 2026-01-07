@@ -131,7 +131,6 @@ async function forwardMedia(log, mediaSendFn, toChatId, rawMsg, ticketId) {
       
       // Store message ID mapping
       if (ticketId && result) {
-        const MessageTicketMap = require('../Shared/SharedMessageTicketMapV1');
         if (result.id) {
           MessageTicketMap.set(result.id, ticketId);
           log.trace('msgmap.set.media', { msgId: result.id, ticket: ticketId, type: msgType });
@@ -152,7 +151,6 @@ async function forwardMedia(log, mediaSendFn, toChatId, rawMsg, ticketId) {
       
       // Store message ID mapping (result from forward is the forwarded message)
       if (ticketId && result) {
-        const MessageTicketMap = require('../Shared/SharedMessageTicketMapV1');
         if (result.id) {
           MessageTicketMap.set(result.id, ticketId);
           log.trace('msgmap.set.media.fwd', { msgId: result.id, ticket: ticketId, type: msgType });

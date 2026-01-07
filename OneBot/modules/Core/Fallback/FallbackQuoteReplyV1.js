@@ -210,7 +210,12 @@ async function handle(meta, cfg, ctx) {
   // Resolve ticket -> customer chatId
   const res = await TicketCore.resolve(meta, cfg, ticketType, ticketId, {});
   if (!res || !res.ok || !res.ticket || !res.ticket.chatId) {
-    log.warn('ticket.resolve.fail', { ticketId, hasTicket: !!(res && res.ticket) });
+    log.warn('ticket.resolve.fail', { 
+      ticketId, 
+      hasTicket: !!(res && res.ticket), 
+      hasChatId: !!(res && res.ticket && res.ticket.chatId),
+      reason: res && res.reason ? res.reason : 'unknown'
+    });
     return { handled: false };
   }
 
