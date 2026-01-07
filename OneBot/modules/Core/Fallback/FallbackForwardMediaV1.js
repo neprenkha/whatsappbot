@@ -24,19 +24,8 @@ async function tryDownloadMedia(raw, log) {
     if (!m) return { ok: false, reason: 'downloadNull' };
     return { ok: true, media: m };
   } catch (e) {
-    log.warn(`downloadMedia failed ${e && e.message ? e.message : e}`);
+    log.warn('downloadMedia failed ' + (e && e.message ? e.message : e));
     return { ok: false, reason: 'downloadFail' };
-  }
-}
-
-async function tryForwardRaw(raw, toChatId, log) {
-  if (!raw || typeof raw.forward !== 'function') return { ok: false, reason: 'noForward' };
-  try {
-    await raw.forward(toChatId);
-    return { ok: true };
-  } catch (e) {
-    log.warn(`raw.forward failed ${e && e.message ? e.message : e}`);
-    return { ok: false, reason: 'forwardFail' };
   }
 }
 
@@ -54,34 +43,35 @@ async function handle(meta, cfg, ticketCtx, ctx) {
 
   const t = TypeUtil.getRawType(raw);
   const fname = getFileName(raw);
-  const prefix = TypeUtil.formatInboundPrefix(ticketCtx.ticketId, ticketCtx.fromPhone, ticketCtx.fromName, ticketCtx.seq);
 
-  // Reupload image/doc with caption that contains ticket id (so quote-reply can extract ticket from the quote)
-  const captionParts = [prefix];
-  if (t) captionParts.push(`Type: ${t}`);
-  if (fname) captionParts.push(`File: ${fname}`);
-
+  // Minimal caption: do not repeat ticket lines on every attachment
+  const captionParts = [];
+  if (t) captionParts.push('Type: ' + t);
+  if (fname) captionParts.push('File: ' + fname);
   const caption = TypeUtil.cleanText(captionParts.join('\n'), cfg.forwardMediaCaptionMaxLen || 900);
 
   const dl = await tryDownloadMedia(raw, log);
   if (dl.ok) {
-    const r = await SharedSafeSend.send(log, outsend, ticketCtx.controlGroupId, dl.media, {
-      caption,
-      tag: 'fallback.in.media',
-    });
-    if (!r.ok) log.error(`send media failed reason=${r.reason || ''}`);
+    const sendOpt = { tag: 'fallback.in.media' };
+    if (caption) sendOpt.caption = caption;
+
+    const r = await SharedSafeSend.send(log, outsend, ticketCtx.controlGroupId, dl.media, sendOpt);
+    if (!r.ok) log.error('send media failed reason=' + (r.reason || ''));
     return r;
   }
 
-  // If download fails, fallback to forward + send caption-only text (still includes ticket id)
-  const fwd = await tryForwardRaw(raw, ticketCtx.controlGroupId, log);
-  if (!fwd.ok) return fwd;
+  // fallback: forward raw without caption
+  if (typeof raw.forward === 'function') {
+    try {
+      await raw.forward(ticketCtx.controlGroupId);
+      return { ok: true, mode: 'forward' };
+    } catch (e) {
+      log.warn('raw.forward failed ' + (e && e.message ? e.message : e));
+      return { ok: false, reason: 'forwardFail' };
+    }
+  }
 
-  const r2 = await SharedSafeSend.send(log, outsend, ticketCtx.controlGroupId, caption, {
-    tag: 'fallback.in.media.caption',
-  });
-  if (!r2.ok) log.error(`send caption failed reason=${r2.reason || ''}`);
-  return r2;
+  return { ok: false, reason: 'noForward' };
 }
 
 module.exports = { handle };

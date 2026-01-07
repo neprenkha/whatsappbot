@@ -1,79 +1,82 @@
 'use strict';
 
+/*
+FallbackReplyAVV1
+
+Send audio/video from Control Group to customer (resolved by ticket).
+- Prefer global outbound pipeline (outsend/sendout/send)
+- Download media from the quoted message via msg.downloadMedia()
+- Fallback to raw forward when reupload fails
+
+Note: audio/video are more fragile; we avoid captions for audio by default.
+*/
+
+const Conf = require('../Shared/SharedConfV1');
 const SharedLog = require('../Shared/SharedLogV1');
+const SafeSend = require('../Shared/SharedSafeSendV1');
 const MediaSend = require('../Shared/SharedMediaSendV1');
 
-function _safeStr(x) { return String(x == null ? '' : x); }
-function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-function _stripTicketLines(text) {
-  if (!text) return '';
-  const lines = String(text).split('\n');
-  const kept = [];
-  for (const l of lines) {
-    const t = l.trim().toLowerCase();
-    if (t.startsWith('ticket:')) continue;
-    kept.push(l);
-  }
-  return kept.join('\n').trim();
+function _safeStr(v) {
+  if (v === null || v === undefined) return '';
+  return String(v);
 }
 
-function _getSendTransport(meta) {
-  const fn = meta.getService('outsend') || meta.getService('sendout');
-  if (typeof fn === 'function') return { sendDirect: fn };
-  const transport = meta.getService('transport');
-  if (transport && typeof transport.sendDirect === 'function') return transport;
-  return null;
+function _resolveSendService(meta, cfg) {
+  const prefer = cfg.getCsv('sendPrefer', ['outsend', 'sendout', 'send']);
+  return SafeSend.pickSend(meta, prefer);
 }
 
-async function _downloadWithRetry(log, rawMsg, maxRetry, baseDelayMs) {
-  for (let attempt = 1; attempt <= maxRetry; attempt++) {
-    try {
-      const media = await rawMsg.downloadMedia();
-      if (media) return media;
-      log.error('downloadMedia empty (attempt ' + attempt + '/' + maxRetry + ')');
-    } catch (e) {
-      log.error('downloadMedia error attempt=' + attempt + ' err=' + _safeStr(e && e.message ? e.message : e));
-    }
-    if (attempt < maxRetry) await _sleep(baseDelayMs + attempt * 900);
-  }
-  return null;
-}
-
-async function sendAv(meta, cfgRaw, rawMsg, toChatId, caption) {
-  const cfg = (cfgRaw && typeof cfgRaw === 'object') ? cfgRaw : {};
-  const debugEnabled = !!(cfg.debugLog || cfg.debug);
-  const traceEnabled = !!(cfg.traceLog || cfg.trace);
-  const log = SharedLog.create(meta, 'FallbackReplyAVV1', { debugEnabled, traceEnabled });
-
-  const transport = _getSendTransport(meta);
-  if (!transport) return { ok: false, reason: 'noTransport' };
-
-  if (!rawMsg || typeof rawMsg.downloadMedia !== 'function') {
-    return { ok: false, reason: 'noDownloadMedia' };
-  }
-
-  const media = await _downloadWithRetry(log, rawMsg, Number(cfg.replyMediaRetry || 6), Number(cfg.replyMediaRetryDelayMs || 2200));
-  if (!media) return { ok: false, reason: 'downloadFailed' };
-
-  const type = rawMsg && rawMsg.type ? String(rawMsg.type).toLowerCase() : '';
-
-  let cap = _safeStr(caption || '');
-  if (cfg.stripTicketInCustomerReply) cap = _stripTicketLines(cap);
-
-  const opt = {};
-  if (cap) opt.caption = cap;
-
-  if (type === 'ptt') opt.sendAudioAsVoice = true;
-  if (type === 'audio' && (cfg.sendAudioAsVoice || cfg.audioAsVoice)) opt.sendAudioAsVoice = true;
-
+async function _downloadFromMsg(msg) {
   try {
-    const r = await MediaSend.sendDirectWithFallback(log, transport, toChatId, media, opt, rawMsg);
-    return { ok: !!(r && r.ok), mode: r && r.mode };
+    if (!msg || typeof msg.downloadMedia !== 'function') return { ok: false, reason: 'noDownloadMedia' };
+    const media = await msg.downloadMedia();
+    if (!media) return { ok: false, reason: 'empty' };
+    return { ok: true, media };
   } catch (e) {
-    log.error('sendAv failed err=' + _safeStr(e && e.message ? e.message : e));
-    return { ok: false, reason: 'sendFailed' };
+    return { ok: false, reason: 'exception', error: (e && e.message) || String(e) };
   }
 }
 
-module.exports = { sendAv };
+async function replyAV(meta, cfg, job) {
+  const logMaker = SharedLog.create || SharedLog.makeLog;
+  const log = logMaker ? logMaker(meta, 'FallbackReplyAVV1') : console;
+
+  const toChatId = _safeStr(job && job.chatId);
+  if (!toChatId) return { ok: false, reason: 'noChatId' };
+
+  const sendService = _resolveSendService(meta, cfg);
+  const transport = meta.getService('transport') || null;
+
+  const dl = await _downloadFromMsg(job && job.msg);
+  if (!dl.ok) {
+    log.warn('download failed', { reason: dl.reason, error: dl.error || '' });
+    try {
+      if (job && job.msg && typeof job.msg.forward === 'function') {
+        await job.msg.forward(toChatId);
+        return { ok: true, mode: 'forward' };
+      }
+    } catch (e) {}
+    return { ok: false, reason: 'downloadFailed', error: dl.error || dl.reason };
+  }
+
+  const options = {};
+
+  const forwardFn = (job && job.msg && typeof job.msg.forward === 'function')
+    ? async (cid) => {
+        await job.msg.forward(cid);
+        return { ok: true, mode: 'forward' };
+      }
+    : null;
+
+  const res = await MediaSend.sendDirectWithFallback(log, transport, toChatId, dl.media, options, job.msg, sendService, forwardFn);
+  if (!res || !res.ok) {
+    log.error('send failed', { reason: (res && res.reason) || 'unknown', error: (res && res.error) || '' });
+    return res || { ok: false, reason: 'sendFailed' };
+  }
+
+  return res;
+}
+
+module.exports = {
+  replyAV,
+};

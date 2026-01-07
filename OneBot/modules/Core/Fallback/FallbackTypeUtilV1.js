@@ -1,98 +1,104 @@
-'use strict';
+"use strict";
 
-const TICKET_RE = /\b(\d{6}T\d{10,})\b/;
+const Conf = require("../Shared/SharedConfV1");
+const SharedLog = require("../Shared/SharedLogV1");
+const TicketCore = require("../Shared/SharedTicketCoreV1");
+const TicketCard = require("./FallbackTicketCardV1");
+const QuoteReply = require("./FallbackQuoteReplyV1");
+const SafeSend = require("../Shared/SharedSafeSendV1");
 
-function nowMs() {
-  return Date.now();
+function safeText(s) {
+  return String(s || "").replace(/\r\n/g, "\n").trim();
 }
 
-function toStr(v) {
-  if (v === null || v === undefined) return '';
-  return String(v);
+async function forwardMediaToGroup(log, sendFn, groupId, msg) {
+  try {
+    if (msg && typeof msg.forward === "function") {
+      await msg.forward(groupId);
+      return true;
+    }
+  } catch (e) {
+    log.warn("[FallbackCV] forward failed. Trying download+send", { error: e.message });
+  }
+  try {
+    const media = msg && msg.downloadMedia ? await msg.downloadMedia() : null;
+    if (!media) throw new Error("No media downloaded.");
+    const opts = msg.type !== "audio" ? { caption: safeText(msg.body) } : {};
+    await sendFn(groupId, media, opts);
+    return true;
+  } catch (e) {
+    log.error("[FallbackCV] Media sending failed.", { error: e.message });
+    return false;
+  }
 }
 
-function cleanText(s, maxLen) {
-  const t = toStr(s)
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n');
-  if (maxLen && t.length > maxLen) return t.slice(0, maxLen);
-  return t;
-}
+module.exports.init = async function init(meta) {
+  const conf = Conf.load(meta);
+  const log = SharedLog.create(meta, "FallbackCV");
 
-function getRawType(raw) {
-  if (!raw) return '';
-  const t = (raw.type || (raw._data && raw._data.type) || '').toLowerCase();
-  return t;
-}
-
-function isAvType(t) {
-  const x = (t || '').toLowerCase();
-  return x === 'video' || x === 'audio' || x === 'ptt' || x === 'voice' || x === 'voice_note' || x === 'gif';
-}
-
-function isImageType(t) {
-  const x = (t || '').toLowerCase();
-  return x === 'image' || x === 'sticker';
-}
-
-function isDocumentType(t) {
-  const x = (t || '').toLowerCase();
-  return x === 'document';
-}
-
-function classify(raw, text) {
-  const t = getRawType(raw);
-
-  if (raw && raw.hasMedia) {
-    if (isAvType(t)) return 'av';
-    return 'media';
+  const controlGroupId = conf.getStr("controlGroupId", "");
+  if (!controlGroupId) {
+    log.error("ControlGroupId is required but missing. Module disabled safely.");
+    return { onMessage: async () => {}, onEvent: async () => {} }; // Fail silently
   }
 
-  if (isAvType(t)) return 'av';
-  if (isImageType(t) || isDocumentType(t)) return 'media';
+  const sendSel = SafeSend.pickSend(meta, conf.getStr("sendPrefer", "outsend,sendout,send"));
+  const sendFn = sendSel?.fn;
 
-  const body = cleanText(text || (raw && raw.body) || '', 4096);
-  if (body) return 'text';
-  return 'text';
-}
+  if (!sendFn || typeof sendFn !== "function") {
+    log.error(`[FallbackCV] Missing or invalid send function. Available services:`, Object.keys(meta.services || {}));
+    return { onMessage: async () => {}, onEvent: async () => {} }; // Fail silently
+  }
 
-function extractTicketFromText(text) {
-  const m = cleanText(text, 8000).match(TICKET_RE);
-  return m ? m[1] : '';
-}
+  async function onMessage(ctx) {
+    try {
+      if (!ctx || !ctx.chatId) return;
 
-function normalizeTicketCfg(cfg) {
-  if (!cfg || typeof cfg !== 'object') return cfg;
+      log.info("[FallbackCV] Handling new message:", ctx.text || ctx.message);
 
-  // Backward compat: older configs use ticketStore=... (SharedTicketCore expects storeSpec/ticketStoreSpec)
-  if (!cfg.storeSpec && cfg.ticketStore) cfg.storeSpec = cfg.ticketStore;
-  if (!cfg.ticketStoreSpec && cfg.storeSpec) cfg.ticketStoreSpec = cfg.storeSpec;
+      if (ctx.isGroup && ctx.chatId === controlGroupId) {
+        log.debug("[FallbackCV] Ignoring ControlGroup message.");
+        return; // Skip messages from the control group
+      }
 
-  if (!cfg.ticketType) cfg.ticketType = 'fallback';
-  return cfg;
-}
+      const msg = ctx.message;
+      const isMedia = msg && msg.hasMedia;
+      const text = safeText(ctx.text);
 
-function formatInboundPrefix(ticket, senderPhone, senderName, seq) {
-  const parts = [];
-  if (ticket) parts.push(`Ticket: ${ticket}`);
-  if (senderPhone) parts.push(`From: +${senderPhone}`);
-  if (senderName) parts.push(`Name: ${senderName}`);
-  if (seq !== undefined && seq !== null) parts.push(`Seq: ${seq}`);
-  return parts.join(' | ');
-}
+      if (!isMedia && !text) {
+        log.warn("[FallbackCV] Empty message received. Skipped.");
+        return;
+      }
 
-module.exports = {
-  TICKET_RE,
-  nowMs,
-  toStr,
-  cleanText,
-  getRawType,
-  isAvType,
-  isImageType,
-  isDocumentType,
-  classify,
-  extractTicketFromText,
-  normalizeTicketCfg,
-  formatInboundPrefix,
+      // Attempt ticket processing
+      const ticketRes = await TicketCore.touch(meta, conf, conf.getStr("ticketType", "fallback"), ctx.chatId, {
+        name: ctx.sender?.name || "",
+        phone: ctx.sender?.phone || "",
+        text,
+      });
+
+      if (ticketRes && ticketRes.ok) {
+        log.debug(`[FallbackCV] Ticket processed. ID: ${ticketRes.ticketId}`);
+      }
+
+      // Forward the message
+      if (isMedia) {
+        const forwarded = await forwardMediaToGroup(log, sendFn, controlGroupId, msg);
+        if (forwarded) {
+          log.debug(`[FallbackCV] Media forwarded successfully.`);
+        } else {
+          log.warn(`[FallbackCV] Media forwarding failed.`);
+        }
+      }
+
+    } catch (error) {
+      log.error("[FallbackCV] Error in onMessage handler:", { errorMessage: error.message, stack: error.stack });
+    }
+  }
+
+  async function onEvent(event) {
+    log.info("[FallbackCV] Received event:", event);
+  }
+
+  return { onMessage, onEvent };
 };

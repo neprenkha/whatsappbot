@@ -1,80 +1,72 @@
 'use strict';
 
+/**
+ * FallbackQuoteParseV1
+ * - Extract ticket ID from Quoted Message or Text.
+ * - Supports: [Ticket:ID], Ticket:ID, !r ID, Ticket ID.
+ */
+
 const SharedLog = require('../Shared/SharedLogV1');
 
-function safeStr(x) {
-  if (x === undefined || x === null) return '';
-  return String(x);
-}
+function _s(v) { return v === null || v === undefined ? '' : String(v); }
+function _trim(v) { return _s(v).trim(); }
 
-function getTextFromQuoted(quotedMsg) {
-  if (!quotedMsg) return '';
-  if (typeof quotedMsg.body === 'string' && quotedMsg.body) return quotedMsg.body;
-  if (typeof quotedMsg.caption === 'string' && quotedMsg.caption) return quotedMsg.caption;
-  if (typeof quotedMsg.text === 'string' && quotedMsg.text) return quotedMsg.text;
+function _extractTicket(text) {
+  const t = _s(text);
+
+  // 1. Bracket: [Ticket: XYZ]
+  let m = t.match(/\[\s*Ticket\s*:\s*([A-Za-z0-9]+)\s*\]/i);
+  if (m && m[1]) return _trim(m[1]);
+
+  // 2. Label: Ticket: XYZ
+  m = t.match(/\bTicket\s*:\s*([A-Za-z0-9]+)\b/i);
+  if (m && m[1]) return _trim(m[1]);
+
+  // 3. Command: !r XYZ (at start of text)
+  m = t.match(/^!r\s+([A-Za-z0-9]+)/i);
+  if (m && m[1]) return _trim(m[1]);
+
+  // 4. Loose: Ticket XYZ
+  m = t.match(/\bTicket\s+([A-Za-z0-9]+)\b/i);
+  if (m && m[1]) return _trim(m[1]);
+
   return '';
 }
 
-function extractTicketFromText(text) {
-  if (!text) return '';
-  const m = String(text).match(/\b([A-Z]{3}\d{2}[A-Z0-9]{10,})\b/);
-  if (m && m[1]) return m[1];
-  const m2 = String(text).match(/Ticket:\s*([A-Z0-9]+)/i);
-  if (m2 && m2[1]) return m2[1];
-  return '';
-}
+async function parse(meta, cfg, ctx) {
+  const log = SharedLog.makeLog(meta, 'FallbackQuoteParseV1');
+  const msg = ctx && ctx.message;
 
-function _getQuotedFromRawData(raw) {
-  try {
-    const d = raw && raw._data ? raw._data : null;
-    const ctx = d && d._data ? d._data : d;
-    const ci = ctx && ctx.contextInfo ? ctx.contextInfo : null;
-    const qm = ci && ci.quotedMessage ? ci.quotedMessage : null;
-    return qm || null;
-  } catch (e) {
-    return null;
-  }
-}
-
-async function getQuoted(ctx) {
-  const log = SharedLog.create(null, 'FallbackQuoteParseV1');
-  const raw = (ctx && (ctx.raw || ctx.message)) ? (ctx.raw || ctx.message) : null;
-  if (!raw) return { ok: false, reason: 'noraw' };
-
-  // Most reliable: whatsapp-web.js API
-  if (typeof raw.getQuotedMessage === 'function') {
-    try {
-      const quoted = await raw.getQuotedMessage();
-      if (!quoted) return { ok: false, reason: 'noquoted' };
-      const qt = getTextFromQuoted(quoted);
-      const ticket = extractTicketFromText(qt);
-      return {
-        ok: true,
-        ticket,
-        quotedText: qt,
-        quotedRaw: quoted
-      };
-    } catch (e) {
-      log.error('getQuotedMessage error err=' + safeStr(e && e.message ? e.message : e));
-      // fallback below
-    }
+  // PRIORITY 1: Check if user typed ticket manually (e.g. !r <ticket> <text>)
+  let ticket = _extractTicket(ctx.text);
+  if (ticket) {
+    // If ticket found in text, we consider the whole text (minus ticket) as the reply?
+    // Actually, caller handles text. We just return ticket.
+    return { ok: true, ticket, quotedText: '' };
   }
 
-  // Fallback: raw internal data
-  const q2 = _getQuotedFromRawData(raw);
-  if (!q2) return { ok: false, reason: 'noquoted' };
+  // PRIORITY 2: Check Quoted Message
+  if (!msg || typeof msg.getQuotedMessage !== 'function') {
+    return { ok: false, reason: 'noQuotedSupport' };
+  }
 
-  const qt2 = getTextFromQuoted(q2);
-  const ticket2 = extractTicketFromText(qt2);
+  let quoted = null;
+  try { quoted = await msg.getQuotedMessage(); }
+  catch (e) { return { ok: false, reason: 'getQuotedFailed' }; }
 
-  return {
-    ok: true,
-    ticket: ticket2,
-    quotedText: qt2,
-    quotedRaw: q2
-  };
+  if (!quoted) return { ok: false, reason: 'noQuoted' };
+
+  let quotedText = _s(quoted.body);
+  // Check caption if body is empty
+  if (!quotedText && quoted._data && quoted._data.caption) {
+    quotedText = _s(quoted._data.caption);
+  }
+
+  ticket = _extractTicket(quotedText);
+  
+  if (!ticket) return { ok: false, reason: 'noTicketInQuote', quotedText: _trim(quotedText) };
+
+  return { ok: true, ticket, quotedText: _trim(quotedText) };
 }
 
-module.exports = {
-  getQuoted
-};
+module.exports = { parse };

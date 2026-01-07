@@ -1,63 +1,91 @@
-'use strict';
+"use strict";
 
-const SharedLog = require('../Shared/SharedLogV1');
-const MediaSend = require('../Shared/SharedMediaSendV1');
+const TICKET_RE = /\b\d{6}T\d{10}\b/g;
 
-function _safeStr(x) { return String(x == null ? '' : x); }
+function splitCsv(s) {
+  if (!s) return [];
+  return String(s)
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
 
-function _stripTicketLines(text) {
-  if (!text) return '';
-  const lines = String(text).split('\n');
-  const kept = [];
-  for (const l of lines) {
-    const t = l.trim().toLowerCase();
-    if (t.startsWith('ticket:')) continue;
-    kept.push(l);
+function pickSendFn(meta, preferCsv) {
+  const prefer = splitCsv(preferCsv);
+  for (const name of prefer) {
+    try {
+      const fn = meta && meta.getService ? meta.getService(name) : null;
+      if (typeof fn === "function") return fn;
+    } catch (_e) {}
   }
-  return kept.join('\n').trim();
+
+  const transport = meta && meta.getService ? meta.getService("transport") : null;
+  if (transport && typeof transport.sendDirect === "function") {
+    return async (chatId, payload, opts) => transport.sendDirect(chatId, payload, opts);
+  }
+
+  return async () => {
+    throw new Error("No outbound send service");
+  };
 }
 
-function _getSendTransport(meta) {
-  const fn = meta.getService('outsend') || meta.getService('sendout');
-  if (typeof fn === 'function') return { sendDirect: fn };
-  const transport = meta.getService('transport');
-  if (transport && typeof transport.sendDirect === 'function') return transport;
-  return null;
+function stripTicket(text) {
+  const s = text == null ? "" : String(text);
+  return s.replace(TICKET_RE, " ").replace(/\s+/g, " ").trim();
 }
 
-async function sendAv(meta, cfgRaw, rawMsg, toChatId, caption) {
-  const cfg = (cfgRaw && typeof cfgRaw === 'object') ? cfgRaw : {};
-  const debugEnabled = !!(cfg.debugLog || cfg.debug);
-  const traceEnabled = !!(cfg.traceLog || cfg.trace);
-  const log = SharedLog.create(meta, 'FallbackReplyAVV1', { debugEnabled, traceEnabled });
+function isAudioLike(type) {
+  return type === "audio" || type === "ptt";
+}
 
-  const transport = _getSendTransport(meta);
-  if (!transport) return { ok: false, reason: 'noTransport' };
+module.exports.sendMedia = async function sendMedia(meta, cfg, toChatId, rawMsg, caption) {
+  if (!toChatId || !rawMsg) return;
 
-  if (!rawMsg || typeof rawMsg.downloadMedia !== 'function') {
-    return { ok: false, reason: 'noDownloadMedia' };
+  const type = String(rawMsg.type || "").toLowerCase();
+  const prefer = cfg && cfg.sendPrefer ? cfg.sendPrefer : "outsend,sendout,send";
+  const sendFn = pickSendFn(meta, prefer);
+
+  let cap = caption == null ? "" : String(caption);
+  if (cfg && cfg.stripTicketInCustomerReply) cap = stripTicket(cap);
+  if (isAudioLike(type)) cap = "";
+
+  const isAv = isAudioLike(type) || type === "video";
+
+  // for audio/video, forwarding is most reliable
+  if (isAv && typeof rawMsg.forward === "function") {
+    try {
+      await rawMsg.forward(toChatId);
+      return;
+    } catch (_e) {}
+  }
+
+  if (typeof rawMsg.downloadMedia !== "function") {
+    if (typeof rawMsg.forward === "function") {
+      try {
+        await rawMsg.forward(toChatId);
+      } catch (_e) {}
+    }
+    return;
   }
 
   let media = null;
-  try { media = await rawMsg.downloadMedia(); } catch (e) {
-    log.error('downloadMedia failed err=' + _safeStr(e && e.message ? e.message : e));
+  try {
+    media = await rawMsg.downloadMedia();
+  } catch (_e) {
+    media = null;
   }
-  if (!media) return { ok: false, reason: 'downloadFailed' };
 
-  const type = rawMsg && rawMsg.type ? String(rawMsg.type).toLowerCase() : '';
+  if (!media) {
+    if (typeof rawMsg.forward === "function") {
+      try {
+        await rawMsg.forward(toChatId);
+      } catch (_e) {}
+    }
+    return;
+  }
 
-  let cap = _safeStr(caption || '');
-  if (cfg.stripTicketInCustomerReply) cap = _stripTicketLines(cap);
+  const opts = {};
+  if (cap.trim() && !isAudioLike(type)) opts.caption = cap.trim();
 
-  const opt = {};
-  if (cap) opt.caption = cap;
-
-  if (type === 'ptt') opt.sendAudioAsVoice = true;
-  if (type === 'audio' && (cfg.sendAudioAsVoice || cfg.audioAsVoice)) opt.sendAudioAsVoice = true;
-
-  // IMPORTANT FIX: correct argument order
-  const r = await MediaSend.sendDirectWithFallback(log, transport, toChatId, media, opt, rawMsg);
-  return { ok: !!(r && r.ok) };
-}
-
-module.exports = { sendAv };
+  await sendFn(toChatId, media, opts);
+};
