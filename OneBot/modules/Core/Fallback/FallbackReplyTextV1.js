@@ -85,7 +85,10 @@ function shouldDropDuplicate(key, ttlMs) {
 }
 
 async function sendText(meta, cfg, toChatId, text) {
-  const log = SharedLog.makeLog(meta, 'FallbackReplyTextV1');
+  const log = SharedLog.makeLog(meta, 'FallbackReplyTextV1', {
+    debugEnabled: cfg && cfg.debugLog,
+    traceEnabled: cfg && cfg.traceLog
+  });
 
   const chatId = trim(toChatId);
   if (!chatId) return { ok: false, reason: 'noChatId' };
@@ -97,13 +100,11 @@ async function sendText(meta, cfg, toChatId, text) {
     body = stripTicket(body);
   }
 
-  const debug = toInt(cfg && cfg.debugLog, 0);
-
   // DEDUPE: stop duplicate sends (even if handler called twice)
   const dedupeMs = toInt(cfg && cfg.replyTextDedupeMs, 4000);
   const dedupeKey = `${chatId}|${body}`;
   if (dedupeMs > 0 && shouldDropDuplicate(dedupeKey, dedupeMs)) {
-    if (debug) log.info('dedupeDrop', { to: chatId, ttlMs: dedupeMs });
+    if (log && log.info) log.info('dedupeDrop', { to: chatId, ttlMs: dedupeMs });
     return { ok: true, via: 'dedupe', deduped: true };
   }
 
@@ -118,34 +119,38 @@ async function sendText(meta, cfg, toChatId, text) {
   let last = '';
   for (const name of prefer) {
     try {
+      if (log && log.debug) log.debug('trying service: ' + name);
       const r = await trySend(meta, name, chatId, body);
 
       if (r && r.ok) {
-        if (debug) log.info('sendOk', { to: chatId, via: r.via || name });
+        if (log && log.info) log.info('sendOk', { to: chatId, via: r.via || name });
         return r;
       }
 
       const reason = (r && (r.reason || r.err)) ? String(r.reason || r.err) : 'failed';
       last = reason;
 
-      if (debug) log.info('sendFail', { to: chatId, via: name, reason });
+      if (log && log.info) log.info('sendFail', { to: chatId, via: name, reason });
 
       if (allowQueueOnWindow && reason === 'window') {
         const outbox = meta.getService('outbox');
         if (outbox && typeof outbox.enqueue === 'function') {
+          if (log && log.debug) log.debug('queueing to outbox due to window');
           const qr = await outbox.enqueue(chatId, body, {});
           const qn = normalizeSendResult('outbox', qr);
-          if (debug) log.info('queued', { to: chatId, ok: !!qn.ok, reason: 'window' });
+          if (log && log.info) log.info('queued', { to: chatId, ok: !!qn.ok, reason: 'window' });
           return qn.ok ? qn : { ok: false, reason: 'queueFailed' };
         }
+        if (log && log.warn) log.warn('window detected but no outbox service available');
         return { ok: false, reason: 'window' };
       }
     } catch (e) {
       last = e && e.message ? e.message : String(e || '');
-      if (debug) log.info('sendErr', { to: chatId, via: name, err: last });
+      if (log && log.info) log.info('sendErr', { to: chatId, via: name, err: last });
     }
   }
 
+  if (log && log.error) log.error('allFailed after trying: ' + prefer.join(', ') + ' lastErr: ' + last);
   return { ok: false, reason: 'allFailed', err: last };
 }
 

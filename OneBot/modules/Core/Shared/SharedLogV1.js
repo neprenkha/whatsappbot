@@ -66,4 +66,9 @@ function create(meta, tag, opts) {
   };
 }
 
-module.exports = { create };
+// Backward compatibility alias
+function makeLog(meta, tag, opts) {
+  return create(meta, tag, opts);
+}
+
+module.exports = { create, makeLog };
