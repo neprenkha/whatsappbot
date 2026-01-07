@@ -130,10 +130,24 @@ async function forwardMedia(log, mediaSendFn, toChatId, rawMsg, ticketId) {
       log.info('media.forward.sent', { type: msgType, via: 'download' });
       
       // Store message ID mapping
-      if (ticketId && result) {
-        const msgId = MessageTicketMap.setFromResult(result, ticketId);
-        if (msgId) {
-          log.trace('msgmap.set.media', { msgId, ticket: ticketId, type: msgType });
+      if (ticketId) {
+        log.debug('media.download.result', { 
+          hasResult: !!result, 
+          resultType: typeof result,
+          hasId: !!(result && result.id),
+          hasData: !!(result && result._data),
+          type: msgType 
+        });
+        
+        if (result) {
+          const msgId = MessageTicketMap.setFromResult(result, ticketId);
+          if (msgId) {
+            log.trace('msgmap.set.media', { msgId, ticket: ticketId, type: msgType });
+          } else {
+            log.warn('msgmap.set.media.failed', { ticket: ticketId, type: msgType, reason: 'noMsgId' });
+          }
+        } else {
+          log.warn('msgmap.set.media.failed', { ticket: ticketId, type: msgType, reason: 'noResult' });
         }
       }
       
@@ -147,10 +161,24 @@ async function forwardMedia(log, mediaSendFn, toChatId, rawMsg, ticketId) {
       log.info('media.forward.sent', { type: msgType, via: 'forward' });
       
       // Store message ID mapping (result from forward is the forwarded message)
-      if (ticketId && result) {
-        const msgId = MessageTicketMap.setFromResult(result, ticketId);
-        if (msgId) {
-          log.trace('msgmap.set.media.fwd', { msgId, ticket: ticketId, type: msgType });
+      if (ticketId) {
+        log.debug('media.forward.result', { 
+          hasResult: !!result, 
+          resultType: typeof result,
+          hasId: !!(result && result.id),
+          hasData: !!(result && result._data),
+          type: msgType 
+        });
+        
+        if (result) {
+          const msgId = MessageTicketMap.setFromResult(result, ticketId);
+          if (msgId) {
+            log.trace('msgmap.set.media.fwd', { msgId, ticket: ticketId, type: msgType });
+          } else {
+            log.warn('msgmap.set.media.fwd.failed', { ticket: ticketId, type: msgType, reason: 'noMsgId' });
+          }
+        } else {
+          log.warn('msgmap.set.media.fwd.failed', { ticket: ticketId, type: msgType, reason: 'noResult' });
         }
       }
       
@@ -255,10 +283,22 @@ async function init(meta) {
       
       // Store message ID mapping for quote-reply resolution
       if (cardResult) {
+        log.debug('ticket.card.result', { 
+          hasResult: true, 
+          resultType: typeof cardResult,
+          hasId: !!(cardResult && cardResult.id),
+          hasData: !!(cardResult && cardResult._data),
+          ticket: ticketId 
+        });
+        
         const msgId = MessageTicketMap.setFromResult(cardResult, ticketId);
         if (msgId) {
           log.trace('msgmap.set', { msgId, ticket: ticketId });
+        } else {
+          log.warn('msgmap.set.failed', { ticket: ticketId, reason: 'noMsgId' });
         }
+      } else {
+        log.warn('msgmap.set.failed', { ticket: ticketId, reason: 'noResult' });
       }
     } catch (e) {
       log.error('ticket.card.send.fail', { error: e && e.message ? e.message : String(e) });
