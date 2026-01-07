@@ -14,6 +14,14 @@ const TicketCore = require('../Shared/SharedTicketCoreV1');
 const ReplyMedia = require('./FallbackReplyMediaV1');
 const MessageTicketMap = require('../Shared/SharedMessageTicketMapV1');
 
+function hasMediaContent(msg) {
+  if (!msg) return false;
+  if (msg.hasMedia) return true;
+  const type = String(msg.type || '').toLowerCase();
+  if (type === 'audio' || type === 'video' || type === 'ptt' || type === 'image' || type === 'document') return true;
+  return false;
+}
+
 function getStr(cfg, key, defVal) {
   if (cfg && typeof cfg.getStr === 'function') return cfg.getStr(key, defVal);
   if (cfg && Object.prototype.hasOwnProperty.call(cfg, key)) return String(cfg[key]);
@@ -208,8 +216,8 @@ async function handle(meta, cfg, ctx) {
 
   const toChatId = res.ticket.chatId;
 
-  // MEDIA reply
-  if (msg.hasMedia) {
+  // MEDIA reply (enhanced detection for audio/video/ptt)
+  if (hasMediaContent(msg)) {
     const ok = await ReplyMedia.sendMedia(meta, cfg, toChatId, msg, textNow);
     log.info('replyMedia', { ok, ticketId, toChatId, type: msg.type || '' });
     return { handled: true, ok };

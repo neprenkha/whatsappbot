@@ -10,6 +10,14 @@
 
 const SharedLog = require('../Shared/SharedLogV1');
 
+function hasMediaContent(msg) {
+  if (!msg) return false;
+  if (msg.hasMedia) return true;
+  const type = String(msg.type || '').toLowerCase();
+  if (type === 'audio' || type === 'video' || type === 'ptt' || type === 'image' || type === 'document') return true;
+  return false;
+}
+
 function splitCsv(str) {
   return String(str || '')
     .split(',')
@@ -105,8 +113,8 @@ async function sendMedia(meta, cfg, toChatId, rawMsg, caption) {
     log.warn('send.skip.missingChatId');
     return false;
   }
-  if (!rawMsg || !rawMsg.hasMedia) {
-    log.warn('send.skip.noMedia');
+  if (!rawMsg || !hasMediaContent(rawMsg)) {
+    log.warn('send.skip.noMedia', { type: rawMsg?.type, hasMedia: rawMsg?.hasMedia });
     return false;
   }
 
