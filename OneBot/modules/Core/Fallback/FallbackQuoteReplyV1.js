@@ -201,12 +201,12 @@ async function handle(meta, cfg, ctx) {
 
   // Resolve ticket -> customer chatId
   const res = await TicketCore.resolve(meta, cfg, ticketType, ticketId, {});
-  if (!res || !res.ok || !res.chatId) {
-    log.warn('ticket.resolve.fail', { ticketId });
+  if (!res || !res.ok || !res.ticket || !res.ticket.chatId) {
+    log.warn('ticket.resolve.fail', { ticketId, hasTicket: !!(res && res.ticket) });
     return { handled: false };
   }
 
-  const toChatId = res.chatId;
+  const toChatId = res.ticket.chatId;
 
   // MEDIA reply
   if (msg.hasMedia) {

@@ -242,7 +242,9 @@ async function init(meta) {
       return;
     }
 
-    const ticketId = ticketData.ticket;
+    // ticketData.ticket is the ticket object, ticketData.ticket.id is the ticket ID
+    const ticketObj = ticketData.ticket || {};
+    const ticketId = ticketObj.id || '';
 
     const cardText = await TicketCard.render(meta, conf, 'UPDATE', {
       ticket: ticketId,
@@ -251,8 +253,8 @@ async function init(meta) {
       fromChatId: chatId,
       fromName: senderInfo.name,
       fromPhone: senderInfo.phone,
-      seq: ticketData.seq,
-      status: ticketData.status
+      seq: ticketObj.seq || '',
+      status: ticketObj.status || 'open'
     });
 
     try {
