@@ -6,21 +6,12 @@
   - Sticky ticket support even when message has filename/caption (document/image).
   - Media replies routed via FallbackReplyMediaV1 (media-safe).
   - Text replies routed via replySendPrefer (can use outbox).
-  - Uses message ID mapping to resolve tickets from quoted messages.
 */
 
 const SharedLog = require('../Shared/SharedLogV1');
 const TicketCore = require('../Shared/SharedTicketCoreV1');
 const ReplyMedia = require('./FallbackReplyMediaV1');
 const MessageTicketMap = require('../Shared/SharedMessageTicketMapV1');
-
-function hasMediaContent(msg) {
-  if (!msg) return false;
-  if (msg.hasMedia) return true;
-  const type = String(msg.type || '').toLowerCase();
-  if (type === 'audio' || type === 'video' || type === 'ptt' || type === 'image' || type === 'document') return true;
-  return false;
-}
 
 function getStr(cfg, key, defVal) {
   if (cfg && typeof cfg.getStr === 'function') return cfg.getStr(key, defVal);
@@ -108,16 +99,14 @@ function stickySet(senderKey, ticketId, ttlSec) {
   sticky.set(senderKey, { ticketId, expAt: Date.now() + (ttlSec * 1000) });
 }
 
-async function getQuotedInfo(msg) {
+async function getQuotedText(msg) {
   try {
     if (msg && typeof msg.getQuotedMessage === 'function') {
       const q = await msg.getQuotedMessage();
       if (!q) return { text: '', msgId: '' };
       
       const text = String(q.body || (q._data && q._data.caption) || '').trim();
-      
-      // Extract message ID for mapping lookup using shared utility
-      const msgId = MessageTicketMap.extractMessageId(q);
+      const msgId = (q.id && q.id._serialized) ? q.id._serialized : (q.id || '');
       
       return { text, msgId };
     }
@@ -151,32 +140,21 @@ async function handle(meta, cfg, ctx) {
 
   const textNow = String(ctx.text || msg.body || '').trim();
 
-  // 1) try quoted message ID mapping (most reliable)
-  const quotedInfo = await getQuotedInfo(msg);
+  // 1) try message ID mapping first (most reliable)
+  const quotedInfo = await getQuotedText(msg);
   let ticketId = '';
   
   if (quotedInfo.msgId) {
     ticketId = MessageTicketMap.get(quotedInfo.msgId);
-    if (ticketId) {
-      log.trace('ticket.from.msgmap', { msgId: quotedInfo.msgId, ticketId });
-    }
   }
   
   // 2) try quoted text ticket extraction
   if (!ticketId) {
     ticketId = extractTicket(quotedInfo.text);
-    if (ticketId) {
-      log.trace('ticket.from.quoted.text', { ticketId });
-    }
   }
 
   // 3) try direct text/caption
-  if (!ticketId) {
-    ticketId = extractTicket(textNow);
-    if (ticketId) {
-      log.trace('ticket.from.direct.text', { ticketId });
-    }
-  }
+  if (!ticketId) ticketId = extractTicket(textNow);
 
   // 4) sticky fallback (IMPORTANT: even if filename exists)
   if (!ticketId && allowSticky) {
@@ -185,11 +163,7 @@ async function handle(meta, cfg, ctx) {
   }
 
   if (!ticketId) {
-    log.debug('noTicket', { 
-      reason: (quotedInfo.msgId ? 'noMapping' : (quotedInfo.text ? 'noMatch' : 'noQuoted')), 
-      type: msg.type || '',
-      hadQuotedMsg: !!quotedInfo.msgId
-    });
+    log.debug('noTicket', { reason: (quotedInfo.text ? 'noMatch' : 'noQuoted'), type: msg.type || '' });
     return { handled: false };
   }
 
@@ -201,19 +175,14 @@ async function handle(meta, cfg, ctx) {
   // Resolve ticket -> customer chatId
   const res = await TicketCore.resolve(meta, cfg, ticketType, ticketId, {});
   if (!res || !res.ok || !res.ticket || !res.ticket.chatId) {
-    log.warn('ticket.resolve.fail', { 
-      ticketId, 
-      hasTicket: !!(res && res.ticket), 
-      hasChatId: !!(res && res.ticket && res.ticket.chatId),
-      reason: res && res.reason ? res.reason : 'unknown'
-    });
+    log.warn('ticket.resolve.fail', { ticketId });
     return { handled: false };
   }
 
   const toChatId = res.ticket.chatId;
 
-  // MEDIA reply (enhanced detection for audio/video/ptt)
-  if (hasMediaContent(msg)) {
+  // MEDIA reply
+  if (msg.hasMedia) {
     const ok = await ReplyMedia.sendMedia(meta, cfg, toChatId, msg, textNow);
     log.info('replyMedia', { ok, ticketId, toChatId, type: msg.type || '' });
     return { handled: true, ok };
