@@ -11,6 +11,7 @@
 const SharedLog = require('../Shared/SharedLogV1');
 const TicketCore = require('../Shared/SharedTicketCoreV1');
 const ReplyMedia = require('./FallbackReplyMediaV1');
+const MessageTicketMap = require('../Shared/SharedMessageTicketMapV1');
 
 function getStr(cfg, key, defVal) {
   if (cfg && typeof cfg.getStr === 'function') return cfg.getStr(key, defVal);
@@ -102,11 +103,15 @@ async function getQuotedText(msg) {
   try {
     if (msg && typeof msg.getQuotedMessage === 'function') {
       const q = await msg.getQuotedMessage();
-      if (!q) return '';
-      return String(q.body || (q._data && q._data.caption) || '').trim();
+      if (!q) return { text: '', msgId: '' };
+      
+      const text = String(q.body || (q._data && q._data.caption) || '').trim();
+      const msgId = (q.id && q.id._serialized) ? q.id._serialized : (q.id || '');
+      
+      return { text, msgId };
     }
   } catch (_e) {}
-  return '';
+  return { text: '', msgId: '' };
 }
 
 async function handle(meta, cfg, ctx) {
@@ -135,21 +140,30 @@ async function handle(meta, cfg, ctx) {
 
   const textNow = String(ctx.text || msg.body || '').trim();
 
-  // 1) try quoted ticket
-  const quotedText = await getQuotedText(msg);
-  let ticketId = extractTicket(quotedText);
+  // 1) try message ID mapping first (most reliable)
+  const quotedInfo = await getQuotedText(msg);
+  let ticketId = '';
+  
+  if (quotedInfo.msgId) {
+    ticketId = MessageTicketMap.get(quotedInfo.msgId);
+  }
+  
+  // 2) try quoted text ticket extraction
+  if (!ticketId) {
+    ticketId = extractTicket(quotedInfo.text);
+  }
 
-  // 2) try direct text/caption
+  // 3) try direct text/caption
   if (!ticketId) ticketId = extractTicket(textNow);
 
-  // 3) sticky fallback (IMPORTANT: even if filename exists)
+  // 4) sticky fallback (IMPORTANT: even if filename exists)
   if (!ticketId && allowSticky) {
     ticketId = stickyGet(senderKey);
     if (ticketId) log.trace('sticky.use', { senderKey, ticketId });
   }
 
   if (!ticketId) {
-    log.debug('noTicket', { reason: (quotedText ? 'noMatch' : 'noQuoted'), type: msg.type || '' });
+    log.debug('noTicket', { reason: (quotedInfo.text ? 'noMatch' : 'noQuoted'), type: msg.type || '' });
     return { handled: false };
   }
 
@@ -160,12 +174,12 @@ async function handle(meta, cfg, ctx) {
 
   // Resolve ticket -> customer chatId
   const res = await TicketCore.resolve(meta, cfg, ticketType, ticketId, {});
-  if (!res || !res.ok || !res.chatId) {
+  if (!res || !res.ok || !res.ticket || !res.ticket.chatId) {
     log.warn('ticket.resolve.fail', { ticketId });
     return { handled: false };
   }
 
-  const toChatId = res.chatId;
+  const toChatId = res.ticket.chatId;
 
   // MEDIA reply
   if (msg.hasMedia) {

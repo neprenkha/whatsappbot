@@ -13,6 +13,7 @@ const SharedLog = require('../Shared/SharedLogV1');
 const TicketCore = require('../Shared/SharedTicketCoreV1');
 const TicketCard = require('./FallbackTicketCardV1');
 const QuoteReply = require('./FallbackQuoteReplyV1');
+const MessageTicketMap = require('../Shared/SharedMessageTicketMapV1');
 
 function safeStr(v) {
   return String(v || '').trim();
@@ -98,19 +99,19 @@ async function forwardMedia(log, mediaSendFn, toChatId, rawMsg) {
     } catch (_e) {}
 
     if (media) {
-      await mediaSendFn(toChatId, media, caption ? { caption } : {});
-      return true;
+      const result = await mediaSendFn(toChatId, media, caption ? { caption } : {});
+      return result;
     }
 
     // fallback: forward raw message if download failed
     if (rawMsg && typeof rawMsg.forward === 'function') {
-      await rawMsg.forward(toChatId);
-      return true;
+      const result = await rawMsg.forward(toChatId);
+      return result;
     }
   } catch (e) {
     log.error('media.forward.failed', { error: e && e.message ? e.message : String(e) });
   }
-  return false;
+  return null;
 }
 
 async function init(meta) {
@@ -180,7 +181,7 @@ async function init(meta) {
       return;
     }
 
-    const ticketId = ticketData.ticket;
+    const ticketId = (ticketData.ticket && ticketData.ticket.id) ? ticketData.ticket.id : ticketData.ticket;
 
     const cardText = await TicketCard.render(meta, conf, 'UPDATE', {
       ticket: ticketId,
@@ -189,20 +190,29 @@ async function init(meta) {
       fromChatId: chatId,
       fromName: senderInfo.name,
       fromPhone: senderInfo.phone,
-      seq: ticketData.seq,
-      status: ticketData.status
+      seq: (ticketData.ticket && ticketData.ticket.seq) ? ticketData.ticket.seq : ticketData.seq,
+      status: (ticketData.ticket && ticketData.ticket.status) ? ticketData.ticket.status : ticketData.status
     });
 
     try {
-      await textSender.fn(controlGroupId, cardText, {});
+      const result = await textSender.fn(controlGroupId, cardText, {});
       log.info('ticket.card.sent', { ticket: ticketId, media: mediaItems.length });
+      
+      // Store message ID for quote-reply
+      if (result && result.id) {
+        MessageTicketMap.set(result.id._serialized || result.id, ticketId);
+      }
     } catch (e) {
       log.error('ticket.card.send.fail', { error: e && e.message ? e.message : String(e) });
       return;
     }
 
     for (const rawMsg of mediaItems) {
-      await forwardMedia(log, mediaSender.fn, controlGroupId, rawMsg);
+      const result = await forwardMedia(log, mediaSender.fn, controlGroupId, rawMsg);
+      // Store message ID for quote-reply
+      if (result && result.id && ticketId) {
+        MessageTicketMap.set(result.id._serialized || result.id, ticketId);
+      }
       if (mediaDelayMs > 0) {
         await new Promise(r => setTimeout(r, mediaDelayMs));
       }
