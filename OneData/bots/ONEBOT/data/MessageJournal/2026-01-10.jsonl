@@ -1,0 +1,43 @@
+{"v":1,"dir":"in","ts":1767976463062,"dt":"2026-01-10 00:34:23","chatId":"120363402608825006@g.us","isGroup":true,"sender":{"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"},"text":"!restart"}
+{"v":1,"dir":"evt","ts":1767976480867,"dt":"2026-01-10 00:34:40","event":"event"}
+{"v":1,"dir":"evt","ts":1767976483619,"dt":"2026-01-10 00:34:43","event":"event"}
+{"v":1,"dir":"in","ts":1767976501806,"dt":"2026-01-10 00:35:01","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":"test"}
+{"v":1,"dir":"in","ts":1767976517892,"dt":"2026-01-10 00:35:17","chatId":"120363402608825006@g.us","isGroup":true,"sender":{"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"},"text":"reply to fallback"}
+{"v":1,"dir":"in","ts":1767976605397,"dt":"2026-01-10 00:36:45","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":""}
+{"v":1,"dir":"in","ts":1767976605684,"dt":"2026-01-10 00:36:45","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":""}
+{"v":1,"dir":"in","ts":1767976605913,"dt":"2026-01-10 00:36:45","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":"4 picture to fallback"}
+{"v":1,"dir":"in","ts":1767976606113,"dt":"2026-01-10 00:36:46","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":""}
+{"v":1,"dir":"in","ts":1767976633675,"dt":"2026-01-10 00:37:13","chatId":"120363402608825006@g.us","isGroup":true,"sender":{"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"},"text":"4 doc to fallback"}
+{"v":1,"dir":"in","ts":1767976633907,"dt":"2026-01-10 00:37:13","chatId":"120363402608825006@g.us","isGroup":true,"sender":{"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"},"text":"FOLDING DOOR DRAWING.xlsx"}
+{"v":1,"dir":"in","ts":1767976634153,"dt":"2026-01-10 00:37:14","chatId":"120363402608825006@g.us","isGroup":true,"sender":{"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"},"text":"FOLDING DOOR DRAWING1.xlsx"}
+{"v":1,"dir":"in","ts":1767976634402,"dt":"2026-01-10 00:37:14","chatId":"120363402608825006@g.us","isGroup":true,"sender":{"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"},"text":"LINK 3D DRAWING.txt"}
+{"v":1,"dir":"in","ts":1767976647790,"dt":"2026-01-10 00:37:27","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":"4 doc to fallback"}
+{"v":1,"dir":"in","ts":1767976647987,"dt":"2026-01-10 00:37:27","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":"FOLDING DOOR DRAWING.xlsx"}
+{"v":1,"dir":"in","ts":1767976648253,"dt":"2026-01-10 00:37:28","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":"FOLDING DOOR DRAWING1.xlsx"}
+{"v":1,"dir":"in","ts":1767976648457,"dt":"2026-01-10 00:37:28","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":"LINK 3D DRAWING.txt"}
+{"v":1,"dir":"in","ts":1767976654910,"dt":"2026-01-10 00:37:34","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":""}
+{"v":1,"dir":"in","ts":1767976679661,"dt":"2026-01-10 00:37:59","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":"2 video to fallback"}
+{"v":1,"dir":"in","ts":1767976679853,"dt":"2026-01-10 00:37:59","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":""}
+{"v":1,"dir":"in","ts":1767979914916,"dt":"2026-01-10 01:31:54","chatId":"120363402608825006@g.us","isGroup":true,"sender":{"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"},"text":"!restart"}
+{"v":1,"dir":"evt","ts":1767979929831,"dt":"2026-01-10 01:32:09","event":"event"}
+{"v":1,"dir":"evt","ts":1767979932476,"dt":"2026-01-10 01:32:12","event":"event"}
+{"v":1,"dir":"in","ts":1767979972422,"dt":"2026-01-10 01:32:52","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":""}
+{"v":1,"dir":"in","ts":1767979973082,"dt":"2026-01-10 01:32:53","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":""}
+{"v":1,"dir":"in","ts":1767981915697,"dt":"2026-01-10 02:05:15","chatId":"120363402608825006@g.us","isGroup":true,"sender":{"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"},"text":"!restart"}
+{"v":1,"dir":"evt","ts":1767981934248,"dt":"2026-01-10 02:05:34","event":"event"}
+{"v":1,"dir":"evt","ts":1767981937668,"dt":"2026-01-10 02:05:37","event":"event"}
+{"v":1,"dir":"in","ts":1767981961503,"dt":"2026-01-10 02:06:01","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":""}
+{"v":1,"dir":"in","ts":1767981962261,"dt":"2026-01-10 02:06:02","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":""}
+{"v":1,"dir":"in","ts":1767981962556,"dt":"2026-01-10 02:06:02","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":""}
+{"v":1,"dir":"evt","ts":1767990671732,"dt":"2026-01-10 04:31:11","event":"event"}
+{"v":1,"dir":"evt","ts":1767990675344,"dt":"2026-01-10 04:31:15","event":"event"}
+{"v":1,"dir":"in","ts":1767990675436,"dt":"2026-01-10 04:31:15","chatId":"120363402608825006@g.us","isGroup":true,"sender":{"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"},"text":"!restart"}
+{"v":1,"dir":"evt","ts":1767990694021,"dt":"2026-01-10 04:31:34","event":"event"}
+{"v":1,"dir":"evt","ts":1767990699074,"dt":"2026-01-10 04:31:39","event":"event"}
+{"v":1,"dir":"in","ts":1767990700997,"dt":"2026-01-10 04:31:40","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":"1 video"}
+{"v":1,"dir":"in","ts":1767990725976,"dt":"2026-01-10 04:32:05","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":"video"}
+{"v":1,"dir":"in","ts":1767990736070,"dt":"2026-01-10 04:32:16","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":"text"}
+{"v":1,"dir":"in","ts":1767990744857,"dt":"2026-01-10 04:32:24","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":""}
+{"v":1,"dir":"in","ts":1767990754630,"dt":"2026-01-10 04:32:34","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":""}
+{"v":1,"dir":"in","ts":1767990754864,"dt":"2026-01-10 04:32:34","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":""}
+{"v":1,"dir":"in","ts":1767990772063,"dt":"2026-01-10 04:32:52","chatId":"60133335545@c.us","isGroup":false,"sender":{"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"},"text":""}

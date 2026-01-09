@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dateKey": "2026-01-09",
+  "dateKey": "2026-01-10",
   "global": {
     "sent": 0,
     "burst": []
@@ -10,7 +10,7 @@
       "sent": 0,
       "lastSentAtMs": 0,
       "burst": [],
-      "lastSeenAtMs": 1767888000668
+      "lastSeenAtMs": 1767974400158
     }
   }
 }
