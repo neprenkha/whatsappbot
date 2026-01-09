@@ -1,0 +1,83 @@
+/*
+ONEBOT SCRIPT STANDARD (LOCKED)
+Version: 2026-01-09
+Scope: All Modules/Core/*/*CV.js and Modules/Core/Shared/*.js
+
+HARD RULES (MUST FOLLOW):
+1) ASCII ONLY
+   - No emoji, no smart quotes in code comments, strings, logs, or keys.
+
+2) NO FOUNDATION EDITS
+   - Never edit: X:\OneBot\Kernel.js, X:\OneBot\Connector.js, X:\OneBot\Start.cmd
+   - Fix via modules + module configs only.
+
+3) HUB LOADER FROZEN
+   - Never change Hub loaders logic (*Hub.js).
+   - Implementation lives in Modules/Core/<Module>/<Module>CV.js only.
+
+4) CONFIG CONTRACT (NO KEY DRIFT)
+   - Scripts MUST read config keys exactly as defined in .conf.
+   - NEVER invent/rename/switch key names for the same function.
+
+5) NO ALIAS SUPPORT IN CODE (CRITICAL)
+   - Read CANONICAL keys ONLY. Do NOT support multiple names for same meaning.
+   - If required key missing/mismatched: bugLog warning + FAIL SAFE (disable feature/module).
+
+6) ZERO HARDCODE (BOT-FACING)
+   - No hardcoded bot messages, tips, labels, or command keywords inside scripts.
+   - All user-facing text + command words MUST come from .conf/templates.
+   - Scripts contain logic only.
+
+7) MANDATORY BASE KEYS (Impl/*CV.conf)
+   - Every CV module MUST use:
+     enabled, moduleLog, bugLog, detailLog, traceLog
+
+8) LOG KEYS MEANING (STANDARD)
+   - moduleLog = operational steps (ready/state/major actions)
+   - bugLog    = warnings + errors
+   - detailLog = verbose debug
+   - traceLog  = deep trace per-message
+
+9) CANONICAL KEY REGISTRY (SCRIPTS MUST USE ONLY THESE)
+   - enabled
+   - moduleLog, bugLog, detailLog, traceLog
+   - controlGroupId
+   - sendPrefer
+   - ticketStoreSpec
+   - burstMs, msgBufferMax
+   - delayMs, tickMs, dedupeMs, timeoutMs
+   - timeZone (single source-of-truth via TimeZone module)
+   - serviceName
+   - maxQueue, batchMax, maxTries
+
+   DEPRECATED (DO NOT READ / DO NOT WRITE / DO NOT CREATE):
+   - debug, debugLog, debugEnabled
+   - trace, traceEnabled
+   - tz
+   - service
+   - bufferMs, albumWindowMs, msgBuffer
+   - fallbackGroupId, fallbackGroupChatId, groupId, targetGroupId, targetChatId
+   - prio, hubConf (in module registration conf)
+
+10) TIMEZONE SINGLE SOURCE OF TRUTH
+   - Only TimeZone module reads `timeZone` from TimeZoneCV.conf.
+   - Other modules must consume timezone via service, not their own tz/timeZone keys.
+
+11) OUTBOUND PIPELINE MUST STAY SINGLE
+   - All outbound MUST use the global send pipeline (SendQueue -> Outbox -> OutboundGateway).
+   - Do NOT bypass direct send unless explicitly allowed by config AND still routed safely.
+
+12) CONSOLE VISIBILITY (MANDATORY)
+   - When moduleLog/bugLog/detailLog/traceLog is enabled, logs MUST be visible in CMD window (console).
+   - bugLog=1 MUST ALWAYS print to console (warnings/errors), even if file logging fails.
+   - If Log service unavailable or file logging fails, modules MUST fallback to console output
+     for bugLog (and optionally moduleLog) so manual debugging is always possible.
+   - No silent failures: init_failed / missing key / config mismatch MUST print to CMD when bugLog=1.
+
+13) SAFE EDITING RULE
+   - Fix smallest surface area first.
+   - Do not refactor for style while debugging.
+   - Prefer small shared helper over editing many modules.
+
+END OF RULES
+*/

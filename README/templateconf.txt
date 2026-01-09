@@ -1,0 +1,155 @@
+# ONEBOT CONF STANDARD (LOCKED)
+# Version: 2026-01-09
+#
+# PURPOSE:
+# - This file is a SINGLE reference containing:
+#   (1) COMMENT-ONLY HEADER (safe to paste into any .conf)
+#   (2) EXAMPLE NEW FILE: Module Registration .conf
+#   (3) EXAMPLE NEW FILE: Hub .conf
+#   (4) EXAMPLE NEW FILE: Impl CV .conf
+#
+# WARNING:
+# - Do NOT paste "EXAMPLE NEW FILE" blocks into existing .conf files.
+# - For existing .conf files, paste ONLY the "COMMENT-ONLY HEADER" block.
+#
+############################################################
+
+
+############################################################
+# COMMENT-ONLY HEADER (SAFE TO PASTE INTO ANY .conf)
+############################################################
+# ONEBOT CONF STANDARD (LOCKED)
+# Version: 2026-01-09
+#
+# RULES (HARD - MUST FOLLOW):
+# - ASCII ONLY: keys/values/comments must be ASCII-safe.
+# - NO RENAME: do not rename existing keys. Only add new keys when required.
+# - APPEND ONLY: new keys must be appended at bottom of the most relevant section.
+# - NO DUPLICATE KEYS: each key appears only once per file.
+# - KEEP STRUCTURE: use the exact section border style (same borders + uppercase titles).
+# - key=value only (no spaces around '=') for REAL settings lines.
+# - Boolean values MUST be 1 or 0.
+# - Scripts MUST NOT hardcode. Scripts read config keys ONLY.
+#
+# IMPORTANT:
+# - This header is COMMENT-ONLY. Do NOT paste active sample keys into an existing .conf.
+# - Only write keys you are actually editing/adding/removing.
+#
+# MANDATORY LOG KEYS (Impl/*CV.conf ONLY) - MUST EXIST IN THAT FILE:
+# - moduleLog=1|0  (operational steps: ready/state/major actions)
+# - bugLog=1|0     (warnings + errors; should normally stay 1)
+# - detailLog=1|0  (verbose debug; default 0)
+# - traceLog=1|0   (deep trace per-message; default 0)
+#
+# NAMING (LOCKED):
+# - camelCase keys only.
+# - Durations MUST end with unit: Ms / Sec / Min / Hr / Days
+# - Limits SHOULD end with: Max / Min / Limit / Size / BatchMax / QueueMax
+# - Id fields MUST end with: Id (example: controlGroupId)
+#
+# CANONICAL KEY REGISTRY (FUNCTION SAME = ONE KEY ONLY):
+# (A) ENABLE SWITCH
+# - enabled
+#
+# (B) LOG SWITCHES (Impl/*CV.conf)
+# - moduleLog, bugLog, detailLog, traceLog
+#   Deprecated (do not use): debug, debugLog, debugEnabled, trace, traceEnabled
+#
+# (C) GROUP/CHAT TARGETS
+# - controlGroupId
+#   Deprecated: fallbackGroupId, fallbackGroupChatId, groupId, targetGroupId, targetChatId
+# - workGroupId (ONLY if truly separate from controlGroupId)
+#
+# (D) SEND PIPELINE PREFERENCE
+# - sendPrefer
+#   Deprecated: sendPreference, sendService, sendOrder
+#
+# (E) TICKET STORE
+# - ticketStoreSpec
+#   Deprecated: ticketStore, storeSpec
+#
+# (F) BURST/BUFFER WINDOW (ALBUM COLLECTOR)
+# - burstMs
+# - msgBufferMax
+#   Deprecated: bufferMs, albumWindowMs, albumMaxItems, msgBuffer
+#
+# (G) COMMON TIMERS / DEDUPE
+# - delayMs, tickMs, dedupeMs, timeoutMs
+#   Deprecated: delay, tick, dedupe, timeout
+#
+# (H) COMMON LIMITS
+# - batchMax, queueMax, maxTries
+#
+############################################################
+
+
+############################################################
+# EXAMPLE NEW FILE (MODULE REGISTRATION CONF)
+# Location:
+#   X:\OneData\bots\ONEBOT\config\modules\Core\<Module>.conf
+# Notes:
+# - Use ONLY these keys: id/enabled/priority/file/config
+# - DO NOT use: prio, hubConf
+############################################################
+# OneBot Module: ExampleModule
+# Purpose: Module registration (Kernel loads this)
+############################################################
+# ############################################################
+# # CORE
+# ############################################################
+# id=ExampleModule
+# enabled=1
+# priority=9000
+# file=Modules/Core/ExampleModuleHub.js
+# config=modules/Core/ExampleModuleHub.conf
+
+
+############################################################
+# EXAMPLE NEW FILE (HUB CONF - FROZEN LOADER)
+# Location:
+#   X:\OneData\bots\ONEBOT\config\modules\Core\<Module>Hub.conf
+# Notes:
+# - Use ONLY these keys: implFile/implConfig
+############################################################
+# OneBot Module: ExampleModuleHub
+# Purpose: Hub loader config (frozen)
+############################################################
+# ############################################################
+# # IMPLEMENTATION
+# ############################################################
+# implFile=Modules/Core/ExampleModule/ExampleModuleCV.js
+# implConfig=modules/Core/Impl/ExampleModuleCV.conf
+
+
+############################################################
+# EXAMPLE NEW FILE (IMPLEMENTATION CV CONF)
+# Location:
+#   X:\OneData\bots\ONEBOT\config\modules\Core\Impl\<Module>CV.conf
+# Notes:
+# - Mandatory keys in EVERY Impl/*CV.conf:
+#   enabled,moduleLog,bugLog,detailLog,traceLog
+############################################################
+# OneBot Module: ExampleModuleCV
+# Purpose: Configure ExampleModuleCV behavior
+############################################################
+# ############################################################
+# # CORE
+# ############################################################
+# enabled=1
+#
+# ############################################################
+# # LOGGING (MANDATORY KEYS)
+# ############################################################
+# moduleLog=1
+# bugLog=1
+# detailLog=0
+# traceLog=0
+#
+# ############################################################
+# # SETTINGS
+# ############################################################
+# controlGroupId=1203xxxxxxxxxxxx@g.us
+# sendPrefer=outsend,sendout,send
+# burstMs=3000
+# msgBufferMax=20
+# ticketStoreSpec=jsonstore:ExampleModule/tickets
