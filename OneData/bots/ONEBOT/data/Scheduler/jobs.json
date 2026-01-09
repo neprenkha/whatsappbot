@@ -1,16 +1,5 @@
 {
   "version": 1,
-  "savedAtMs": 1767493928806,
-  "jobs": [
-    {
-      "id": "fallback.reminder",
-      "handlerId": "fallback.reminder",
-      "createdAtMs": 1767493928398,
-      "attempts": 0,
-      "atMs": 1767495728398,
-      "data": {},
-      "owner": "FallbackCV",
-      "updatedAtMs": 1767493928398
-    }
-  ]
+  "savedAtMs": 1767687905613,
+  "jobs": []
 }

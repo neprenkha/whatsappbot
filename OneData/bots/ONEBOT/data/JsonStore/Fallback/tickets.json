@@ -1,7 +1,12 @@
 {
   "byChat": {
     "60133335545@c.us": "202601T2891165231",
-    "76248621576247@lid": "202601T0000000001"
+    "76248621576247@lid": "202601T0000000001",
+    "44534616584290@lid": "202601T0000000002",
+    "55791641985261@lid": "202601T0000000003",
+    "120363250037409420@g.us": "202601T0000000004",
+    "55791641985261@c.us": "202601T0000000005",
+    "40033591546093@lid": "202601T0000000006"
   },
   "byTicket": {
     "2512T0000003": {
@@ -312,11 +317,11 @@
       "chatId": "60133335545@c.us",
       "type": "T",
       "status": "open",
-      "seq": 46,
+      "seq": 310,
       "createdAt": 1767399176517,
-      "lastAt": 1767488608876,
-      "lastCustomerAt": 1767488608876,
-      "lastStaffAt": 1767421791863,
+      "lastAt": 1767785219049,
+      "lastCustomerAt": 1767785219049,
+      "lastStaffAt": 1767635745492,
       "fromName": "Pa’Din",
       "fromPhone": "60133335545",
       "note": ""
@@ -334,7 +339,87 @@
       "fromName": "tm.nasir@M1'K3",
       "fromPhone": "76248621576247",
       "note": ""
+    },
+    "202601T0000000002": {
+      "ticket": "202601T0000000002",
+      "chatId": "44534616584290@lid",
+      "type": "T",
+      "status": "open",
+      "seq": 3,
+      "createdAt": 1767519784094,
+      "lastAt": 1767519784465,
+      "lastCustomerAt": 1767519784465,
+      "lastStaffAt": 0,
+      "fromName": "Siti Baizura",
+      "fromPhone": "44534616584290",
+      "note": ""
+    },
+    "202601T0000000003": {
+      "ticket": "202601T0000000003",
+      "chatId": "55791641985261@lid",
+      "type": "fallback",
+      "status": "open",
+      "seq": 18,
+      "createdAt": 1767687916847,
+      "lastAt": 1767692983693,
+      "lastCustomerAt": 1767692983693,
+      "lastStaffAt": 0,
+      "fromName": "",
+      "fromPhone": "",
+      "note": ""
+    },
+    "202601T0000000004": {
+      "ticket": "202601T0000000004",
+      "chatId": "120363250037409420@g.us",
+      "type": "fallback",
+      "status": "open",
+      "seq": 10,
+      "createdAt": 1767692897801,
+      "lastAt": 1767692970570,
+      "lastCustomerAt": 1767692970570,
+      "lastStaffAt": 0,
+      "fromName": "",
+      "fromPhone": "",
+      "note": ""
+    },
+    "202601T0000000005": {
+      "ticket": "202601T0000000005",
+      "chatId": "55791641985261@c.us",
+      "type": "fallback",
+      "status": "open",
+      "seq": 2,
+      "createdAt": 1767713643811,
+      "lastAt": 1767713643927,
+      "lastCustomerAt": 1767713643927,
+      "lastStaffAt": 0,
+      "fromName": "",
+      "fromPhone": "",
+      "note": ""
+    },
+    "202601T0000000006": {
+      "ticket": "202601T0000000006",
+      "chatId": "40033591546093@lid",
+      "type": "fallback",
+      "status": "open",
+      "seq": 1,
+      "createdAt": 1767744103416,
+      "lastAt": 1767744103416,
+      "lastCustomerAt": 1767744103416,
+      "lastStaffAt": 0,
+      "fromName": "",
+      "fromPhone": "",
+      "note": ""
+    },
+    "fallback:60133335545@c.us": {
+      "id": "202601T0000000001",
+      "type": "fallback",
+      "chatId": "60133335545@c.us",
+      "status": "open",
+      "createdAt": 1767815739748,
+      "updatedAt": 1767831946718,
+      "fromName": "Pa’Din",
+      "fromPhone": "60133335545"
     }
   },
-  "counter": 2
+  "counter": 7
 }
