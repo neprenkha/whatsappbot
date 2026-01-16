@@ -14,9 +14,15 @@ function toInt(v, def = 0) {
 module.exports.init = async function init(meta) {
   const delayMs = toInt(meta.implConf.delayMs, 800);
   const maxQueue = toInt(meta.implConf.maxQueue, 500);
+  const errorLogDebounceMs = toInt(meta.implConf.errorLogDebounceMs, 60000); // 1 minute default
+  const queueFullLogDebounceMs = toInt(meta.implConf.queueFullLogDebounceMs, 300000); // 5 minutes default
 
   const queue = [];
   let busy = false;
+
+  // Log debouncing maps
+  const errorLogMap = new Map(); // chatId -> lastLoggedAt
+  const queueFullLogMap = new Map(); // chatId -> lastLoggedAt
 
   async function pump() {
     if (busy) return;
@@ -27,7 +33,13 @@ module.exports.init = async function init(meta) {
         try {
           await meta.getService('transport').sendDirect(job.chatId, job.text, job.options || {});
         } catch (e) {
-          meta.log('send', `error chatId=${job.chatId} err=${e && e.message ? e.message : e}`);
+          // Log debouncing: only log once per chatId within debounce window
+          const now = Date.now();
+          const lastLogged = errorLogMap.get(job.chatId) || 0;
+          if (errorLogDebounceMs <= 0 || (now - lastLogged) >= errorLogDebounceMs) {
+            meta.log('send', `error chatId=${job.chatId} err=${e && e.message ? e.message : e}`);
+            errorLogMap.set(job.chatId, now);
+          }
         }
         await new Promise((r) => setTimeout(r, delayMs));
       }
@@ -39,7 +51,13 @@ module.exports.init = async function init(meta) {
   async function send(chatId, text, options = {}) {
     if (!chatId) return false;
     if (queue.length >= maxQueue) {
-      meta.log('send', `drop chatId=${chatId} reason=queue_full max=${maxQueue}`);
+      // Log debouncing: only log once per chatId within debounce window
+      const now = Date.now();
+      const lastLogged = queueFullLogMap.get(chatId) || 0;
+      if (queueFullLogDebounceMs <= 0 || (now - lastLogged) >= queueFullLogDebounceMs) {
+        meta.log('send', `drop chatId=${chatId} reason=queue_full max=${maxQueue}`);
+        queueFullLogMap.set(chatId, now);
+      }
       return false;
     }
     queue.push({ chatId, text: String(text || ''), options });
@@ -49,7 +67,7 @@ module.exports.init = async function init(meta) {
 
   meta.registerService('send', send);
 
-  meta.log('SendQueueV1', `ready delayMs=${delayMs} maxQueue=${maxQueue}`);
+  meta.log('SendQueueV1', `ready delayMs=${delayMs} maxQueue=${maxQueue} errorLogDebounceMs=${errorLogDebounceMs} queueFullLogDebounceMs=${queueFullLogDebounceMs}`);
 
   return {
     onEvent: async () => {},

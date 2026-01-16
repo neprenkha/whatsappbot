@@ -107,6 +107,9 @@ module.exports = function init(meta, hubConf, implConf) {
     trace: isTruthy(cfg.traceLog),
   };
 
+  // Track if critical config errors have been logged
+  let missingControlGroupIdLogged = false;
+
   function log(level, msg, obj) {
     try {
       if (level === 'detail' && !logEnabled.detail) return;
@@ -135,7 +138,10 @@ module.exports = function init(meta, hubConf, implConf) {
   }
 
   if (!controlGroupId) {
-    log('error', 'missing controlGroupId in conf');
+    if (!missingControlGroupIdLogged) {
+      log('error', 'missing controlGroupId in conf');
+      missingControlGroupIdLogged = true;
+    }
     return { id: 'Fallback', onMessage: async () => {}, onEvent: async () => {} };
   }
 
