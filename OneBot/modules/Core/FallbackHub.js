@@ -23,7 +23,7 @@ module.exports = {
     }
 
     if (!impl || typeof impl.init !== 'function') {
-      meta.log('FallbackHub', `disabled: impl.init() not found, file=${implAbs}`);
+      meta.log('FallbackHub', `Disabled: impl.init() Not Found: ${path.basename(implAbs)}`);
       return { enabled: false };
     }
 

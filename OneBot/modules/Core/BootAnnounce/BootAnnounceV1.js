@@ -61,6 +61,8 @@ module.exports.init = async function init(meta) {
 
   const botName = String(conf.botName || meta.botName || 'ONEBOT').trim() || 'ONEBOT';
   const delayMs = toInt(conf.delayMs, 2000);
+  const maxRetries = toInt(conf.maxRetries, 3);
+  const retryDelayMs = toInt(conf.retryDelayMs, 5000);
 
   const title = String(conf.title || `✅ ${botName} Online`).trim();
   const tips = String(conf.tips || '!status  |  !help').trim();
@@ -76,9 +78,10 @@ module.exports.init = async function init(meta) {
     return { onEvent: async () => {}, onMessage: async () => {} };
   }
 
-  meta.log('BootAnnounceV1', `ready controlGroupId=${controlGroupId} delayMs=${delayMs} sendPrefer=${sendPrefer.join(',')}`);
+  meta.log('BootAnnounceV1', `ready controlGroupId=${controlGroupId} delayMs=${delayMs} maxRetries=${maxRetries} retryDelayMs=${retryDelayMs} sendPrefer=${sendPrefer.join(',')}`);
 
   let announced = false;
+  let sendFailureLogged = false;
 
   async function announce(triggerType) {
     if (announced) return;
@@ -88,7 +91,10 @@ module.exports.init = async function init(meta) {
 
     const sender = pickSend(meta, sendPrefer);
     if (!sender) {
-      meta.log('BootAnnounceV1', 'error missing send service (sendout/outsend/send)');
+      if (!sendFailureLogged) {
+        meta.log('BootAnnounceV1', 'error missing send service (sendout/outsend/send)');
+        sendFailureLogged = true;
+      }
       return;
     }
 
@@ -98,11 +104,28 @@ module.exports.init = async function init(meta) {
       `Time: ${time}\n` +
       `Tips:\n${tips}`;
 
-    try {
-      await sender.fn(controlGroupId, text, {});
-      meta.log('BootAnnounceV1', `sent via ${sender.name} trigger=${triggerType}`);
-    } catch (err) {
-      meta.log('BootAnnounceV1', `send failed via ${sender.name} msg=${err?.message || err}`);
+    let lastError = null;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await sender.fn(controlGroupId, text, {});
+        meta.log('BootAnnounceV1', `sent via ${sender.name} trigger=${triggerType} attempt=${attempt}`);
+        sendFailureLogged = false; // Reset flag on success
+        return; // Success, exit
+      } catch (err) {
+        lastError = err;
+        if (attempt < maxRetries) {
+          // Retry with exponential backoff
+          const waitMs = retryDelayMs * attempt;
+          meta.log('BootAnnounceV1', `retry ${attempt}/${maxRetries} after ${waitMs}ms via ${sender.name}`);
+          await sleep(waitMs);
+        }
+      }
+    }
+
+    // Log failure only once after all retries exhausted
+    if (!sendFailureLogged) {
+      meta.log('BootAnnounceV1', `send failed after ${maxRetries} attempts via ${sender.name} msg=${lastError?.message || lastError}`);
+      sendFailureLogged = true;
     }
   }
 

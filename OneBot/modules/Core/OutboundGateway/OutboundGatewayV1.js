@@ -61,6 +61,10 @@ module.exports.init = async (meta) => {
   const rlName = String(cfg.ratelimitService || cfg.rateLimitService || 'ratelimit').trim() || 'ratelimit';
   const svcNames = splitCsv(cfg.services || cfg.service || 'sendout,outsend');
   const bypassChatIds = new Set(splitCsv(cfg.bypassChatIds || cfg.bypassChats || ''));
+  const rateLimitLogDebounceMs = toInt(cfg.rateLimitLogDebounceMs, 30000); // Default 30 seconds
+
+  // Track last log time per chatId for rate limit blocks
+  const rateLimitLogTracker = new Map(); // chatId -> lastLoggedTimestamp
 
   if (!enabled) {
     try { meta.log('OutboundGatewayV1', 'disabled enabled=0'); } catch (_) {}
@@ -73,6 +77,24 @@ module.exports.init = async (meta) => {
   }
 
   const rl = meta.getService ? meta.getService(rlName) : null;
+
+  // Helper to log rate limit blocks with debouncing
+  function logRateLimitBlock(chatId, reason) {
+    const now = Date.now();
+    const lastLogged = rateLimitLogTracker.get(chatId) || 0;
+    
+    // Only log if enough time has passed since last log for this chatId
+    if (now - lastLogged >= rateLimitLogDebounceMs) {
+      rateLimitLogTracker.set(chatId, now);
+      try {
+        const reasonStr = typeof reason === 'object' ? JSON.stringify(reason) : String(reason || '');
+        meta.log('OutboundGatewayV1', `ratelimit.block chat=${chatId} reason=${reasonStr}`);
+      } catch (_) {
+        meta.log('OutboundGatewayV1', `ratelimit.block chat=${chatId}`);
+      }
+    }
+    // Otherwise, skip logging to prevent spam
+  }
 
   async function sendout(chatId, payload, opts = {}) {
     const at = Date.now();
@@ -91,7 +113,11 @@ module.exports.init = async (meta) => {
 
       if (res && res.ok === false) {
         const bypass = toBool(opts.bypass, false) || bypassChatIds.has(chatId);
-        if (!bypass) return res;
+        if (!bypass) {
+          // Log rate limit block with debouncing to prevent spam
+          logRateLimitBlock(chatId, res);
+          return res;
+        }
       }
     }
 
@@ -114,7 +140,7 @@ module.exports.init = async (meta) => {
   try {
     const rlState = (rl && typeof rl.check === 'function') ? rlName : 'none';
     meta.log('OutboundGatewayV1',
-      `ready enabled=1 baseSend=${baseSendName} rl=${rlState} svc=${svcNames.join(',')} bypassChatIds=${bypassChatIds.size}`
+      `ready enabled=1 baseSend=${baseSendName} rl=${rlState} rlLogDebounce=${rateLimitLogDebounceMs}ms svc=${svcNames.join(',')} bypassChatIds=${bypassChatIds.size}`
     );
   } catch (_) {}
 
