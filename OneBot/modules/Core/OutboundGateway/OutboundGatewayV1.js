@@ -61,7 +61,7 @@ module.exports.init = async (meta) => {
   const rlName = String(cfg.ratelimitService || cfg.rateLimitService || 'ratelimit').trim() || 'ratelimit';
   const svcNames = splitCsv(cfg.services || cfg.service || 'sendout,outsend');
   const bypassChatIds = new Set(splitCsv(cfg.bypassChatIds || cfg.bypassChats || ''));
-  const blockLogDebounceMs = toInt(cfg.blockLogDebounceMs, 300000); // 5 minutes default
+  const blockLogDebounceMs = toInt(cfg.blockLogDebounceMs, 300000); // 5 minutes default; <=0 disables debouncing
 
   if (!enabled) {
     try { meta.log('OutboundGatewayV1', 'disabled enabled=0'); } catch (_) {}

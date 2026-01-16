@@ -14,8 +14,8 @@ function toInt(v, def = 0) {
 module.exports.init = async function init(meta) {
   const delayMs = toInt(meta.implConf.delayMs, 800);
   const maxQueue = toInt(meta.implConf.maxQueue, 500);
-  const errorLogDebounceMs = toInt(meta.implConf.errorLogDebounceMs, 60000); // 1 minute default
-  const queueFullLogDebounceMs = toInt(meta.implConf.queueFullLogDebounceMs, 300000); // 5 minutes default
+  const errorLogDebounceMs = toInt(meta.implConf.errorLogDebounceMs, 60000); // 1 minute default; <=0 disables debouncing
+  const queueFullLogDebounceMs = toInt(meta.implConf.queueFullLogDebounceMs, 300000); // 5 minutes default; <=0 disables debouncing
   const maxLogMapEntries = toInt(meta.implConf.maxLogMapEntries, 1000);
 
   const queue = [];
