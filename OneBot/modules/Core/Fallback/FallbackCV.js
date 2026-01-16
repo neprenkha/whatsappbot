@@ -130,12 +130,12 @@ module.exports = function init(meta, hubConf, implConf) {
   }
 
   if (!enabled) {
-    log('info', 'disabled');
+    log('info', 'disabled via conf enabled=0');
     return { id: 'Fallback', onMessage: async () => {}, onEvent: async () => {} };
   }
 
   if (!controlGroupId) {
-    log('error', 'missing controlGroupId in conf');
+    log('error', 'Disabled: controlGroupId not configured or empty. Please set controlGroupId in config to enable Fallback.');
     return { id: 'Fallback', onMessage: async () => {}, onEvent: async () => {} };
   }
 
