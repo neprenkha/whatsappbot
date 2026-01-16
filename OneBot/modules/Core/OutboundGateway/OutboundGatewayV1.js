@@ -62,6 +62,7 @@ module.exports.init = async (meta) => {
   const svcNames = splitCsv(cfg.services || cfg.service || 'sendout,outsend');
   const bypassChatIds = new Set(splitCsv(cfg.bypassChatIds || cfg.bypassChats || ''));
   const rateLimitLogDebounceMs = toInt(cfg.rateLimitLogDebounceMs, 30000); // Default 30 seconds
+  const rateLimitLogTrackerMaxSize = toInt(cfg.rateLimitLogTrackerMaxSize, 1000); // Max entries to prevent memory leak
 
   // Track last log time per chatId for rate limit blocks
   const rateLimitLogTracker = new Map(); // chatId -> lastLoggedTimestamp
@@ -86,6 +87,17 @@ module.exports.init = async (meta) => {
     // Only log if enough time has passed since last log for this chatId
     if (now - lastLogged >= rateLimitLogDebounceMs) {
       rateLimitLogTracker.set(chatId, now);
+      
+      // Prevent memory leak: clean old entries when map grows too large
+      if (rateLimitLogTracker.size > rateLimitLogTrackerMaxSize) {
+        const cutoff = now - (rateLimitLogDebounceMs * 2); // Keep entries from last 2x debounce window
+        for (const [key, timestamp] of rateLimitLogTracker.entries()) {
+          if (timestamp < cutoff) {
+            rateLimitLogTracker.delete(key);
+          }
+        }
+      }
+      
       try {
         const reasonStr = typeof reason === 'object' ? JSON.stringify(reason) : String(reason || '');
         meta.log('OutboundGatewayV1', `ratelimit.block chat=${chatId} reason=${reasonStr}`);
@@ -140,7 +152,7 @@ module.exports.init = async (meta) => {
   try {
     const rlState = (rl && typeof rl.check === 'function') ? rlName : 'none';
     meta.log('OutboundGatewayV1',
-      `ready enabled=1 baseSend=${baseSendName} rl=${rlState} rlLogDebounce=${rateLimitLogDebounceMs}ms svc=${svcNames.join(',')} bypassChatIds=${bypassChatIds.size}`
+      `ready enabled=1 baseSend=${baseSendName} rl=${rlState} rlLogDebounce=${rateLimitLogDebounceMs}ms rlLogMaxSize=${rateLimitLogTrackerMaxSize} svc=${svcNames.join(',')} bypassChatIds=${bypassChatIds.size}`
     );
   } catch (_) {}
 

@@ -114,8 +114,8 @@ module.exports.init = async function init(meta) {
       } catch (err) {
         lastError = err;
         if (attempt < maxRetries) {
-          // Retry with exponential backoff
-          const waitMs = retryDelayMs * attempt;
+          // Retry with exponential backoff: 5s, 10s, 20s, etc.
+          const waitMs = retryDelayMs * Math.pow(2, attempt - 1);
           meta.log('BootAnnounceV1', `retry ${attempt}/${maxRetries} after ${waitMs}ms via ${sender.name}`);
           await sleep(waitMs);
         }
