@@ -64,6 +64,7 @@ module.exports = function init(meta) {
   let sentCount = 0;
   let lastSendAt = 0;
   const recentSends = new Map(); // for deduplication
+  const DEDUPE_CLEANUP_MULTIPLIER = 2; // Clean up entries older than 2x dedupe window
 
   function makeDedupeKey(chatId, content) {
     const cid = String(chatId || '').trim();
@@ -83,9 +84,9 @@ module.exports = function init(meta) {
     const key = makeDedupeKey(chatId, content);
     const now = Date.now();
     
-    // Clean old entries
+    // Clean old entries (older than 2x dedupe window to ensure we don't clean too early)
     for (const [k, t] of recentSends.entries()) {
-      if (now - t > dedupeMs * 2) recentSends.delete(k);
+      if (now - t > dedupeMs * DEDUPE_CLEANUP_MULTIPLIER) recentSends.delete(k);
     }
     
     const lastSeen = recentSends.get(key);

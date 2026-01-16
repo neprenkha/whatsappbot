@@ -77,8 +77,8 @@ module.exports.init = async (meta) => {
     return { onMessage: async () => {}, onEvent: async () => {} };
   }
 
-  // Validate controlGroupId format
-  const isValidGroupId = controlGroupId.includes('@g.us');
+  // Validate controlGroupId format (must end with @g.us)
+  const isValidGroupId = controlGroupId.endsWith('@g.us');
   if (!isValidGroupId) {
     const errMsg = `CRITICAL: controlGroupId has invalid format: ${controlGroupId} - must end with @g.us`;
     try {

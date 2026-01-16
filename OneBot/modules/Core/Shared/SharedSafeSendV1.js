@@ -5,6 +5,18 @@
  * Adds consistent debug logging, boolean contract, and retry with exponential backoff.
  */
 
+// Non-retryable error reasons - errors that indicate a permanent failure
+const NON_RETRYABLE_REASONS = new Set([
+  'ratelimit',
+  'window',
+  'missingControlGroupId',
+  'invalidControlGroupId',
+  'nosend',
+  'noMeta',
+  'noSvc',
+  'badSvc'
+]);
+
 /**
  * Sleep helper for retry delays
  */
@@ -54,7 +66,7 @@ module.exports.safeSend = async function safeSend(meta, sendFn, chatId, text, op
         lastError = reason;
         
         // Don't retry on certain errors
-        if (reason === 'ratelimit' || reason === 'window' || reason === 'missingControlGroupId' || reason === 'invalidControlGroupId') {
+        if (NON_RETRYABLE_REASONS.has(reason)) {
           log('error', `failed chatId=${chatId} reason=${reason} noRetry=true`);
           return { ok: false, reason };
         }

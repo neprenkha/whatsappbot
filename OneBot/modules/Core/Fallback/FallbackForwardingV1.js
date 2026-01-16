@@ -39,8 +39,8 @@ async function handle(meta, cfg, ctx) {
     return { ok: false, reason: 'missingControlGroupId' };
   }
 
-  // Validate controlGroupId format
-  const isValidGroupId = String(cfg.controlGroupId).includes('@g.us');
+  // Validate controlGroupId format (must end with @g.us)
+  const isValidGroupId = String(cfg.controlGroupId).endsWith('@g.us');
   if (!isValidGroupId) {
     log.error(`CRITICAL: controlGroupId has invalid format: ${cfg.controlGroupId} - must be a group ID ending with @g.us`);
     return { ok: false, reason: 'invalidControlGroupId' };
