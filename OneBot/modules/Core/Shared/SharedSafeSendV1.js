@@ -89,11 +89,26 @@ module.exports.safeSend = async function safeSend(meta, sendFn, chatId, text, op
  */
 module.exports.send = async function send(log, sendFn, chatId, text, options = {}) {
   // Convert log object to meta-like object for safeSend
-  const meta = { log: (tag, msg) => {
-    if (log && typeof log.info === 'function') {
-      log.info(msg);
+  const meta = { 
+    log: (tag, msg) => {
+      if (!log) return;
+      // Parse level from message format: "level message"
+      const parts = String(msg).match(/^(\w+)\s+(.+)$/);
+      if (parts) {
+        const level = parts[1];
+        const message = parts[2];
+        if (level === 'error' && typeof log.error === 'function') {
+          log.error(message);
+        } else if (level === 'warn' && typeof log.warn === 'function') {
+          log.warn(message);
+        } else if (typeof log.info === 'function') {
+          log.info(message);
+        }
+      } else if (typeof log.info === 'function') {
+        log.info(msg);
+      }
     }
-  }};
+  };
   return await module.exports.safeSend(meta, sendFn, chatId, text, options);
 };
 

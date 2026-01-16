@@ -14,6 +14,7 @@ function toInt(v, def = 0) {
 module.exports.init = async function init(meta) {
   const delayMs = toInt(meta.implConf.delayMs, 800);
   const maxQueue = toInt(meta.implConf.maxQueue, 500);
+  const dedupeMs = toInt(meta.implConf.dedupeMs, 3000); // Configurable deduplication window
 
   const queue = [];
   let busy = false;
@@ -26,7 +27,7 @@ module.exports.init = async function init(meta) {
     return `${cid}:${txt}`;
   }
 
-  function isDuplicate(chatId, text, dedupeMs = 3000) {
+  function isDuplicate(chatId, text) {
     const key = makeDedupeKey(chatId, text);
     const now = Date.now();
     
@@ -71,8 +72,8 @@ module.exports.init = async function init(meta) {
     }
     
     // Check for duplicates
-    if (isDuplicate(chatId, text, 3000)) {
-      meta.log('SendQueueV1', `drop duplicate chatId=${chatId} dedupeMs=3000`);
+    if (isDuplicate(chatId, text)) {
+      meta.log('SendQueueV1', `drop duplicate chatId=${chatId} dedupeMs=${dedupeMs}`);
       return true; // return true to indicate it was handled (deduplicated)
     }
     
@@ -88,7 +89,7 @@ module.exports.init = async function init(meta) {
 
   meta.registerService('send', send);
 
-  meta.log('SendQueueV1', `ready delayMs=${delayMs} maxQueue=${maxQueue} deduplication=enabled`);
+  meta.log('SendQueueV1', `ready delayMs=${delayMs} maxQueue=${maxQueue} dedupeMs=${dedupeMs} deduplication=enabled`);
 
   return {
     onEvent: async () => {},

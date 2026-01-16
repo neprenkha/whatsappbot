@@ -52,6 +52,7 @@ module.exports = function init(meta) {
   const delayMs = toInt(meta.implConf?.delayMs, 250);
   const delayMediaMs = toInt(meta.implConf?.delayMediaMs, 1200);
   const maxQueue = toInt(meta.implConf?.maxQueue, 500);
+  const dedupeMs = toInt(meta.implConf?.dedupeMs, 3000); // Configurable deduplication window
 
   const dataDir = meta.paths?.dataDir || process.cwd();
   const stateDir = path.join(dataDir, 'SendQueue');
@@ -72,15 +73,16 @@ module.exports = function init(meta) {
     if (typeof content === 'string') {
       contentKey = content.slice(0, 100); // first 100 chars
     } else if (isPlainObject(content) && content.mimetype) {
-      // For media, use mimetype + size if available
-      contentKey = `media:${content.mimetype}:${content.data ? content.data.length : 0}`;
+      // For media, use mimetype + size + filename if available for better uniqueness
+      const filename = content.filename || '';
+      contentKey = `media:${content.mimetype}:${content.data ? content.data.length : 0}:${filename}`;
     } else {
       contentKey = JSON.stringify(content).slice(0, 100);
     }
     return `${cid}:${contentKey}`;
   }
 
-  function isDuplicate(chatId, content, dedupeMs = 3000) {
+  function isDuplicate(chatId, content) {
     const key = makeDedupeKey(chatId, content);
     const now = Date.now();
     
@@ -186,8 +188,8 @@ module.exports = function init(meta) {
     }
 
     // Check for duplicates
-    if (isDuplicate(cid, content, 3000)) {
-      meta.log(tag, `drop duplicate chatId=${cid} dedupeMs=3000`);
+    if (isDuplicate(cid, content)) {
+      meta.log(tag, `drop duplicate chatId=${cid} dedupeMs=${dedupeMs}`);
       return true; // return true to indicate it was handled (deduplicated)
     }
 
@@ -219,7 +221,7 @@ module.exports = function init(meta) {
     lastSendAt
   }));
 
-  meta.log(tag, `ready delayMs=${delayMs} delayMediaMs=${delayMediaMs} maxQueue=${maxQueue} deduplication=enabled`);
+  meta.log(tag, `ready delayMs=${delayMs} delayMediaMs=${delayMediaMs} maxQueue=${maxQueue} dedupeMs=${dedupeMs} deduplication=enabled`);
 
   return { onMessage: async () => {}, onEvent: async () => {} };
 };

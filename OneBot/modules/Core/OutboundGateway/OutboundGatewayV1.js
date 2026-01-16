@@ -115,7 +115,11 @@ module.exports.init = async (meta) => {
       
       // Commit to rate limiter after successful send
       if (rl && typeof rl.commit === 'function') {
-        rl.commit({ chatId, weight });
+        const commitResult = rl.commit({ chatId, weight });
+        // Await if it's a Promise
+        if (commitResult && typeof commitResult.then === 'function') {
+          await commitResult;
+        }
       }
       
       try {
