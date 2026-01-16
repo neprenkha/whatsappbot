@@ -79,6 +79,10 @@ module.exports.init = async (meta) => {
     const key = `out:${chatId}`;
     const weight = toInt(opts.weight, 1);
 
+    try {
+      meta.log('OutboundGatewayV1', `sendout chatId=${chatId} weight=${weight}`);
+    } catch (_) {}
+
     if (rl && typeof rl.check === 'function') {
       const res = await rl.check({
         key,
@@ -91,12 +95,51 @@ module.exports.init = async (meta) => {
 
       if (res && res.ok === false) {
         const bypass = toBool(opts.bypass, false) || bypassChatIds.has(chatId);
-        if (!bypass) return res;
+        if (!bypass) {
+          try {
+            const reason = res.reason || 'ratelimit';
+            const waitMs = res.waitMs || 0;
+            meta.log('OutboundGatewayV1', `ratelimit block chatId=${chatId} reason=${reason} waitMs=${waitMs}`);
+          } catch (_) {}
+          return res;
+        } else {
+          try {
+            meta.log('OutboundGatewayV1', `ratelimit bypassed chatId=${chatId}`);
+          } catch (_) {}
+        }
       }
     }
 
-    await baseSend(chatId, payload, opts);
-    return { ok: true };
+    try {
+      await baseSend(chatId, payload, opts);
+      
+      // Commit to rate limiter after successful send
+      if (rl && typeof rl.commit === 'function') {
+        try {
+          const commitResult = rl.commit({ chatId, weight });
+          // Await if it's a Promise
+          if (commitResult && typeof commitResult.then === 'function') {
+            await commitResult;
+          }
+        } catch (commitErr) {
+          // Log but don't fail the send - rate limiter state inconsistency is non-critical
+          try {
+            meta.log('OutboundGatewayV1', `rate limiter commit error chatId=${chatId} err=${commitErr && commitErr.message ? commitErr.message : String(commitErr)}`);
+          } catch (_) {}
+        }
+      }
+      
+      try {
+        meta.log('OutboundGatewayV1', `sent success chatId=${chatId}`);
+      } catch (_) {}
+      return { ok: true };
+    } catch (e) {
+      const errMsg = e && e.message ? e.message : String(e);
+      try {
+        meta.log('OutboundGatewayV1', `send error chatId=${chatId} err=${errMsg}`);
+      } catch (_) {}
+      return { ok: false, reason: 'sendError', error: errMsg };
+    }
   }
 
   async function outsend(chatId, payload, opts = {}) {

@@ -34,18 +34,28 @@ function shouldSendHeader(ticketId, windowMs) {
 }
 
 async function tryForwardRaw(raw, toChatId, log) {
-  if (!raw || typeof raw.forward !== 'function') return { ok: false, reason: 'noForward' };
+  if (!raw || typeof raw.forward !== 'function') {
+    log.error(`no forward method available for AV to chatId=${toChatId}`);
+    return { ok: false, reason: 'noForward' };
+  }
   try {
     await raw.forward(toChatId);
+    log.trace(`raw.forward success to chatId=${toChatId}`);
     return { ok: true };
   } catch (e) {
-    log.warn(`raw.forward failed ${e && e.message ? e.message : e}`);
+    log.warn(`raw.forward failed to chatId=${toChatId} err=${e && e.message ? e.message : e}`);
     return { ok: false, reason: 'forwardFail' };
   }
 }
 
 async function handle(meta, cfg, ticketCtx, ctx) {
   const log = createLogger(meta, cfg);
+
+  // Validate controlGroupId
+  if (!ticketCtx || !ticketCtx.controlGroupId) {
+    log.error('CRITICAL: missing ticketCtx.controlGroupId - cannot forward AV');
+    return { ok: false, reason: 'missingControlGroupId' };
+  }
 
   const outsend = meta.getService('outsend');
   if (typeof outsend !== 'function') {
@@ -60,19 +70,27 @@ async function handle(meta, cfg, ticketCtx, ctx) {
 
   // Send header (throttled) so staff can quote it for reply
   if (shouldSendHeader(ticketCtx.ticketId, headerWindowMs)) {
+    log.trace(`sending header to controlGroup=${ticketCtx.controlGroupId}`);
     const header = makeHeader(ticketCtx, raw);
     const h = await SharedSafeSend.send(log, outsend, ticketCtx.controlGroupId, header, {
       tag: 'fallback.in.av.header',
     });
-    if (!h.ok) log.error(`send header failed reason=${h.reason || ''}`);
+    if (!h.ok) {
+      log.error(`send header failed to controlGroup=${ticketCtx.controlGroupId} reason=${h.reason || ''}`);
+    } else {
+      log.trace(`header sent successfully to controlGroup=${ticketCtx.controlGroupId}`);
+    }
   } else {
     log.trace(`header suppressed ticket=${ticketCtx.ticketId} windowMs=${headerWindowMs}`);
   }
 
   // Prefer raw.forward for audio/video reliability
+  log.trace(`forwarding AV to controlGroup=${ticketCtx.controlGroupId}`);
   const fwd = await tryForwardRaw(raw, ticketCtx.controlGroupId, log);
   if (!fwd.ok) {
-    log.error(`av forward failed reason=${fwd.reason || ''}`);
+    log.error(`av forward failed to controlGroup=${ticketCtx.controlGroupId} reason=${fwd.reason || ''}`);
+  } else {
+    log.trace(`av forwarded successfully to controlGroup=${ticketCtx.controlGroupId}`);
   }
   return fwd;
 }

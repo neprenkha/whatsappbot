@@ -52,6 +52,7 @@ module.exports = function init(meta) {
   const delayMs = toInt(meta.implConf?.delayMs, 250);
   const delayMediaMs = toInt(meta.implConf?.delayMediaMs, 1200);
   const maxQueue = toInt(meta.implConf?.maxQueue, 500);
+  const dedupeMs = toInt(meta.implConf?.dedupeMs, 3000); // Configurable deduplication window
 
   const dataDir = meta.paths?.dataDir || process.cwd();
   const stateDir = path.join(dataDir, 'SendQueue');
@@ -63,6 +64,42 @@ module.exports = function init(meta) {
   let processing = false;
   let sentCount = 0;
   let lastSendAt = 0;
+  const recentSends = new Map(); // for deduplication
+  const DEDUPE_CLEANUP_MULTIPLIER = 2; // Clean up entries older than 2x dedupe window
+
+  function makeDedupeKey(chatId, content) {
+    const cid = String(chatId || '').trim();
+    let contentKey = '';
+    if (typeof content === 'string') {
+      contentKey = content.slice(0, 100); // first 100 chars
+    } else if (isPlainObject(content) && content.mimetype) {
+      // For media, use mimetype + data size (if small) or length + filename for efficiency
+      // Avoid loading large data into key computation
+      const dataSize = (content.data && typeof content.data === 'string') ? content.data.length : 0;
+      const filename = content.filename || '';
+      contentKey = `media:${content.mimetype}:${dataSize}:${filename}`;
+    } else {
+      contentKey = JSON.stringify(content).slice(0, 100);
+    }
+    return `${cid}:${contentKey}`;
+  }
+
+  function isDuplicate(chatId, content) {
+    const key = makeDedupeKey(chatId, content);
+    const now = Date.now();
+    
+    // Clean old entries (older than 2x dedupe window to ensure we don't clean too early)
+    for (const [k, t] of recentSends.entries()) {
+      if (now - t > dedupeMs * DEDUPE_CLEANUP_MULTIPLIER) recentSends.delete(k);
+    }
+    
+    const lastSeen = recentSends.get(key);
+    if (lastSeen && (now - lastSeen) < dedupeMs) {
+      return true;
+    }
+    recentSends.set(key, now);
+    return false;
+  }
 
   function loadState() {
     try {
@@ -115,6 +152,8 @@ module.exports = function init(meta) {
           continue;
         }
 
+        meta.log(tag, `processing chatId=${chatId} queueLen=${q.length}`);
+
         const waitMs = pickDelay(content, options);
         const now = Date.now();
 
@@ -129,8 +168,10 @@ module.exports = function init(meta) {
           await meta.services.transport.sendDirect(chatId, content, options);
           sentCount += 1;
           lastSendAt = Date.now();
+          meta.log(tag, `sent success chatId=${chatId} sentCount=${sentCount}`);
         } catch (e) {
-          meta.log(tag, `send error chatId=${chatId} err=${e && e.message ? e.message : e}`);
+          const errMsg = e && e.message ? e.message : e;
+          meta.log(tag, `send error chatId=${chatId} err=${errMsg}`);
           // continue next job (do not freeze queue)
           lastSendAt = Date.now();
         }
@@ -143,7 +184,16 @@ module.exports = function init(meta) {
 
   async function send(chatId, content, options) {
     const cid = normalizeChatId(chatId);
-    if (!cid) return false;
+    if (!cid) {
+      meta.log(tag, `drop: empty chatId after normalization`);
+      return false;
+    }
+
+    // Check for duplicates
+    if (isDuplicate(cid, content)) {
+      meta.log(tag, `drop duplicate chatId=${cid} dedupeMs=${dedupeMs}`);
+      return true; // return true to indicate it was handled (deduplicated)
+    }
 
     if (q.length >= maxQueue) {
       meta.log(tag, `queue full drop chatId=${cid} len=${q.length}`);
@@ -156,6 +206,8 @@ module.exports = function init(meta) {
       options: options || {},
       at: Date.now()
     });
+
+    meta.log(tag, `enqueued chatId=${cid} queueLen=${q.length}`);
 
     // async pump
     setTimeout(pump, 0);
@@ -171,7 +223,7 @@ module.exports = function init(meta) {
     lastSendAt
   }));
 
-  meta.log(tag, `ready delayMs=${delayMs} delayMediaMs=${delayMediaMs} maxQueue=${maxQueue}`);
+  meta.log(tag, `ready delayMs=${delayMs} delayMediaMs=${delayMediaMs} maxQueue=${maxQueue} dedupeMs=${dedupeMs} deduplication=enabled`);
 
   return { onMessage: async () => {}, onEvent: async () => {} };
 };
