@@ -93,19 +93,30 @@ module.exports.send = async function send(log, sendFn, chatId, text, options = {
     log: (tag, msg) => {
       if (!log) return;
       // Parse level from message format: "level message"
-      const parts = String(msg).match(/^(\w+)\s+(.+)$/);
-      if (parts) {
-        const level = parts[1];
-        const message = parts[2];
+      // Handle edge cases: trim whitespace and ensure valid format
+      const msgStr = String(msg).trim();
+      const spaceIdx = msgStr.indexOf(' ');
+      
+      if (spaceIdx > 0) {
+        const level = msgStr.substring(0, spaceIdx);
+        const message = msgStr.substring(spaceIdx + 1);
+        
+        // Log with appropriate level
         if (level === 'error' && typeof log.error === 'function') {
           log.error(message);
         } else if (level === 'warn' && typeof log.warn === 'function') {
           log.warn(message);
-        } else if (typeof log.info === 'function') {
+        } else if (level === 'info' && typeof log.info === 'function') {
           log.info(message);
+        } else if (typeof log.info === 'function') {
+          // Fallback: log full message if level not recognized
+          log.info(msgStr);
         }
-      } else if (typeof log.info === 'function') {
-        log.info(msg);
+      } else {
+        // No space found - log entire message as info
+        if (typeof log.info === 'function') {
+          log.info(msgStr);
+        }
       }
     }
   };

@@ -115,10 +115,17 @@ module.exports.init = async (meta) => {
       
       // Commit to rate limiter after successful send
       if (rl && typeof rl.commit === 'function') {
-        const commitResult = rl.commit({ chatId, weight });
-        // Await if it's a Promise
-        if (commitResult && typeof commitResult.then === 'function') {
-          await commitResult;
+        try {
+          const commitResult = rl.commit({ chatId, weight });
+          // Await if it's a Promise
+          if (commitResult && typeof commitResult.then === 'function') {
+            await commitResult;
+          }
+        } catch (commitErr) {
+          // Log but don't fail the send - rate limiter state inconsistency is non-critical
+          try {
+            meta.log('OutboundGatewayV1', `rate limiter commit error chatId=${chatId} err=${commitErr && commitErr.message ? commitErr.message : String(commitErr)}`);
+          } catch (_) {}
         }
       }
       

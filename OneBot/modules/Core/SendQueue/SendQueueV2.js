@@ -73,9 +73,11 @@ module.exports = function init(meta) {
     if (typeof content === 'string') {
       contentKey = content.slice(0, 100); // first 100 chars
     } else if (isPlainObject(content) && content.mimetype) {
-      // For media, use mimetype + size + filename if available for better uniqueness
+      // For media, use mimetype + data size (if small) or length + filename for efficiency
+      // Avoid loading large data into key computation
+      const dataSize = (content.data && typeof content.data === 'string') ? content.data.length : 0;
       const filename = content.filename || '';
-      contentKey = `media:${content.mimetype}:${content.data ? content.data.length : 0}:${filename}`;
+      contentKey = `media:${content.mimetype}:${dataSize}:${filename}`;
     } else {
       contentKey = JSON.stringify(content).slice(0, 100);
     }
