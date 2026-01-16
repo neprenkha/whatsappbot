@@ -63,6 +63,7 @@ module.exports.init = async (meta) => {
   const bypassChatIds = new Set(splitCsv(cfg.bypassChatIds || cfg.bypassChats || ''));
   const rateLimitLogDebounceMs = toInt(cfg.rateLimitLogDebounceMs, 30000); // Default 30 seconds
   const rateLimitLogTrackerMaxSize = toInt(cfg.rateLimitLogTrackerMaxSize, 1000); // Max entries to prevent memory leak
+  const rateLimitLogCleanupMultiplier = 2; // Keep entries from last 2x debounce window during cleanup
 
   // Track last log time per chatId for rate limit blocks
   const rateLimitLogTracker = new Map(); // chatId -> lastLoggedTimestamp
@@ -90,7 +91,7 @@ module.exports.init = async (meta) => {
       
       // Prevent memory leak: clean old entries when map grows too large
       if (rateLimitLogTracker.size > rateLimitLogTrackerMaxSize) {
-        const cutoff = now - (rateLimitLogDebounceMs * 2); // Keep entries from last 2x debounce window
+        const cutoff = now - (rateLimitLogDebounceMs * rateLimitLogCleanupMultiplier);
         for (const [key, timestamp] of rateLimitLogTracker.entries()) {
           if (timestamp < cutoff) {
             rateLimitLogTracker.delete(key);
