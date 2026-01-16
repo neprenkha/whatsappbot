@@ -35,8 +35,15 @@ async function handle(meta, cfg, ctx) {
   const text = TypeUtil.cleanText(ctx.text || (raw && raw.body) || '', 6000);
 
   if (!cfg.controlGroupId) {
-    log.error('missing controlGroupId');
+    log.error('CRITICAL: missing controlGroupId - cannot forward message');
     return { ok: false, reason: 'missingControlGroupId' };
+  }
+
+  // Validate controlGroupId format
+  const isValidGroupId = String(cfg.controlGroupId).includes('@g.us');
+  if (!isValidGroupId) {
+    log.error(`CRITICAL: controlGroupId has invalid format: ${cfg.controlGroupId} - must be a group ID ending with @g.us`);
+    return { ok: false, reason: 'invalidControlGroupId' };
   }
 
   const sender = getSenderInfo(ctx);
@@ -67,16 +74,19 @@ async function handle(meta, cfg, ctx) {
 
   const lane = TypeUtil.classify(raw, text);
 
-  log.trace(`inbound lane=${lane} chatId=${key} ticket=${ticketCtx.ticketId} seq=${ticketCtx.seq}`);
+  log.trace(`inbound lane=${lane} chatId=${key} ticket=${ticketCtx.ticketId} seq=${ticketCtx.seq} controlGroupId=${cfg.controlGroupId}`);
 
   if (lane === 'av') {
+    log.trace('forwarding to av handler');
     return await ForwardAv.handle(meta, cfg, ticketCtx, ctx);
   }
 
   if (lane === 'media') {
+    log.trace('forwarding to media handler');
     return await ForwardMedia.handle(meta, cfg, ticketCtx, ctx);
   }
 
+  log.trace('forwarding to text handler');
   return await ForwardText.handle(meta, cfg, ticketCtx, ctx);
 }
 

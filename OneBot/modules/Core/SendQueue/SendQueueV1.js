@@ -17,6 +17,30 @@ module.exports.init = async function init(meta) {
 
   const queue = [];
   let busy = false;
+  const recentSends = new Map(); // for deduplication
+
+  function makeDedupeKey(chatId, text) {
+    const cid = String(chatId || '').trim();
+    const txt = String(text || '').slice(0, 100); // first 100 chars for deduplication
+    return `${cid}:${txt}`;
+  }
+
+  function isDuplicate(chatId, text, dedupeMs = 3000) {
+    const key = makeDedupeKey(chatId, text);
+    const now = Date.now();
+    
+    // Clean old entries
+    for (const [k, t] of recentSends.entries()) {
+      if (now - t > dedupeMs * 2) recentSends.delete(k);
+    }
+    
+    const lastSeen = recentSends.get(key);
+    if (lastSeen && (now - lastSeen) < dedupeMs) {
+      return true;
+    }
+    recentSends.set(key, now);
+    return false;
+  }
 
   async function pump() {
     if (busy) return;
@@ -25,9 +49,12 @@ module.exports.init = async function init(meta) {
       while (queue.length > 0) {
         const job = queue.shift();
         try {
+          meta.log('SendQueueV1', `sending chatId=${job.chatId} queueLen=${queue.length}`);
           await meta.getService('transport').sendDirect(job.chatId, job.text, job.options || {});
+          meta.log('SendQueueV1', `sent success chatId=${job.chatId}`);
         } catch (e) {
-          meta.log('send', `error chatId=${job.chatId} err=${e && e.message ? e.message : e}`);
+          const errMsg = e && e.message ? e.message : e;
+          meta.log('SendQueueV1', `send error chatId=${job.chatId} err=${errMsg}`);
         }
         await new Promise((r) => setTimeout(r, delayMs));
       }
@@ -37,19 +64,30 @@ module.exports.init = async function init(meta) {
   }
 
   async function send(chatId, text, options = {}) {
-    if (!chatId) return false;
+    if (!chatId) {
+      meta.log('SendQueueV1', 'drop: empty chatId');
+      return false;
+    }
+    
+    // Check for duplicates
+    if (isDuplicate(chatId, text, 3000)) {
+      meta.log('SendQueueV1', `drop duplicate chatId=${chatId} dedupeMs=3000`);
+      return true; // return true to indicate it was handled (deduplicated)
+    }
+    
     if (queue.length >= maxQueue) {
-      meta.log('send', `drop chatId=${chatId} reason=queue_full max=${maxQueue}`);
+      meta.log('SendQueueV1', `drop chatId=${chatId} reason=queue_full max=${maxQueue}`);
       return false;
     }
     queue.push({ chatId, text: String(text || ''), options });
+    meta.log('SendQueueV1', `enqueued chatId=${chatId} queueLen=${queue.length}`);
     pump();
     return true;
   }
 
   meta.registerService('send', send);
 
-  meta.log('SendQueueV1', `ready delayMs=${delayMs} maxQueue=${maxQueue}`);
+  meta.log('SendQueueV1', `ready delayMs=${delayMs} maxQueue=${maxQueue} deduplication=enabled`);
 
   return {
     onEvent: async () => {},

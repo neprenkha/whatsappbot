@@ -67,7 +67,26 @@ module.exports.init = async (meta) => {
   }
 
   if (!controlGroupId) {
-    try { meta.log('FallbackV1', 'disabled: controlGroupId missing'); } catch (_) {}
+    const errMsg = 'CRITICAL: controlGroupId missing or invalid - module disabled to prevent crashes';
+    try { 
+      meta.log('FallbackV1', errMsg);
+      if (meta.logError) meta.logError('FallbackV1', errMsg);
+    } catch (e) {
+      console.error(`[FallbackV1] ${errMsg}`);
+    }
+    return { onMessage: async () => {}, onEvent: async () => {} };
+  }
+
+  // Validate controlGroupId format
+  const isValidGroupId = controlGroupId.includes('@g.us');
+  if (!isValidGroupId) {
+    const errMsg = `CRITICAL: controlGroupId has invalid format: ${controlGroupId} - must end with @g.us`;
+    try {
+      meta.log('FallbackV1', errMsg);
+      if (meta.logError) meta.logError('FallbackV1', errMsg);
+    } catch (e) {
+      console.error(`[FallbackV1] ${errMsg}`);
+    }
     return { onMessage: async () => {}, onEvent: async () => {} };
   }
 
@@ -78,7 +97,7 @@ module.exports.init = async (meta) => {
   }
 
   try {
-    meta.log('FallbackV1', `ready enabled=1 controlGroupId=${controlGroupId} sendPrefer=${sendPrefer.join(',')}`);
+    meta.log('FallbackV1', `ready enabled=1 controlGroupId=${controlGroupId} sendPrefer=${sendPrefer.join(',')} forwardDm=${forwardDm} forwardGroups=${forwardGroups}`);
   } catch (_) {}
 
   function buildForwardText(ctx) {
@@ -115,10 +134,30 @@ module.exports.init = async (meta) => {
       const res = await send(controlGroupId, msg, { bypass: 1 });
 
       if (res && res.ok === false) {
+        const reason = res.reason || 'unknown';
+        try { 
+          meta.log('FallbackV1', `send failed chatId=${chatId} reason=${reason} - attempting outbox fallback`); 
+        } catch (_) {}
+        
         const outbox = meta.getService ? meta.getService('outbox') : null;
         if (outbox && typeof outbox.enqueue === 'function') {
-          await outbox.enqueue(controlGroupId, msg, { bypass: 1 });
+          const qres = await outbox.enqueue(controlGroupId, msg, { bypass: 1 });
+          try {
+            if (qres && qres.ok) {
+              meta.log('FallbackV1', `outbox enqueue success chatId=${chatId}`);
+            } else {
+              meta.log('FallbackV1', `outbox enqueue failed chatId=${chatId}`);
+            }
+          } catch (_) {}
+        } else {
+          try { 
+            meta.log('FallbackV1', `no outbox service available chatId=${chatId}`); 
+          } catch (_) {}
         }
+      } else if (res && res.ok === true) {
+        try { 
+          meta.log('FallbackV1', `forward success chatId=${chatId} to controlGroup=${controlGroupId}`); 
+        } catch (_) {}
       }
     } catch (e) {
       try { meta.log('FallbackV1', `err onMessage ${e && e.message ? e.message : String(e)}`); } catch (_) {}

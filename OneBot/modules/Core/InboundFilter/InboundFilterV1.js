@@ -63,11 +63,13 @@ module.exports = {
         try {
           if (!ctx) return;
 
+          const chatId = String(ctx.chatId || '');
+
           // 1) Status broadcast never forward
           if (dropStatusBroadcast) {
-            const chatId = String(ctx.chatId || '');
             const rawFrom = String(ctx.raw?.from || '');
             if (chatId === 'status@broadcast' || rawFrom === 'status@broadcast') {
+              safeTag(meta, 'InboundFilterV1', `drop status@broadcast chatId=${chatId}`);
               ctx.stopPropagation();
               return;
             }
@@ -76,6 +78,7 @@ module.exports = {
           // 2) Optional: drop messages sent by the bot itself
           if (dropFromMe) {
             if (ctx.raw && ctx.raw.fromMe === true) {
+              safeTag(meta, 'InboundFilterV1', `drop fromMe chatId=${chatId}`);
               ctx.stopPropagation();
               return;
             }
@@ -85,6 +88,7 @@ module.exports = {
           if (dropEmptySystem) {
             const t = ctx.raw?.type;
             if (shouldDropSystemType(t) && isEmptyText(ctx)) {
+              safeTag(meta, 'InboundFilterV1', `drop empty system type=${t} chatId=${chatId}`);
               ctx.stopPropagation();
               return;
             }
@@ -93,6 +97,7 @@ module.exports = {
             const isStatus = ctx.raw?.isStatus === true;
             const isNotification = ctx.raw?._data?.isNotification === true;
             if ((isStatus || isNotification) && isEmptyText(ctx)) {
+              safeTag(meta, 'InboundFilterV1', `drop empty notification/status chatId=${chatId}`);
               ctx.stopPropagation();
               return;
             }
