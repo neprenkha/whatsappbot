@@ -16,6 +16,7 @@ module.exports.init = async function init(meta) {
   const maxQueue = toInt(meta.implConf.maxQueue, 500);
   const errorLogDebounceMs = toInt(meta.implConf.errorLogDebounceMs, 60000); // 1 minute default
   const queueFullLogDebounceMs = toInt(meta.implConf.queueFullLogDebounceMs, 300000); // 5 minutes default
+  const maxLogMapEntries = toInt(meta.implConf.maxLogMapEntries, 1000);
 
   const queue = [];
   let busy = false;
@@ -23,6 +24,16 @@ module.exports.init = async function init(meta) {
   // Log debouncing maps
   const errorLogMap = new Map(); // chatId -> lastLoggedAt
   const queueFullLogMap = new Map(); // chatId -> lastLoggedAt
+
+  function cleanupLogMap(map) {
+    if (map.size <= maxLogMapEntries) return;
+    const entries = Array.from(map.entries());
+    entries.sort((a, b) => a[1] - b[1]); // Sort by timestamp ascending
+    const toDelete = entries.slice(0, Math.floor(map.size / 2));
+    for (const [key] of toDelete) {
+      map.delete(key);
+    }
+  }
 
   async function pump() {
     if (busy) return;
@@ -39,6 +50,7 @@ module.exports.init = async function init(meta) {
           if (errorLogDebounceMs <= 0 || (now - lastLogged) >= errorLogDebounceMs) {
             meta.log('send', `error chatId=${job.chatId} err=${e && e.message ? e.message : e}`);
             errorLogMap.set(job.chatId, now);
+            cleanupLogMap(errorLogMap);
           }
         }
         await new Promise((r) => setTimeout(r, delayMs));
@@ -57,6 +69,7 @@ module.exports.init = async function init(meta) {
       if (queueFullLogDebounceMs <= 0 || (now - lastLogged) >= queueFullLogDebounceMs) {
         meta.log('send', `drop chatId=${chatId} reason=queue_full max=${maxQueue}`);
         queueFullLogMap.set(chatId, now);
+        cleanupLogMap(queueFullLogMap);
       }
       return false;
     }

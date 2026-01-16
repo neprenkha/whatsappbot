@@ -77,6 +77,17 @@ module.exports.init = async (meta) => {
 
   // Log debouncing for rate limit blocks
   const blockLogMap = new Map(); // chatId -> lastLoggedAt
+  const maxBlockLogEntries = toInt(cfg.maxBlockLogEntries, 1000);
+
+  function cleanupBlockLogMap() {
+    if (blockLogMap.size <= maxBlockLogEntries) return;
+    const entries = Array.from(blockLogMap.entries());
+    entries.sort((a, b) => a[1] - b[1]); // Sort by timestamp ascending
+    const toDelete = entries.slice(0, Math.floor(blockLogMap.size / 2));
+    for (const [key] of toDelete) {
+      blockLogMap.delete(key);
+    }
+  }
 
   async function sendout(chatId, payload, opts = {}) {
     const at = Date.now();
@@ -105,6 +116,7 @@ module.exports.init = async (meta) => {
               );
             } catch (_) {}
             blockLogMap.set(chatId, at);
+            cleanupBlockLogMap();
           }
           return res;
         }
