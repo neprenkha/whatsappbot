@@ -20,6 +20,7 @@
 // Debounce state for ratelimit.block logs (2-minute interval)
 const rateLimitLogDebounce = new Map(); // chatId -> lastLogTime
 const RATELIMIT_LOG_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
+const MAX_DEBOUNCE_ENTRIES = 1000; // Limit map size to prevent memory leaks
 
 function toBool(v, dflt) {
   if (v === undefined || v === null || v === '') return !!dflt;
@@ -58,12 +59,40 @@ function resolveBaseSend(meta, baseSendName) {
   return null;
 }
 
+function cleanupDebounceMap() {
+  // Remove entries older than 10 minutes to prevent memory leaks
+  const now = Date.now();
+  const maxAge = 10 * 60 * 1000; // 10 minutes
+  
+  for (const [chatId, lastLog] of rateLimitLogDebounce.entries()) {
+    if (now - lastLog > maxAge) {
+      rateLimitLogDebounce.delete(chatId);
+    }
+  }
+  
+  // If still too large, remove oldest entries
+  if (rateLimitLogDebounce.size > MAX_DEBOUNCE_ENTRIES) {
+    const entries = Array.from(rateLimitLogDebounce.entries());
+    entries.sort((a, b) => a[1] - b[1]); // Sort by timestamp
+    const toRemove = entries.slice(0, entries.length - MAX_DEBOUNCE_ENTRIES);
+    for (const [chatId] of toRemove) {
+      rateLimitLogDebounce.delete(chatId);
+    }
+  }
+}
+
 function shouldLogRateLimit(chatId) {
   const now = Date.now();
   const lastLog = rateLimitLogDebounce.get(chatId);
   
   if (!lastLog || (now - lastLog) >= RATELIMIT_LOG_INTERVAL_MS) {
     rateLimitLogDebounce.set(chatId, now);
+    
+    // Periodically cleanup old entries (every 100th call)
+    if (Math.random() < 0.01) {
+      cleanupDebounceMap();
+    }
+    
     return true;
   }
   return false;
@@ -91,9 +120,17 @@ module.exports.init = async (meta) => {
   const bypassChatIds = new Set(splitCsv(cfg.bypassChatIds || cfg.bypassChats || ''));
 
   function log(level, msg) {
+    // Only log if the level is enabled
     if (level === 'debug' && !debugLog) return;
     if (level === 'error' && !errorLog) return;
-    // 'info' level is always logged
+    if (level === 'info') {
+      // 'info' level is always logged
+      try {
+        meta.log('OutboundGatewayV1', msg);
+      } catch (_) {}
+      return;
+    }
+    // For any other level, log it
     try {
       meta.log('OutboundGatewayV1', msg);
     } catch (_) {}

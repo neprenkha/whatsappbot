@@ -33,7 +33,8 @@ module.exports = {
     }
 
     if (!impl || typeof impl.init !== 'function') {
-      meta.log('FallbackHub', `disabled: impl.init() not found, file=${implAbs}, implType=${typeof impl}, hasInit=${!!(impl && impl.init)}, initType=${impl && impl.init ? typeof impl.init : 'undefined'}`);
+      meta.log('FallbackHub', `disabled: impl.init() not found, file=${implAbs}`);
+      meta.log('FallbackHub', `debug: implType=${typeof impl}, hasInit=${!!(impl && impl.init)}, initType=${impl && impl.init ? typeof impl.init : 'undefined'}`);
       return { enabled: false };
     }
 
