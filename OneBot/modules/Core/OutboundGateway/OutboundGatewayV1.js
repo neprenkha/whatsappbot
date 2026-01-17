@@ -21,6 +21,7 @@
 const rateLimitLogDebounce = new Map(); // chatId -> lastLogTime
 const RATELIMIT_LOG_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 const MAX_DEBOUNCE_ENTRIES = 1000; // Limit map size to prevent memory leaks
+let debounceCallCount = 0; // Track calls for deterministic cleanup
 
 function toBool(v, dflt) {
   if (v === undefined || v === null || v === '') return !!dflt;
@@ -88,8 +89,10 @@ function shouldLogRateLimit(chatId) {
   if (!lastLog || (now - lastLog) >= RATELIMIT_LOG_INTERVAL_MS) {
     rateLimitLogDebounce.set(chatId, now);
     
-    // Periodically cleanup old entries (every 100th call)
-    if (Math.random() < 0.01) {
+    // Deterministic cleanup: every 100th call
+    debounceCallCount++;
+    if (debounceCallCount >= 100) {
+      debounceCallCount = 0;
       cleanupDebounceMap();
     }
     
@@ -120,17 +123,11 @@ module.exports.init = async (meta) => {
   const bypassChatIds = new Set(splitCsv(cfg.bypassChatIds || cfg.bypassChats || ''));
 
   function log(level, msg) {
-    // Only log if the level is enabled
+    // Check if the level is enabled before logging
     if (level === 'debug' && !debugLog) return;
     if (level === 'error' && !errorLog) return;
-    if (level === 'info') {
-      // 'info' level is always logged
-      try {
-        meta.log('OutboundGatewayV1', msg);
-      } catch (_) {}
-      return;
-    }
-    // For any other level, log it
+    // 'info' and other levels are always logged
+    
     try {
       meta.log('OutboundGatewayV1', msg);
     } catch (_) {}

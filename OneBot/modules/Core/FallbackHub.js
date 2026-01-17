@@ -50,10 +50,10 @@ module.exports = {
       }
     }
 
-    const meta2 = { ...meta, hubConf, implConf: implConfig };
+    const metaWithConfig = { ...meta, hubConf, implConf: implConfig };
     
     try {
-      const result = await impl.init(meta2);
+      const result = await impl.init(metaWithConfig);
       meta.log('FallbackHub', `info: impl.init() completed successfully`);
       return result;
     } catch (e) {
