@@ -74,7 +74,10 @@ function isAvType(type) {
   return type === 'video' || type === 'audio' || type === 'ptt' || type === 'voice' || type === 'ptv';
 }
 
-module.exports = function init(meta, hubConf, implConf) {
+module.exports = {
+  init: function(meta) {
+    const hubConf = meta.hubConf || {};
+    const implConf = meta.implConf || {};
   const { cfg, raw } = SharedConf.wrap(meta, hubConf, implConf, {
     defaults: {
       enabled: 1,
@@ -525,4 +528,5 @@ module.exports = function init(meta, hubConf, implConf) {
     },
     onEvent: async () => {},
   };
+  }
 };
