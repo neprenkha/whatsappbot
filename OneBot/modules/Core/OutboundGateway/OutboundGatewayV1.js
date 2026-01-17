@@ -93,6 +93,7 @@ module.exports.init = async (meta) => {
   function log(level, msg) {
     if (level === 'debug' && !debugLog) return;
     if (level === 'error' && !errorLog) return;
+    // 'info' level is always logged
     try {
       meta.log('OutboundGatewayV1', msg);
     } catch (_) {}
