@@ -13,8 +13,15 @@
  *
  * Notes:
  * - Keep ASCII-only logs to avoid console encoding issues.
+ * - Debounced logging for ratelimit.block to avoid log spam (2-minute interval per chatId)
  */
 'use strict';
+
+// Debounce state for ratelimit.block logs (2-minute interval)
+const rateLimitLogDebounce = new Map(); // chatId -> lastLogTime
+const RATELIMIT_LOG_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
+const MAX_DEBOUNCE_ENTRIES = 1000; // Limit map size to prevent memory leaks
+let debounceCallCount = 0; // Track calls for deterministic cleanup
 
 function toBool(v, dflt) {
   if (v === undefined || v === null || v === '') return !!dflt;
@@ -53,17 +60,81 @@ function resolveBaseSend(meta, baseSendName) {
   return null;
 }
 
+function cleanupDebounceMap() {
+  // Remove entries older than 10 minutes to prevent memory leaks
+  const now = Date.now();
+  const maxAge = 10 * 60 * 1000; // 10 minutes
+  
+  for (const [chatId, lastLog] of rateLimitLogDebounce.entries()) {
+    if (now - lastLog > maxAge) {
+      rateLimitLogDebounce.delete(chatId);
+    }
+  }
+  
+  // If still too large, remove oldest entries
+  if (rateLimitLogDebounce.size > MAX_DEBOUNCE_ENTRIES) {
+    const entries = Array.from(rateLimitLogDebounce.entries());
+    entries.sort((a, b) => a[1] - b[1]); // Sort by timestamp
+    const toRemove = entries.slice(0, entries.length - MAX_DEBOUNCE_ENTRIES);
+    for (const [chatId] of toRemove) {
+      rateLimitLogDebounce.delete(chatId);
+    }
+  }
+}
+
+function shouldLogRateLimit(chatId) {
+  const now = Date.now();
+  const lastLog = rateLimitLogDebounce.get(chatId);
+  
+  if (!lastLog || (now - lastLog) >= RATELIMIT_LOG_INTERVAL_MS) {
+    rateLimitLogDebounce.set(chatId, now);
+    
+    // Deterministic cleanup: every 100th call
+    debounceCallCount++;
+    if (debounceCallCount >= 100) {
+      debounceCallCount = 0;
+      cleanupDebounceMap();
+    }
+    
+    return true;
+  }
+  return false;
+}
+
+function getPayloadPreview(payload, maxLen = 80) {
+  if (typeof payload === 'string') {
+    return payload.length > maxLen ? payload.substring(0, maxLen) + '...' : payload;
+  }
+  if (payload && typeof payload === 'object') {
+    return '[non-string]';
+  }
+  return String(payload || '');
+}
+
 module.exports.init = async (meta) => {
   const cfg = meta.implConf || {};
   const enabled = toBool(cfg.enabled, true);
+  const debugLog = toBool(cfg.debugLog, false);
+  const errorLog = toBool(cfg.errorLog, true);
 
   const baseSendName = String(cfg.baseSend || 'send').trim() || 'send';
   const rlName = String(cfg.ratelimitService || cfg.rateLimitService || 'ratelimit').trim() || 'ratelimit';
   const svcNames = splitCsv(cfg.services || cfg.service || 'sendout,outsend');
   const bypassChatIds = new Set(splitCsv(cfg.bypassChatIds || cfg.bypassChats || ''));
 
+  function log(level, msg) {
+    // Check if the level is enabled before logging
+    if (level === 'debug' && !debugLog) return;
+    if (level === 'error' && !errorLog) return;
+    // 'info' and other levels are always logged
+    
+    try {
+      meta.log('OutboundGatewayV1', msg);
+    } catch (_) {}
+  }
+
   if (!enabled) {
-    try { meta.log('OutboundGatewayV1', 'disabled enabled=0'); } catch (_) {}
+    log('info', 'disabled enabled=0');
     return { onMessage: async () => {}, onEvent: async () => {} };
   }
 
@@ -79,6 +150,12 @@ module.exports.init = async (meta) => {
     const key = `out:${chatId}`;
     const weight = toInt(opts.weight, 1);
 
+    // Debug log for request
+    if (debugLog) {
+      const preview = getPayloadPreview(payload);
+      log('debug', `request chat=${chatId} preview="${preview}" opts=${JSON.stringify(opts)}`);
+    }
+
     if (rl && typeof rl.check === 'function') {
       const res = await rl.check({
         key,
@@ -91,7 +168,13 @@ module.exports.init = async (meta) => {
 
       if (res && res.ok === false) {
         const bypass = toBool(opts.bypass, false) || bypassChatIds.has(chatId);
-        if (!bypass) return res;
+        if (!bypass) {
+          // Debounced error logging for ratelimit blocks
+          if (shouldLogRateLimit(chatId)) {
+            log('error', `ratelimit.block chat=${chatId} reason=${JSON.stringify(res)}`);
+          }
+          return res;
+        }
       }
     }
 
@@ -111,12 +194,10 @@ module.exports.init = async (meta) => {
     }
   }
 
-  try {
-    const rlState = (rl && typeof rl.check === 'function') ? rlName : 'none';
-    meta.log('OutboundGatewayV1',
-      `ready enabled=1 baseSend=${baseSendName} rl=${rlState} svc=${svcNames.join(',')} bypassChatIds=${bypassChatIds.size}`
-    );
-  } catch (_) {}
+  const rlState = (rl && typeof rl.check === 'function') ? rlName : 'none';
+  log('info',
+    `ready enabled=1 baseSend=${baseSendName} rl=${rlState} svc=${svcNames.join(',')} bypassChatIds=${bypassChatIds.size} debugLog=${debugLog ? 1 : 0}`
+  );
 
   return { onMessage: async () => {}, onEvent: async () => {} };
 };
