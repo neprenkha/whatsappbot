@@ -15,6 +15,12 @@ function createLogger(meta, cfg) {
 async function handle(meta, cfg, ticketCtx, ctx) {
   const log = createLogger(meta, cfg);
 
+  // Validate controlGroupId
+  if (!ticketCtx || !ticketCtx.controlGroupId) {
+    log.error('CRITICAL: missing ticketCtx.controlGroupId - cannot forward text');
+    return { ok: false, reason: 'missingControlGroupId' };
+  }
+
   const outsend = meta.getService('outsend');
   if (typeof outsend !== 'function') {
     log.error('missing outsend service');
@@ -29,12 +35,16 @@ async function handle(meta, cfg, ticketCtx, ctx) {
   const prefix = TypeUtil.formatInboundPrefix(ticketCtx.ticketId, ticketCtx.fromPhone, ticketCtx.fromName, ticketCtx.seq);
   const msg = `${prefix}\n${text}`;
 
+  log.trace(`forwarding text to controlGroup=${ticketCtx.controlGroupId} len=${text.length}`);
+
   const r = await SharedSafeSend.send(log, outsend, ticketCtx.controlGroupId, msg, {
     tag: 'fallback.in.text',
   });
 
   if (!r.ok) {
-    log.error(`send failed reason=${r.reason || ''}`);
+    log.error(`send failed to controlGroup=${ticketCtx.controlGroupId} reason=${r.reason || ''}`);
+  } else {
+    log.trace(`text forwarded successfully to controlGroup=${ticketCtx.controlGroupId}`);
   }
 
   return r;

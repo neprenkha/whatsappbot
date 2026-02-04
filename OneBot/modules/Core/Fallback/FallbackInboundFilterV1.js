@@ -79,7 +79,14 @@ function shouldCapture(meta, cfg, ctx) {
   return { ok: true, kind: 'dm' };
 }
 
+// Adapter for callers using boolean contract name.
+function shouldHandle(meta, cfg, ctx) {
+  const r = shouldCapture(meta, cfg, ctx);
+  return !!(r && r.ok);
+}
+
 module.exports = {
   shouldCapture,
+  shouldHandle,
   hasMedia,
 };

@@ -11,12 +11,12 @@ function buildFormatter(locale, timeZone, hour12) {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12
+    hour12,
   });
 }
 
 function initService(meta) {
-  const conf = meta.implConf || {};
+  const conf = (meta && meta.implConf) || {};
 
   const timeZone = toStr(conf.timeZone, 'Asia/Kuala_Lumpur').trim() || 'Asia/Kuala_Lumpur';
   const locale = toStr(conf.locale, 'en-MY').trim() || 'en-MY';
@@ -25,13 +25,16 @@ function initService(meta) {
   const fmt = buildFormatter(locale, timeZone, hour12);
 
   const tzSvc = {
-    tz: timeZone,
     timeZone,
     locale,
     hour12,
 
     now() {
       return new Date();
+    },
+
+    nowMs() {
+      return Date.now();
     },
 
     format(date) {
@@ -48,18 +51,18 @@ function initService(meta) {
 
     isoNow() {
       return new Date().toISOString();
-    }
+    },
   };
 
-  // Register both aliases for compatibility.
-  if (typeof meta.registerService === 'function') {
-    meta.registerService('tz', tzSvc);
+  // Contract: register only the canonical service name.
+  if (meta && typeof meta.registerService === 'function') {
     meta.registerService('timezone', tzSvc);
-    meta.registerService('timeZone', tzSvc);
   }
 
   const sample = tzSvc.formatNow();
-  if (meta.log) meta.log(`[TimeZoneV1] ready timeZone=${timeZone} locale=${locale} hour12=${hour12 ? 1 : 0} sample=${sample}`);
+  if (meta && typeof meta.log === 'function') {
+    meta.log('TimeZoneV1', `ready timeZone=${timeZone} locale=${locale} hour12=${hour12 ? 1 : 0} sample=${sample}`);
+  }
 
   return tzSvc;
 }

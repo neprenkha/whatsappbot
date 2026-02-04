@@ -2,116 +2,121 @@
 
 /**
  * FallbackForwarderV1
- * - Forwards messages from customers to the control group with deduplication.
- * - Handles media, text, documents and ensures no duplicate tickets are generated.
+ * - Forwards messages from customers to the control group.
+ * - Handles deduplication to prevent repeated forwarding.
+ * - Logs detailed debugging information.
  */
 
-const SharedTicketCore = require('../Shared/SharedTicketCoreV1');
+const SharedLog = require('../Shared/SharedLogV1');
 const SharedSafeSend = require('../Shared/SharedSafeSendV1');
-const SharedQuoteUtil = require('../Shared/SharedQuoteUtilV1');
-const SharedConf = require('../Shared/SharedConfV1');
-const SharedTipsEngine = require('../Shared/SharedTipsEngineV1');
+const TypeUtil = require('./FallbackTypeUtilV1');
 
-const path = require('path');
-const fs = require('fs');
+const dedupeCache = new Map();
 
-// Paths to configs
-const TIPS_PATH = path.resolve(__dirname, '../conf/Tips.conf');
-const CONTACTS_PATH = path.resolve(__dirname, '../data/Contact.csv');
+function isDuplicate(key, ttlMs, log) {
+  const now = Date.now();
+  for (const [k, t] of dedupeCache.entries()) if ((now - t) > ttlMs) dedupeCache.delete(k);
 
-const dedupStore = new Map();
+  if (dedupeCache.has(key)) {
+    log.debug('Duplicate detected; message skipped', { key });
+    return true;
+  }
 
-function deduplicate(chatId, messageId) {
-  const key = `${chatId}:${messageId}`;
-  if (dedupStore.has(key)) return true; // Duplicate detected
-  dedupStore.set(key, true);
-  setTimeout(() => dedupStore.delete(key), 30000); // Auto-clean deduplications after 30 seconds
+  dedupeCache.set(key, now);
   return false;
 }
 
-/**
- * saveContactNumber
- * - Saves a customer's phone number into contact.csv
- */
-function saveContactNumber(customerName, phone) {
+async function forwardText(meta, cfg, chatId, text, log) {
+  const groupChatId = cfg.controlGroupId;
+
+  if (!groupChatId) {
+    log.error('Control group ID missing, cannot forward text.');
+    return { ok: false, reason: 'noControlGroup' };
+  }
+
+  const sendResult = await SharedSafeSend.send(log, meta, groupChatId, text, {
+    tag: 'forward_text'
+  });
+
+  if (!sendResult || !sendResult.ok) {
+    log.warn('Failed to forward text', { chatId, reason: sendResult.reason || 'unknown' });
+    return { ok: false };
+  }
+
+  log.info('Text successfully forwarded to control group', { chatId });
+  return { ok: true };
+}
+
+async function forwardMedia(meta, cfg, chatId, raw, attachmentDetails, log) {
+  const groupChatId = cfg.controlGroupId;
+
+  if (!raw || !raw.hasMedia) {
+    log.warn('No media to forward for chatId', { chatId });
+    return { ok: false, reason: 'noMedia' };
+  }
+
+  const dedupeKey = `${chatId}|${raw.id}`;
+  const dedupeTtlMs = cfg.dedupeMediaTtlMs || 30000;
+
+  if (isDuplicate(dedupeKey, dedupeTtlMs, log)) {
+    return { ok: true, skipped: true, reason: 'deduped' };
+  }
+
   try {
-    const contactEntry = `${customerName},${phone}\n`;
-    fs.appendFileSync(CONTACTS_PATH, contactEntry, 'utf8');
-  } catch (e) {
-    console.error('Failed to save contact:', e.message);
+    const media = await raw.downloadMedia();
+    const caption = `📎 Attachment from user\nType: ${attachmentDetails.type}`;
+    const sendResult = await SharedSafeSend.send(log, meta, groupChatId, media, { caption });
+
+    if (!sendResult || !sendResult.ok) {
+      log.error('Failed to forward media attachment', { chatId, reason: sendResult?.reason });
+      return { ok: false };
+    }
+
+    log.info('Media successfully forwarded to control group', { chatId });
+    return { ok: true };
+  } catch (err) {
+    log.error('Media download or forward failed', { chatId, error: err.message });
+    return { ok: false, reason: 'mediaFailed' };
   }
 }
 
-/**
- * forwardMessage
- * - Main function for forwarding customer messages to the control group.
- */
-async function forwardMessage(meta, ctx) {
-  const config = meta.implConf || {};
-  const controlGroupId = config.controlGroupId || '';
+async function forwardMessage(meta, cfg, ctx) {
+  const log = SharedLog.create(meta, 'FallbackForwarderV1');
+  const { chatId, message, raw } = ctx;
 
-  if (!controlGroupId) {
-    meta.log('FallbackForwarderV1', 'Missing control group configuration.');
-    return { ok: false, reason: 'control.group.missing' };
+  log.info('Processing message from chatId', { chatId });
+
+  const isGroup = ctx.isGroup || false;
+  if (isGroup) {
+    log.debug('Group message ignored', { chatId });
+    return { ok: true, skipped: true, reason: 'groupMessage' };
   }
 
-  const msg = ctx.message;
-  const chatId = msg.chatId;
-  const messageId = msg.id;
+  // Deduplicate based on messageId
+  const dedupeKey = `${chatId}|${message?.id || ''}`;
+  const dedupeTtlMs = cfg.dedupeMsgTtlMs || 30000;
 
-  if (deduplicate(chatId, messageId)) {
-    meta.log('FallbackForwarderV1', 'Duplicate message skipped.');
-    return { ok: false, reason: 'duplicate.message' };
+  if (isDuplicate(dedupeKey, dedupeTtlMs, log)) {
+    return { ok: true, skipped: true, reason: 'deduped' };
   }
 
-  const customerName = ctx.sender.name || 'Unknown';
-  const phone = ctx.sender.phone || '';
-  const quotedText = await SharedQuoteUtil.buildQuotePreview(msg);
-
-  // Save contact number if template and permission exist
-  if (config.autoSaveContacts) {
-    saveContactNumber(customerName, phone);
+  // Forward Text
+  const text = message?.text || raw?.body || '';
+  if (text) {
+    const textResult = await forwardText(meta, cfg, chatId, text, log);
+    if (!textResult.ok) return textResult;
+  } else {
+    log.debug('No text content detected for forwarding', { chatId });
   }
 
-  const ticketInfo = await SharedTicketCore.touch(
-    meta,
-    config,
-    'fallback',
-    chatId,
-    { fromName: customerName, fromPhone: phone, text: msg.text || '' }
-  );
-
-  if (!ticketInfo) {
-    meta.log('FallbackForwarderV1', 'Ticket generation failed.');
-    return { ok: false, reason: 'ticket.error' };
+  // Forward Media (if any)
+  if (raw && raw.hasMedia) {
+    const mediaResult = await forwardMedia(meta, cfg, chatId, raw, { type: raw.type || 'unknown' }, log);
+    if (!mediaResult.ok) return mediaResult;
   }
 
-  let messageToSend = `
-    Ticket: ${ticketInfo.ticket}
-    Customer: ${customerName}
-    Phone: ${phone}
-    ChatId: ${chatId}
-    
-    ${quotedText || msg.text || '[No Text]'}
-
-    Tips: ${SharedTipsEngine.getTips(SharedTipsEngine.loadTipsMap(TIPS_PATH), 'fallback')}
-  `;
-
-  // Hide ticket number for non-text messages
-  if (msg.hasMedia || msg.hasFile || msg.hasDocument) {
-    messageToSend = messageToSend.replace(/Ticket:.+\n/, '');
-  }
-
-  const result = await SharedSafeSend.safeSend(meta, SharedSafeSend.pickSend(meta), controlGroupId, messageToSend.trim());
-  if (!result.ok) {
-    meta.log('FallbackForwarderV1', `Failed to forward message: ${result.error || 'unknown error'}`);
-    return result;
-  }
-
-  meta.log('FallbackForwarderV1', `Message forwarded successfully for ticket ${ticketInfo.ticket}`);
-  return result;
+  log.info('Message fully processed and forwarded', { chatId });
+  return { ok: true };
 }
 
-module.exports = {
-  forwardMessage,
-};
+module.exports = { forwardMessage };

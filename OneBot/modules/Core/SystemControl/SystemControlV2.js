@@ -1,9 +1,10 @@
 'use strict';
 
 /**
- * SystemControlV2 (Core)
+ * SystemControlV2
  * - restart, status
- * Fix: ensure "Restarting..." message is actually sent before process.exit
+ * - FIX: cfg was undefined (caused crash)
+ * - RULE: ASCII only
  */
 
 function roleRank(role) {
@@ -22,7 +23,6 @@ function formatUptime(sec) {
   const rem2 = rem1 % 3600;
   const mins = Math.floor(rem2 / 60);
   const secs = rem2 % 60;
-
   const pad2 = (n) => String(n).padStart(2, '0');
   return `${days}d ${pad2(hrs)}h ${pad2(mins)}m ${pad2(secs)}s`;
 }
@@ -47,13 +47,15 @@ function sleep(ms) {
 }
 
 module.exports.init = async function init(meta) {
-  const controlGroupId = String(meta.implConf.controlGroupId || '').trim();
+  const cfg = meta.implConf || {}; // FIX: define cfg
 
-  const cmdRestart = String(meta.implConf.cmdRestart || 'restart').trim().toLowerCase();
-  const cmdStatus  = String(meta.implConf.cmdStatus  || 'status').trim().toLowerCase();
+  const controlGroupId = String(cfg.controlGroupId || '').trim();
+  const cmdRestart = String(cfg.cmdRestart || 'restart').trim().toLowerCase();
+  const cmdStatus = String(cfg.cmdStatus || 'status').trim().toLowerCase();
 
-  const minRoleRestart = String(meta.implConf.minRoleRestart || 'admin').trim().toLowerCase();
-  const replyNoAccess  = String(meta.implConf.replyNoAccess  || 'You are not allowed to run this command.').trim();
+  const minRoleRestart = String(cfg.minRoleRestart || 'admin').trim().toLowerCase();
+  const replyNoAccess = String(cfg.replyNoAccess || '').trim();
+  const replyRestarting = String(cfg.replyRestarting || '').trim();
 
   const cmdSvc =
     (typeof meta.getService === 'function')
@@ -72,18 +74,20 @@ module.exports.init = async function init(meta) {
 
   function senderKey(ctx) {
     const s = (ctx && ctx.sender) || {};
+    const lidDigits = String(s.lid || '').replace(/[^0-9]/g, '');
+    if (lidDigits) return `lid:${lidDigits}`;
+
+    // Backward compatible: fall back to id/phone as-is.
     return String(s.id || s.phone || '').trim();
   }
 
   function canRun(ctx, minRole) {
     if (!isControlGroup(ctx.chatId)) return false;
-
     const key = senderKey(ctx);
+    if (!key) return false;
 
     if (accessSvc) {
       if (typeof accessSvc.hasAtLeast === 'function') return !!accessSvc.hasAtLeast(key, minRole);
-      if (typeof accessSvc.isAtLeast === 'function') return !!accessSvc.isAtLeast(key, minRole);
-
       if (typeof accessSvc.getRole === 'function') {
         const role = accessSvc.getRole(key);
         return roleRank(role) >= roleRank(minRole);
@@ -94,104 +98,58 @@ module.exports.init = async function init(meta) {
 
   function formatNow() {
     const tz = (typeof meta.getService === 'function')
-      ? (meta.getService('tz') || meta.getService('timezone'))
+      ? meta.getService('timezone')
       : null;
 
     if (tz) {
       if (typeof tz.formatNow === 'function') return tz.formatNow();
-      if (typeof tz.nowText === 'function') return tz.nowText();
-      if (typeof tz.format === 'function') return tz.format(new Date());
+      if (typeof tz.isoNow === 'function') return tz.isoNow();
     }
     return new Date().toISOString();
   }
 
-  function countCommands() {
-    if (!cmdSvc || typeof cmdSvc.list !== 'function') return 0;
-    try { return cmdSvc.list().filter(Boolean).length; } catch { return 0; }
-  }
-
   async function handleRestart(ctx) {
     if (!canRun(ctx, minRoleRestart)) {
-      ctx.__noAccess = true;
       await safeReply(meta, ctx, replyNoAccess);
       return { stop: true };
     }
 
-    // Send notify first
-    await safeReply(meta, ctx, '🔄 Restarting ONEBOT...');
+    if (replyRestarting) await safeReply(meta, ctx, replyRestarting);
 
-    // Give SendQueue time to actually send (your delayMs=800)
-    // Do NOT hard depend on queue internals (keep SystemControl single-purpose)
+    // allow queue time
     await sleep(1200);
-
     process.exit(100);
   }
 
   async function handleStatus(ctx) {
     if (!isControlGroup(ctx.chatId)) return { stop: true };
 
-    const meKey = senderKey(ctx);
-    const myRole = (accessSvc && typeof accessSvc.getRole === 'function') ? accessSvc.getRole(meKey) : 'unknown';
-    const myName = (accessSvc && typeof accessSvc.getName === 'function') ? accessSvc.getName(meKey) : '';
-
-    let countsLine = '';
-    if (accessSvc && typeof accessSvc.listSummary === 'function') {
-      const sum = accessSvc.listSummary();
-      countsLine = `Controllers: ${sum.controllersCount} | Admins: ${sum.adminsCount} | Staff: ${sum.staffCount}`;
-    }
-
-    const mem = process.memoryUsage ? process.memoryUsage() : null;
-    const rssMb = mem && mem.rss ? Math.round(mem.rss / 1024 / 1024) : 0;
-
     const lines = [];
     lines.push(`Bot: ${String(meta.botName || '').trim() || 'ONEBOT'}`);
     lines.push(`Time: ${formatNow()}`);
     lines.push(`Uptime: ${formatUptime(process.uptime())}`);
-    lines.push(`You: ${myRole}${myName ? ` (${myName})` : ''}`);
-    if (countsLine) lines.push(countsLine);
-    lines.push(`Commands: ${countCommands()}`);
-    if (rssMb) lines.push(`Memory: ${rssMb} MB (rss)`);
-    lines.push('Core: Log / TimeZone / SendQueue / Command / AccessRoles / Help / PingDiag / Scheduler / SystemControl');
 
     await safeReply(meta, ctx, lines.join('\n'));
     return { stop: true };
   }
 
-  function registerCompat(name, fn, helpText) {
+  function registerCompat(name, fn) {
     if (!cmdSvc || typeof cmdSvc.register !== 'function') return false;
-
     try {
-      cmdSvc.register(name, async (ctx) => fn(ctx), { owner: 'SystemControlV2', help: helpText });
+      cmdSvc.register(name, async (ctx) => fn(ctx));
       return true;
-    } catch {}
-
-    try {
-      cmdSvc.register(name, async (ctx, _cmd) => fn(ctx), { desc: helpText, usage: `!${name}` });
-      return true;
-    } catch {}
-
-    try {
-      cmdSvc.register({
-        name,
-        description: helpText,
-        usage: `!${name}`,
-        moduleId: 'SystemControlV2',
-        handler: async ({ ctx }) => fn(ctx),
-      });
-      return true;
-    } catch {}
-
-    return false;
+    } catch (_) {
+      return false;
+    }
   }
 
   if (!cmdSvc || typeof cmdSvc.register !== 'function') {
-    meta.log('SystemControlV2', 'error missing Command service (load Command module before SystemControl)');
+    meta.log('SystemControlV2', 'error missing Command service');
   } else {
-    registerCompat(cmdRestart, handleRestart, 'Restart bot process.');
-    registerCompat(cmdStatus,  handleStatus,  'Show bot status (uptime, counts).');
+    registerCompat(cmdRestart, handleRestart);
+    registerCompat(cmdStatus, handleStatus);
   }
 
   meta.log('SystemControlV2', `ready controlGroupId=${controlGroupId} cmdRestart=${cmdRestart} cmdStatus=${cmdStatus}`);
-
   return { onEvent: async () => {}, onMessage: async () => {} };
 };

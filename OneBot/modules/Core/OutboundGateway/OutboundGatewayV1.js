@@ -1,20 +1,18 @@
+'use strict';
+
 /**
- * OutboundGatewayV1.js
- * Outgoing send wrapper with RateLimit integration.
+ * OutboundGatewayV1
  *
- * Purpose:
- * - Expose function services: sendout / outsend (names configurable)
- * - Enforce outbound RateLimit (if ratelimit service exists)
- * - Support bypassChatIds or opts.bypass to skip RateLimit for internal destinations
- * - Support baseSend as:
- *     (1) a function(chatId, payload, opts)
- *     (2) an object with sendDirect(chatId, payload, opts)
- *     (3) an object with send(chatId, payload, opts)
+ * Wrap base send service with RateLimitV1 to provide:
+ * - sendout(chatId, payload, opts)
+ * - outsend(chatId, payload, opts)  (same behavior, different name)
  *
  * Notes:
- * - Keep ASCII-only logs to avoid console encoding issues.
+ * - baseSendName may be "transport" or "send" depending on build.
+ * - This module must not crash bot on missing config; it should disable itself.
+ *
+ * ASCII only.
  */
-'use strict';
 
 function toBool(v, dflt) {
   if (v === undefined || v === null || v === '') return !!dflt;
@@ -36,16 +34,41 @@ function splitCsv(v) {
     .filter(Boolean);
 }
 
+function safeJson(x) {
+  try { return JSON.stringify(x); } catch (e) { return String(x); }
+}
+
+function confGet(cfg, key, dflt) {
+  if (!cfg) return dflt;
+  if (typeof cfg.get === 'function') return cfg.get(key, dflt);
+  if (Object.prototype.hasOwnProperty.call(cfg, key)) return cfg[key];
+  return dflt;
+}
+
 function resolveBaseSend(meta, baseSendName) {
-  if (!meta || !meta.getService) return null;
+  if (!baseSendName) return null;
 
   const svc = meta.getService(baseSendName);
+
+  // Compat fallback: if config says transport but service missing, try send.
+  if (!svc && baseSendName === 'transport') {
+    const fallback = meta.getService('send');
+    if (typeof fallback === 'function') return fallback;
+    if (fallback && typeof fallback.sendDirect === 'function') {
+      return async (chatId, payload, opts) => await fallback.sendDirect(chatId, payload, opts);
+    }
+    if (fallback && typeof fallback.send === 'function') {
+      return async (chatId, payload, opts) => await fallback.send(chatId, payload, opts);
+    }
+    return null;
+  }
+
   if (typeof svc === 'function') return svc;
 
+  // Some builds expose a sender object with send/sendDirect.
   if (svc && typeof svc.sendDirect === 'function') {
     return async (chatId, payload, opts) => await svc.sendDirect(chatId, payload, opts);
   }
-
   if (svc && typeof svc.send === 'function') {
     return async (chatId, payload, opts) => await svc.send(chatId, payload, opts);
   }
@@ -53,70 +76,86 @@ function resolveBaseSend(meta, baseSendName) {
   return null;
 }
 
-module.exports.init = async (meta) => {
-  const cfg = meta.implConf || {};
-  const enabled = toBool(cfg.enabled, true);
+module.exports = function init(meta) {
+  const tag = 'OutboundGatewayV1';
+  const log = meta.log || function () {};
 
-  const baseSendName = String(cfg.baseSend || 'send').trim() || 'send';
-  const rlName = String(cfg.ratelimitService || cfg.rateLimitService || 'ratelimit').trim() || 'ratelimit';
-  const svcNames = splitCsv(cfg.services || cfg.service || 'sendout,outsend');
-  const bypassChatIds = new Set(splitCsv(cfg.bypassChatIds || cfg.bypassChats || ''));
+  const cfg = meta.implConf || null;
+  const enabled = cfg ? toBool(confGet(cfg, 'enabled', '1'), true) : true;
 
   if (!enabled) {
-    try { meta.log('OutboundGatewayV1', 'disabled enabled=0'); } catch (_) {}
-    return { onMessage: async () => {}, onEvent: async () => {} };
+    log(tag, 'disabled enabled=0');
+    return {};
   }
 
+  const baseSendName = cfg ? String(confGet(cfg, 'baseSend', 'transport')).trim() : 'transport';
+  const rlSvcName = cfg ? String(confGet(cfg, 'rateLimit', 'ratelimit')).trim() : 'ratelimit';
+
+  const rl = meta.getService(rlSvcName);
   const baseSend = resolveBaseSend(meta, baseSendName);
-  if (typeof baseSend !== 'function') {
-    throw new Error(`OutboundGatewayV1: baseSend "${baseSendName}" not found`);
+
+  if (!baseSend) {
+    log(tag, 'missing.baseSend ' + safeJson({ baseSend: baseSendName }));
+    return {};
+  }
+  if (!rl || typeof rl.check !== 'function') {
+    log(tag, 'missing.ratelimit ' + safeJson({ rateLimit: rlSvcName }));
+    return {};
   }
 
-  const rl = meta.getService ? meta.getService(rlName) : null;
+  const enabledLog = cfg ? toBool(confGet(cfg, 'enabledLog', '1'), true) : true;
+  const rlLogDebounceMs = cfg ? toInt(confGet(cfg, 'rlLogDebounceMs', '30000'), 30000) : 30000;
+  const rlLogMaxSize = cfg ? toInt(confGet(cfg, 'rlLogMaxSize', '1000'), 1000) : 1000;
 
-  async function sendout(chatId, payload, opts = {}) {
-    const at = Date.now();
-    const key = `out:${chatId}`;
-    const weight = toInt(opts.weight, 1);
+  const bypassChatIds = new Set();
+  const bypassList = cfg ? splitCsv(confGet(cfg, 'bypassChatIds', '') || '') : [];
+  for (const id of bypassList) bypassChatIds.add(id);
 
-    if (rl && typeof rl.check === 'function') {
-      const res = await rl.check({
-        key,
-        direction: 'out',
-        at,
-        weight,
-        chatId,
-        isGroup: String(chatId || '').endsWith('@g.us'),
-      });
-
-      if (res && res.ok === false) {
-        const bypass = toBool(opts.bypass, false) || bypassChatIds.has(chatId);
-        if (!bypass) return res;
+  const warnMap = new Map(); // chatId -> {t, lastReason}
+  function shouldWarn(chatId, reason) {
+    const now = Date.now();
+    const prev = warnMap.get(chatId);
+    if (!prev || (now - prev.t) >= rlLogDebounceMs) {
+      warnMap.set(chatId, { t: now, lastReason: reason });
+      // keep map small
+      if (warnMap.size > rlLogMaxSize) {
+        const firstKey = warnMap.keys().next().value;
+        warnMap.delete(firstKey);
       }
+      return true;
+    }
+    return false;
+  }
+
+  async function sendWrapped(chatId, payload, opts) {
+    if (!chatId) throw new Error('missing_chatId');
+
+    // Bypass ratelimit for specific chats (e.g., control group manual sends)
+    if (bypassChatIds.has(chatId)) {
+      return await baseSend(chatId, payload, opts);
     }
 
-    await baseSend(chatId, payload, opts);
-    return { ok: true };
-  }
+    const r = rl.check(chatId);
+    if (!r || r.ok !== true) {
+      const reason = r && r.reason ? r.reason : 'blocked';
+      const waitMs = r && typeof r.waitMs === 'number' ? r.waitMs : 0;
 
-  async function outsend(chatId, payload, opts = {}) {
-    return await sendout(chatId, payload, opts);
-  }
-
-  if (meta.registerService) {
-    for (const n of svcNames) {
-      if (n === 'sendout') meta.registerService(n, sendout);
-      else if (n === 'outsend') meta.registerService(n, outsend);
-      else meta.registerService(n, sendout);
+      if (enabledLog && shouldWarn(chatId, reason)) {
+        log(tag, 'warn ratelimit.block chat=' + chatId + ' reason=' + safeJson({ ok: false, reason, waitMs }));
+      }
+      const err = new Error('ratelimit.block');
+      err.code = 'ratelimit.block';
+      err.waitMs = waitMs;
+      throw err;
     }
+
+    return await baseSend(chatId, payload, opts);
   }
 
-  try {
-    const rlState = (rl && typeof rl.check === 'function') ? rlName : 'none';
-    meta.log('OutboundGatewayV1',
-      `ready enabled=1 baseSend=${baseSendName} rl=${rlState} svc=${svcNames.join(',')} bypassChatIds=${bypassChatIds.size}`
-    );
-  } catch (_) {}
+  // Register services
+  meta.registerService('sendout', sendWrapped);
+  meta.registerService('outsend', sendWrapped);
 
-  return { onMessage: async () => {}, onEvent: async () => {} };
+  log(tag, 'info ready enabled=1 baseSend=' + baseSendName + ' rl=' + rlSvcName + ' svc=sendout,outsend bypassChatIds=' + bypassChatIds.size);
+  return {};
 };

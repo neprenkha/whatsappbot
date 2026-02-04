@@ -32,6 +32,12 @@ async function tryDownloadMedia(raw, log) {
 async function handle(meta, cfg, ticketCtx, ctx) {
   const log = createLogger(meta, cfg);
 
+  // Validate controlGroupId
+  if (!ticketCtx || !ticketCtx.controlGroupId) {
+    log.error('CRITICAL: missing ticketCtx.controlGroupId - cannot forward media');
+    return { ok: false, reason: 'missingControlGroupId' };
+  }
+
   const outsend = meta.getService('outsend');
   if (typeof outsend !== 'function') {
     log.error('missing outsend service');
@@ -52,25 +58,34 @@ async function handle(meta, cfg, ticketCtx, ctx) {
 
   const dl = await tryDownloadMedia(raw, log);
   if (dl.ok) {
+    log.trace(`media downloaded, forwarding to controlGroup=${ticketCtx.controlGroupId}`);
+    
     const sendOpt = { tag: 'fallback.in.media' };
     if (caption) sendOpt.caption = caption;
 
     const r = await SharedSafeSend.send(log, outsend, ticketCtx.controlGroupId, dl.media, sendOpt);
-    if (!r.ok) log.error('send media failed reason=' + (r.reason || ''));
+    if (!r.ok) {
+      log.error(`send media failed to controlGroup=${ticketCtx.controlGroupId} reason=${r.reason || ''}`);
+    } else {
+      log.trace(`media forwarded successfully to controlGroup=${ticketCtx.controlGroupId}`);
+    }
     return r;
   }
 
   // fallback: forward raw without caption
+  log.trace(`media download failed, trying raw.forward to controlGroup=${ticketCtx.controlGroupId}`);
   if (typeof raw.forward === 'function') {
     try {
       await raw.forward(ticketCtx.controlGroupId);
+      log.trace(`raw.forward success to controlGroup=${ticketCtx.controlGroupId}`);
       return { ok: true, mode: 'forward' };
     } catch (e) {
-      log.warn('raw.forward failed ' + (e && e.message ? e.message : e));
+      log.warn(`raw.forward failed to controlGroup=${ticketCtx.controlGroupId} err=${e && e.message ? e.message : e}`);
       return { ok: false, reason: 'forwardFail' };
     }
   }
 
+  log.error(`no forward method available for media to controlGroup=${ticketCtx.controlGroupId}`);
   return { ok: false, reason: 'noForward' };
 }
 

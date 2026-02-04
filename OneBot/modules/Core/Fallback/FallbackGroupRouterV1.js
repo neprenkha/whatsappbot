@@ -1,55 +1,45 @@
+/*
+FallbackGroupRouterV1
+
+Router for fallback group.
+- Primary target is controlGroupId from config
+- Optional dynamic override via WorkGroups service (active group)
+
+ASCII only.
+*/
+
 'use strict';
 
-// FallbackGroupRouterV1.js
-// Routes inbound fallback events to a target group.
-// Priority:
-// 1) WorkGroups active fallback group (if API available)
-// 2) cfg.fallbackGroupId (optional hard override)
-// 3) cfg.controlGroupId (always required)
-
-module.exports.routeGroupId = function routeGroupId(meta, cfg, ctx) {
-  const control = String((cfg && cfg.controlGroupId) || '').trim();
-  const fallbackGroupId = String((cfg && cfg.fallbackGroupId) || '').trim();
-  const svcName = String((cfg && cfg.workgroupsService) || 'workgroups').trim() || 'workgroups';
-
-  // Guard: must always have a control group id configured (even if active fallback group is used).
-  if (!control && !fallbackGroupId) return '';
-
-  if (meta && typeof meta.getService === 'function') {
-    const wg = meta.getService(svcName);
-
+function routeGroupId(meta, cfg, sampleCtx) {
+  const controlGroupId = (cfg.controlGroupId ? String(cfg.controlGroupId) : '').trim();
+  if (controlGroupId) {
+    // If WorkGroups is available and provides an active group, prefer it.
     try {
-      // Newer API (if available)
-      if (wg && typeof wg.pickFallbackGroup === 'function') {
-        const gid = String(wg.pickFallbackGroup(ctx) || '').trim();
-        if (gid) return gid;
+      const wg = meta && meta.services && meta.services.workgroups;
+      if (wg && typeof wg.getActiveControlGroupId === 'function') {
+        const active = String(wg.getActiveControlGroupId(sampleCtx) || '').trim();
+        if (active) return active;
       }
-
-      // Current ONEBOT WorkGroupsV2 API
-      if (wg && typeof wg.getActiveFallbackId === 'function') {
-        const gid = String(wg.getActiveFallbackId() || '').trim();
-        if (gid) return gid;
-      }
-
-      // Generic routing API (if available)
-      if (wg && typeof wg.route === 'function') {
-        const gid = String(wg.route('fallback', ctx) || '').trim();
-        if (gid) return gid;
-      }
-
-      // Control group getter (if available)
-      if (wg && typeof wg.getControlGroupId === 'function') {
-        const gid = String(wg.getControlGroupId() || '').trim();
-        if (gid) return gid;
-      }
-    } catch (_) {
-      // ignore and fallback
+    } catch (e) {
+      // ignore and fallback to controlGroupId
     }
+    return controlGroupId;
   }
 
-  // Hard override
-  if (fallbackGroupId) return fallbackGroupId;
+  // Last resort: try WorkGroups only
+  try {
+    const wg = meta && meta.services && meta.services.workgroups;
+    if (wg && typeof wg.getActiveControlGroupId === 'function') {
+      const active = String(wg.getActiveControlGroupId(sampleCtx) || '').trim();
+      if (active) return active;
+    }
+  } catch (e) {
+    // ignore
+  }
 
-  // Default
-  return control;
+  return '';
+}
+
+module.exports = {
+  routeGroupId
 };

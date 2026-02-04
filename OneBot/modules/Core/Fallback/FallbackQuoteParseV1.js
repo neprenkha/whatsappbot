@@ -40,8 +40,7 @@ async function parse(meta, cfg, ctx) {
   // PRIORITY 1: Check if user typed ticket manually (e.g. !r <ticket> <text>)
   let ticket = _extractTicket(ctx.text);
   if (ticket) {
-    // If ticket found in text, we consider the whole text (minus ticket) as the reply?
-    // Actually, caller handles text. We just return ticket.
+    // If ticket found in text, we consider the whole text (minus ticket) as the reply
     return { ok: true, ticket, quotedText: '' };
   }
 

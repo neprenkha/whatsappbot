@@ -3,11 +3,6 @@
 // X:\OneBot\Modules\Core\WorkGroups\WorkGroupsCV.js
 // Version: 2026.01.01
 // Minimal Work Groups registry.
-// Commands:
-//   !group list
-//   !group add <name> [chatId]
-//   !group del <name>
-// If chatId is omitted for "add", current chatId is used (must run in a group).
 
 const Conf = require('../Shared/SharedConfV1');
 
@@ -34,9 +29,8 @@ module.exports = {
     const implConfig = meta && meta.hubConf && meta.hubConf.implConfig ? meta.hubConf.implConfig : '';
     const conf = Conf.load(meta, implConfig);
 
-    const enabled = conf.getBool('enabled', true);
-    if (!enabled) {
-      log.warn('disabled by config');
+    if (!conf.getBool('enabled', true)) {
+      log.warn('Module is disabled via configuration.');
       return { onMessage: async () => null };
     }
 
@@ -46,40 +40,57 @@ module.exports = {
 
     const storeNs = conf.getStr('storeNs', 'core');
     const storeKey = conf.getStr('storeKey', 'WorkGroups/groups');
-
     const cmdGroup = conf.getStr('cmdGroup', 'group');
 
     const commands = meta.getService(commandService);
     const access = meta.getService(accessService);
     const jsonstore = meta.getService('jsonstore');
 
+    if (!commands || typeof commands.register !== 'function') {
+      log.error(`Missing "command" service or "register" function not available.`);
+      return { onMessage: async () => null };
+    }
+
     if (!jsonstore) {
-      log.error('missing jsonstore service');
+      log.error('Missing "jsonstore" service.');
       return { onMessage: async () => null };
     }
 
     const store = jsonstore.open(storeNs);
 
     async function loadGroups() {
-      const rec = await store.get(storeKey, { groups: [] });
-      const groups = Array.isArray(rec && rec.groups) ? rec.groups : [];
-      return groups;
+      try {
+        const rec = await store.get(storeKey, { groups: [] });
+        return Array.isArray(rec.groups) ? rec.groups : [];
+      } catch (e) {
+        log.error(`Failed to load groups: ${e.message}`);
+        return [];
+      }
     }
 
     async function saveGroups(groups) {
-      await store.set(storeKey, { groups: Array.isArray(groups) ? groups : [] });
+      try {
+        await store.set(storeKey, { groups: Array.isArray(groups) ? groups : [] });
+        log.info('Groups saved successfully.');
+      } catch (e) {
+        log.error(`Failed to save groups: ${e.message}`);
+      }
     }
 
     function isAllowed(ctx) {
       if (!access) return true;
-      const senderId = String(ctx && ctx.senderId ? ctx.senderId : '');
+      const senderId = String(ctx?.senderId || '');
       if (!senderId) return false;
       return access.hasAtLeast(senderId, requiredRole);
     }
 
     async function reply(ctx, text) {
       if (ctx && typeof ctx.reply === 'function') {
-        await ctx.reply(String(text || ''));
+        try {
+          await ctx.reply(String(text || ''));
+        } catch (e) {
+          log.error(`Failed to send reply: ${e.message}`);
+        }
       }
     }
 
@@ -89,18 +100,18 @@ module.exports = {
         return;
       }
 
-      const sub = String(args && args[0] ? args[0] : '').trim().toLowerCase();
+      const sub = String(args[0] || '').trim().toLowerCase();
 
       if (!sub || sub === 'help') {
         await reply(
           ctx,
           [
-            'Work Groups',
+            'Work Groups Commands:',
             `- !${cmdGroup} list`,
             `- !${cmdGroup} add <name> [chatId]`,
             `- !${cmdGroup} del <name>`,
             '',
-            'Tip: If chatId is omitted for add, current chatId is used (run inside the target group).',
+            'Note: If "chatId" is omitted during "add", the current chatId will be used.',
           ].join('\n')
         );
         return;
@@ -108,19 +119,14 @@ module.exports = {
 
       if (sub === 'list') {
         const groups = await loadGroups();
-        if (!groups.length) {
-          await reply(ctx, 'No groups saved.');
-          return;
-        }
-        const lines = ['Saved Groups:'];
-        for (const g of groups) {
-          lines.push(`- ${g.name} = ${g.chatId}`);
-        }
-        await reply(ctx, lines.join('\n'));
+        await reply(
+          ctx,
+          groups.length ? `Groups:\n${groups.map(g => `- ${g.name} = ${g.chatId}`).join('\n')}` : 'No groups are currently saved.'
+        );
         return;
       }
 
-      if (sub === 'add' || sub === 'set') {
+      if (sub === 'add') {
         const name = normName(args[1]);
         let chatId = String(args[2] || '').trim();
 
@@ -130,32 +136,27 @@ module.exports = {
         }
 
         if (!chatId) {
-          if (!ctx || !ctx.isGroup) {
-            await reply(ctx, 'chatId missing. Run this command inside the target group or provide chatId.');
+          if (!ctx?.isGroup) {
+            await reply(ctx, 'Please provide a chatId or run this command inside the target group.');
             return;
           }
-          chatId = String((ctx && ctx.chatId) ? ctx.chatId : ((ctx && ctx.message && ctx.message.from) ? ctx.message.from : '')).trim();
-        }
-
-        if (!chatId) {
-          await reply(ctx, 'Invalid chatId.');
-          return;
+          chatId = String(ctx?.chatId || ctx?.message?.from || '').trim();
         }
 
         const groups = await loadGroups();
         const k = keyOf(name);
-        const existingIdx = groups.findIndex((x) => keyOf(x.name) === k);
+        const existingIdx = groups.findIndex(group => keyOf(group.name) === k);
 
-        const rec = { name, chatId };
-        if (existingIdx >= 0) groups[existingIdx] = rec;
-        else groups.push(rec);
+        const record = { name, chatId };
+        if (existingIdx >= 0) groups[existingIdx] = record;
+        else groups.push(record);
 
         await saveGroups(groups);
-        await reply(ctx, `Saved: ${name} = ${chatId}`);
+        await reply(ctx, `Group "${name}" has been successfully saved with chatId "${chatId}".`);
         return;
       }
 
-      if (sub === 'del' || sub === 'remove') {
+      if (sub === 'del') {
         const name = normName(args[1]);
         if (!name) {
           await reply(ctx, `Usage: !${cmdGroup} del <name>`);
@@ -163,34 +164,27 @@ module.exports = {
         }
 
         const groups = await loadGroups();
-        const k = keyOf(name);
-        const before = groups.length;
-        const next = groups.filter((x) => keyOf(x.name) !== k);
+        const nextGroups = groups.filter(group => keyOf(group.name) !== keyOf(name));
 
-        if (next.length === before) {
-          await reply(ctx, 'Not found.');
+        if (nextGroups.length === groups.length) {
+          await reply(ctx, `No group found with the name "${name}".`);
           return;
         }
 
-        await saveGroups(next);
-        await reply(ctx, `Deleted: ${name}`);
+        await saveGroups(nextGroups);
+        await reply(ctx, `Group "${name}" has been deleted.`);
         return;
       }
 
-      await reply(ctx, `Unknown subcommand. Use !${cmdGroup} help`);
-    }
-
-    if (!commands || typeof commands.register !== 'function') {
-      log.error(`missing command service (${commandService}) or register() not available`);
-      return { onMessage: async () => null };
+      await reply(ctx, `Unknown subcommand. Use "!${cmdGroup} help" for a list of supported commands.`);
     }
 
     commands.register(cmdGroup, onGroupCommand, {
-      desc: 'Manage work group list',
+      desc: 'Manage work groups',
       usage: `!${cmdGroup} help`,
     });
 
-    log.info('ready');
+    log.info('WorkGroupsCV is ready.');
     return { onMessage: async () => null };
   },
 };

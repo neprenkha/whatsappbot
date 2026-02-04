@@ -38,121 +38,158 @@ function parseJsonStoreSpec(spec) {
   const ns = parts[0].trim();
   const file = parts.slice(1).join('/').trim(); // state.json
   const key = file.replace(/\.json$/i, '');
-  if (!ns || !key) return null;
 
   return { ns, key };
 }
 
-module.exports.init = async (meta) => {
-  const cfg = meta.implConf || {};
-  const enabled = toBool(cfg.enabled, true);
-  const serviceName = String(cfg.service || 'outbox').trim() || 'outbox';
+function safeJson(x) {
+  try { return JSON.stringify(x); } catch (e) { return String(x); }
+}
 
-  const storeSpec = String(cfg.store || 'jsonstore:Outbox/state.json').trim();
-  const tickMs = toInt(cfg.tickMs, 2000);
-  const batchMax = toInt(cfg.batchMax, 5);
-  const sendPrefer = splitCsv(cfg.sendPrefer || 'outsend,sendout,send');
+function confGet(cfg, key, dflt) {
+  if (!cfg) return dflt;
+  if (typeof cfg.get === 'function') return cfg.get(key, dflt);
+  if (Object.prototype.hasOwnProperty.call(cfg, key)) return cfg[key];
+  return dflt;
+}
 
-  const storeSvc = meta.getService ? meta.getService('jsonstore') : null;
-  const storeSpecParsed = parseJsonStoreSpec(storeSpec);
+module.exports = function init(meta) {
+  const tag = 'OutboxV1';
+  const log = meta.log || function () {};
+  const cfg = meta.implConf || null;
 
-  let store = null;
-  let storeKey = null;
-
-  if (storeSvc && typeof storeSvc.open === 'function' && storeSpecParsed) {
-    try {
-      store = storeSvc.open(storeSpecParsed.ns);
-      storeKey = storeSpecParsed.key;
-    } catch (_) {
-      store = null;
-      storeKey = null;
-    }
+  const enabled = toBool(confGet(cfg, 'enabled', '0'), false);
+  if (!enabled) {
+    log(tag, 'disabled enabled=0');
+    return {};
   }
 
-  const state = { q: [] };
+  const serviceName = String(confGet(cfg, 'serviceName', confGet(cfg, 'service', 'outbox')) || 'outbox').trim();
+  const storeSpec = String(confGet(cfg, 'store', '') || '').trim();
+  const tickMs = toInt(confGet(cfg, 'tickMs', 2000), 2000);
+  const batchMax = toInt(confGet(cfg, 'batchMax', 5), 5);
+  const sendPrefer = splitCsv(confGet(cfg, 'sendPrefer', '') || '');
+
+  const storeInfo = parseJsonStoreSpec(storeSpec);
+  const jsonstore = meta.getService('jsonstore');
+
+  if (!storeInfo) {
+    log(tag, 'missing.storeSpec ' + safeJson({ store: storeSpec }));
+    return {};
+  }
+  if (!jsonstore || typeof jsonstore.open !== 'function') {
+    log(tag, 'missing.jsonstore');
+    // Still register service so callers do not crash; it becomes no-op queue.
+  }
+
+  // In-memory queue. Persisted state: { q:[{chatId,text,opts,at}], lastId:number }
+  let q = [];
+  let lastId = 0;
+  let running = false;
+  let timer = null;
+  let ready = false;
+
+  function pickSender() {
+    for (const name of sendPrefer) {
+      const s = meta.getService(name);
+      if (typeof s === 'function') return s;
+    }
+    const transport = meta.getService('transport');
+    if (typeof transport === 'function') return transport;
+    const send = meta.getService('send');
+    if (typeof send === 'function') return send;
+    return null;
+  }
 
   async function loadState() {
-    if (!store || !storeKey) return;
-    try {
-      const saved = await store.get(storeKey, null);
-      if (saved && Array.isArray(saved.q)) state.q = saved.q;
-    } catch (_) {}
+    if (!jsonstore || typeof jsonstore.open !== 'function') {
+      ready = true;
+      return;
+    }
+    const store = jsonstore.open(storeInfo.ns);
+    const st = await store.get(storeInfo.key);
+    if (st && Array.isArray(st.q)) q = st.q;
+    if (st && typeof st.lastId === 'number') lastId = st.lastId;
+    ready = true;
   }
 
   async function saveState() {
-    if (!store || !storeKey) return;
-    try {
-      await store.set(storeKey, state);
-    } catch (_) {}
+    if (!jsonstore || typeof jsonstore.open !== 'function') return;
+    const store = jsonstore.open(storeInfo.ns);
+    await store.set(storeInfo.key, { q, lastId });
   }
 
-  function pickSender() {
-    if (!meta.getService) return null;
-    for (const n of sendPrefer) {
-      const fn = meta.getService(n);
-      if (typeof fn === 'function') return fn;
-    }
-    const fallback = meta.getService('send');
-    return (typeof fallback === 'function') ? fallback : null;
-  }
-
-  async function enqueue(chatId, text, opts = {}) {
-    if (!enabled) return { ok: false, reason: 'disabled' };
-    if (!chatId || !text) return { ok: false, reason: 'invalid' };
-
-    state.q.push({ chatId, text, opts, at: Date.now() });
-    await saveState();
-    return { ok: true, queued: true, size: state.q.length };
-  }
-
-  async function flushOnce() {
-    if (!enabled) return;
-    if (!state.q.length) return;
-
-    const send = pickSender();
-    if (typeof send !== 'function') return;
-
-    let sent = 0;
-    for (let i = 0; i < batchMax && state.q.length; i++) {
-      const item = state.q[0];
-      try {
-        const res = await send(item.chatId, item.text, item.opts || {});
-        if (res && res.ok === false) break;
-        state.q.shift();
-        sent++;
-      } catch (_) {
-        break;
-      }
-    }
-
-    if (sent > 0) await saveState();
-  }
-
-  let timer = null;
-  async function start() {
-    await loadState();
-    if (!enabled) return;
+  function startTimer() {
     if (timer) clearInterval(timer);
-    timer = setInterval(() => { flushOnce().catch(() => {}); }, Math.max(500, tickMs));
+    timer = setInterval(async () => {
+      try { await tick(); } catch (e) { /* keep alive */ }
+    }, tickMs);
   }
 
-  await start();
-
-  if (meta.registerService) {
-    meta.registerService(serviceName, {
-      enqueue,
-      push: enqueue,
-      size: () => state.q.length,
-      flush: async () => { await flushOnce(); return { ok: true, size: state.q.length }; },
-      clear: async () => { state.q = []; await saveState(); return { ok: true }; },
-    });
+  function stopTimer() {
+    if (timer) clearInterval(timer);
+    timer = null;
   }
 
-  try {
-    meta.log('OutboxV1',
-      `ready enabled=${enabled ? 1 : 0} service=${serviceName} store=${storeSpec} tickMs=${tickMs} batchMax=${batchMax} sendPrefer=${sendPrefer.join(',')}`
-    );
-  } catch (_) {}
+  async function enqueue(chatId, text, opts) {
+    const item = { id: ++lastId, chatId, text, opts: opts || {}, at: Date.now() };
+    q.push(item);
+    await saveState();
+    return item.id;
+  }
 
-  return { onMessage: async () => {}, onEvent: async () => {} };
+  async function tick() {
+    if (!ready) return;
+    if (running) return;
+    running = true;
+
+    try {
+      const sender = pickSender();
+      if (!sender) {
+        running = false;
+        return;
+      }
+
+      let sent = 0;
+      while (q.length > 0 && sent < batchMax) {
+        const item = q[0];
+        try {
+          await sender(item.chatId, item.text, item.opts);
+          q.shift();
+          sent++;
+        } catch (e) {
+          // Stop on first failure; keep item in queue.
+          break;
+        }
+      }
+
+      if (sent > 0) await saveState();
+    } finally {
+      running = false;
+    }
+  }
+
+  // Service API: outbox.send(chatId, text, opts)
+  const svc = {
+    send: async (chatId, text, opts) => await enqueue(chatId, text, opts),
+    size: () => q.length,
+    flush: async () => await tick(),
+    stop: () => stopTimer(),
+  };
+
+  meta.registerService(serviceName, svc);
+
+  (async () => {
+    try {
+      await loadState();
+      startTimer();
+      log(tag, 'ready enabled=1 serviceName=' + serviceName + ' store=' + storeSpec + ' tickMs=' + tickMs + ' batchMax=' + batchMax + ' sendPrefer=' + sendPrefer.join(','));
+    } catch (e) {
+      ready = true;
+      startTimer();
+      log(tag, 'ready enabled=1 serviceName=' + serviceName + ' store=' + storeSpec + ' tickMs=' + tickMs + ' batchMax=' + batchMax + ' sendPrefer=' + sendPrefer.join(','));
+    }
+  })();
+
+  return {};
 };

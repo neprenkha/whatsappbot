@@ -78,7 +78,7 @@ class LogV2 {
 
     this.enabled = toBool(this.conf.enabled, true);
 
-    this.tz = toStr(this.conf.tz, 'Asia/Kuala_Lumpur');
+    this.tz = toStr(this.conf.timeZone, 'Asia/Kuala_Lumpur');
 
     this.fileEnabled = toBool(this.conf.fileEnabled, false);
     this.dir = toStr(this.conf.dir, '');

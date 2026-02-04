@@ -1,231 +1,83 @@
-'use strict';
+"use strict";
 
-function cfgGetStr(cfg, key, defVal) {
-  if (!cfg) return defVal;
+const fs = require("fs");
+const path = require("path");
+
+// Ticket format (LOCKED): YYMM + Prefix + 7 digits
+// Example: 2601T0000001
+
+function str(v, d) {
+  if (v === undefined || v === null) return d;
+  const s = String(v);
+  return s.length ? s : d;
+}
+
+function int(v, d) {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? n : d;
+}
+
+function pad(num, width) {
+  let s = String(num);
+  while (s.length < width) s = "0" + s;
+  return s;
+}
+
+function yymm(now) {
+  const y = now.getFullYear() % 100;
+  const m = now.getMonth() + 1;
+  return pad(y, 2) + pad(m, 2);
+}
+
+function ensureDir(dirPath) {
+  if (!dirPath) return;
+  if (fs.existsSync(dirPath)) return;
+  fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function readJsonSafe(filePath, defVal) {
   try {
-    if (typeof cfg.getStr === 'function') return cfg.getStr(key, defVal);
-  } catch (_) {}
-  const v = cfg[key];
-  if (v === undefined || v === null || v === '') return defVal;
-  return String(v);
-}
-
-function parseJsonStoreSpec(spec) {
-  if (!spec) return null;
-  if (typeof spec !== 'string') return null;
-  const s = spec.trim();
-  if (!s) return null;
-  if (!s.toLowerCase().startsWith('jsonstore:')) return null;
-  const body = s.substring('jsonstore:'.length);
-  const parts = body.split('/').filter(Boolean);
-  if (parts.length < 2) return null;
-  return { ns: parts[0], key: parts.slice(1).join('/') };
-}
-
-function makeMemStore() {
-  let doc = { tickets: {} };
-  return {
-    async load() {
-      return doc;
-    },
-    async save(newDoc) {
-      doc = newDoc && typeof newDoc === 'object' ? newDoc : { tickets: {} };
-      if (!doc.tickets || typeof doc.tickets !== 'object') doc.tickets = {};
-    }
-  };
-}
-
-function makeJsonStore(meta, spec) {
-  const js = meta && meta.getService ? meta.getService('jsonstore') : null;
-  if (!js || !spec) return makeMemStore();
-  const nsStore = js.open(spec.ns);
-  return {
-    async load() {
-      const v = await nsStore.get(spec.key);
-      if (!v || typeof v !== 'object') return { tickets: {} };
-      if (!v.tickets || typeof v.tickets !== 'object') v.tickets = {};
-      return v;
-    },
-    async save(newDoc) {
-      const v = newDoc && typeof newDoc === 'object' ? newDoc : { tickets: {} };
-      if (!v.tickets || typeof v.tickets !== 'object') v.tickets = {};
-      await nsStore.set(spec.key, v);
-    }
-  };
-}
-
-async function createStore(meta, cfg) {
-  const storeSpec = parseJsonStoreSpec(
-    cfgGetStr(cfg, 'ticketStoreSpec', '') || cfgGetStr(cfg, 'storeSpec', '')
-  );
-  const store = storeSpec ? makeJsonStore(meta, storeSpec) : makeMemStore();
-  const doc = await store.load();
-  if (!doc || typeof doc !== 'object') return { store, doc: { tickets: {} } };
-  if (!doc.tickets || typeof doc.tickets !== 'object') doc.tickets = {};
-  return { store, doc };
-}
-
-function normalizeTicketType(ticketType) {
-  if (!ticketType) return 'ticket';
-  return String(ticketType).trim().toLowerCase();
-}
-
-async function touch(meta, cfg, ticketType, chatId, info) {
-  const { store, doc } = await createStore(meta, cfg);
-
-  const type = normalizeTicketType(ticketType);
-  const key = type + ':' + String(chatId || '').trim();
-  if (!chatId) return { ok: false, reason: 'missingChatId' };
-
-  const now = Date.now();
-  const fromName =
-    info && (info.fromName || info.name) ? String(info.fromName || info.name) : '';
-  const fromPhone =
-    info && (info.fromPhone || info.phone) ? String(info.fromPhone || info.phone) : '';
-
-  let t = doc.tickets[key];
-
-  if (t) {
-    t.updatedAt = now;
-    if (fromName) t.fromName = fromName;
-    if (fromPhone) t.fromPhone = fromPhone;
-    await store.save(doc);
-    return { ok: true, ticket: t };
+    if (!fs.existsSync(filePath)) return defVal;
+    const txt = fs.readFileSync(filePath, "utf8");
+    if (!txt) return defVal;
+    const obj = JSON.parse(txt);
+    return obj && typeof obj === "object" ? obj : defVal;
+  } catch (e) {
+    return defVal;
   }
-
-  const fs = require('fs');
-  const path = require('path');
-
-  const prefix = cfgGetStr(cfg, 'ticketPrefix', 'T');
-  const seqDigits = parseInt(
-    cfgGetStr(cfg, 'ticketSequenceDigits', '') ||
-      cfgGetStr(cfg, 'sequenceDigits', '') ||
-      '10',
-    10
-  ) || 10;
-
-  const ym = new Date(now);
-  const y = String(ym.getFullYear());
-  const m = String(ym.getMonth() + 1).padStart(2, '0');
-  const idPrefix = y + m + prefix;
-
-  const seqFile =
-    cfgGetStr(cfg, 'ticketSequenceFile', '') || cfgGetStr(cfg, 'sequenceFile', '');
-
-  let seq = 1;
-
-  if (seqFile) {
-    try {
-      const seqDir = path.dirname(seqFile);
-      if (!fs.existsSync(seqDir)) fs.mkdirSync(seqDir, { recursive: true });
-
-      let state = {};
-      if (fs.existsSync(seqFile)) {
-        try {
-          state = JSON.parse(fs.readFileSync(seqFile, 'utf8')) || {};
-        } catch (_) {
-          state = {};
-        }
-      }
-
-      const todayKey = idPrefix;
-      const cur = state[todayKey] ? parseInt(state[todayKey], 10) : 0;
-      seq = (cur || 0) + 1;
-      state[todayKey] = seq;
-
-      fs.writeFileSync(seqFile, JSON.stringify(state, null, 2), 'utf8');
-    } catch (_) {
-      // fallback to seq=1
-      seq = 1;
-    }
-  }
-
-  const seqStr = String(seq).padStart(seqDigits, '0');
-  const ticketId = idPrefix + seqStr;
-
-  t = {
-    id: ticketId,
-    type,
-    chatId: String(chatId),
-    status: 'open',
-    createdAt: now,
-    updatedAt: now,
-    fromName: fromName || '',
-    fromPhone: fromPhone || ''
-  };
-
-  doc.tickets[key] = t;
-  await store.save(doc);
-
-  return { ok: true, ticket: t };
 }
 
-async function resolve(meta, cfg, ticketType, ticketId, payload) {
-  const { store, doc } = await createStore(meta, cfg);
-
-  const type = normalizeTicketType(ticketType);
-  const id = String(ticketId || '').trim();
-  if (!id) return { ok: false, reason: 'missingTicketId' };
-
-  const tickets = doc.tickets || {};
-  for (const k of Object.keys(tickets)) {
-    const t = tickets[k];
-    if (!t || !t.id) continue;
-    if (t.id === id && t.type === type) {
-      t.updatedAt = Date.now();
-      await store.save(doc);
-      return { ok: true, ticket: t, payload: payload || {} };
-    }
-  }
-
-  return { ok: false, reason: 'notFound' };
+function writeJsonSafe(filePath, obj) {
+  ensureDir(path.dirname(filePath));
+  fs.writeFileSync(filePath, JSON.stringify(obj, null, 2), "utf8");
 }
 
-async function setStatus(meta, cfg, ticketType, ticketId, status) {
-  const res = await resolve(meta, cfg, ticketType, ticketId, {});
-  if (!res.ok) return res;
-  const { store, doc } = await createStore(meta, cfg);
-
-  const t = res.ticket;
-  t.status = String(status || '').trim() || t.status;
-  t.updatedAt = Date.now();
-
-  // update by key
-  const type = normalizeTicketType(ticketType);
-  const key = type + ':' + String(t.chatId || '').trim();
-  if (doc.tickets && doc.tickets[key]) doc.tickets[key] = t;
-
-  await store.save(doc);
-  return { ok: true, ticket: t };
+function seqFilePath(meta, cfg) {
+  // Keep this data-driven.
+  // Default under bot dataRoot if not configured.
+  const botName = str(meta && meta.botName, "ONEBOT");
+  const rel = str(cfg.ticketSequenceFile, "bots/" + botName + "/data/Fallback/ticket-seq.json");
+  return path.isAbsolute(rel) ? rel : path.join(meta.dataRoot || "", rel);
 }
 
-async function list(meta, cfg, ticketType, status) {
-  const { doc } = await createStore(meta, cfg);
+function nextTicketId(meta, cfg, now) {
+  const prefix = str(cfg.ticketPrefix, "T");
+  const digits = int(cfg.ticketSeqDigits, 7);
+  const filePath = seqFilePath(meta, cfg);
+  const state = readJsonSafe(filePath, {});
 
-  const type = normalizeTicketType(ticketType);
-  const st = status ? String(status).trim() : '';
-  const out = [];
+  const p = yymm(now) + prefix;
+  const cur = int(state[p], 0) + 1;
+  state[p] = cur;
+  writeJsonSafe(filePath, state);
 
-  const tickets = doc.tickets || {};
-  for (const k of Object.keys(tickets)) {
-    const t = tickets[k];
-    if (!t || t.type !== type) continue;
-    if (st && t.status !== st) continue;
-    out.push(t);
-  }
-
-  out.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  return { ok: true, tickets: out };
-}
-
-async function get(meta, cfg, ticketType, ticketId, payload) {
-  return resolve(meta, cfg, ticketType, ticketId, payload);
+  return p + pad(cur, digits);
 }
 
 module.exports = {
-  touch,
-  resolve,
-  setStatus,
-  list,
-  get
+  // Keep signature stable: (meta, cfg, now)
+  next(meta, cfg, now) {
+    const t = now instanceof Date ? now : new Date();
+    return nextTicketId(meta, cfg || {}, t);
+  },
 };

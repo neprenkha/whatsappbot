@@ -1,28 +1,57 @@
 'use strict';
 
+// SendQueuePumpV1
+// Contract:
+// - Export { create }.
+// - create(meta, cfg, store, transport) -> { start, kick }
+//
+// Behavior:
+// - No log spam when queue is empty.
+// - No drop: if send fails, keep item in store for retry.
+// - Avoid overlapping flush runs.
+
 function create(meta, cfg, store, transport) {
-  let timer = null;
-  let lastAt = 0;
-  let busy = false;
+  var timer = null;
+  var lastAt = 0;
+  var busy = false;
 
   function log(msg) {
-    try { meta.log(cfg.logPrefix || 'SendQueue', msg); } catch (_) {}
+    try {
+      if (meta && typeof meta.log === 'function') {
+        meta.log((cfg && cfg.logPrefix) ? cfg.logPrefix : 'SendQueue', msg);
+      }
+    } catch (_) {}
   }
 
   async function flushBatch() {
     if (busy) return;
     busy = true;
+
     try {
-      const now = Date.now();
-      if ((now - lastAt) < cfg.delayMs) return;
+      var now = Date.now();
+      if (cfg && cfg.delayMs && (now - lastAt) < cfg.delayMs) return;
 
-      for (let i = 0; i < cfg.batchMax; i++) {
-        const item = store.peek();
-        if (!item) break;
+      var batchMax = (cfg && cfg.batchMax) ? cfg.batchMax : 1;
+      if (batchMax < 1) batchMax = 1;
 
-        const res = await transport.sendDirect(item.chatId, item.text, item.options || {});
+      for (var i = 0; i < batchMax; i++) {
+        var item = store.peek();
+        if (!item) {
+          // Empty queue: exit silently.
+          break;
+        }
+
+        var res = null;
+        try {
+          res = await transport.sendDirect(item.chatId, item.text, item.options || {});
+        } catch (e) {
+          res = { ok: false, reason: e && e.message ? String(e.message) : 'error' };
+        }
+
         if (!res || res.ok === false) {
-          log(`blocked chatId=${item.chatId} reason=${(res && res.reason) ? res.reason : 'unknown'}`);
+          // Keep item for retry later.
+          // Only log when there is an actual failure.
+          log('blocked chatId=' + item.chatId + ' reason=' + (res && res.reason ? res.reason : 'unknown'));
           break;
         }
 
@@ -36,14 +65,18 @@ function create(meta, cfg, store, transport) {
 
   function start() {
     if (timer) clearInterval(timer);
-    timer = setInterval(() => { flushBatch().catch(() => {}); }, Math.max(100, cfg.delayMs));
+    var t = (cfg && cfg.delayMs) ? Number(cfg.delayMs) : 800;
+    if (!isFinite(t) || t < 100) t = 100;
+    timer = setInterval(function() {
+      flushBatch().catch(function() {});
+    }, t);
   }
 
   function kick() {
-    flushBatch().catch(() => {});
+    flushBatch().catch(function() {});
   }
 
-  return { start, kick };
+  return { start: start, kick: kick };
 }
 
-module.exports = { create };
+module.exports = { create: create };

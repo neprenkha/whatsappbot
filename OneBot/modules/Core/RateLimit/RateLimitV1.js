@@ -107,7 +107,7 @@ function getTimeZoneName(meta, implConf) {
   const tzOverride = toStr(implConf.timeZone, '');
   if (tzOverride) return tzOverride;
 
-  const tzSvc = meta.getService('tz') || meta.getService('timezone');
+  const tzSvc = meta.getService('timezone');
   if (tzSvc) {
     if (typeof tzSvc.getTimeZone === 'function') {
       const z = String(tzSvc.getTimeZone() || '').trim();

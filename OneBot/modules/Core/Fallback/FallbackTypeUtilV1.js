@@ -1,104 +1,165 @@
-"use strict";
+'use strict';
 
-const Conf = require("../Shared/SharedConfV1");
-const SharedLog = require("../Shared/SharedLogV1");
-const TicketCore = require("../Shared/SharedTicketCoreV1");
-const TicketCard = require("./FallbackTicketCardV1");
-const QuoteReply = require("./FallbackQuoteReplyV1");
-const SafeSend = require("../Shared/SharedSafeSendV1");
-
-function safeText(s) {
-  return String(s || "").replace(/\r\n/g, "\n").trim();
+function nowMs() {
+  return Date.now();
 }
 
-async function forwardMediaToGroup(log, sendFn, groupId, msg) {
-  try {
-    if (msg && typeof msg.forward === "function") {
-      await msg.forward(groupId);
-      return true;
-    }
-  } catch (e) {
-    log.warn("[FallbackCV] forward failed. Trying download+send", { error: e.message });
-  }
-  try {
-    const media = msg && msg.downloadMedia ? await msg.downloadMedia() : null;
-    if (!media) throw new Error("No media downloaded.");
-    const opts = msg.type !== "audio" ? { caption: safeText(msg.body) } : {};
-    await sendFn(groupId, media, opts);
-    return true;
-  } catch (e) {
-    log.error("[FallbackCV] Media sending failed.", { error: e.message });
-    return false;
-  }
+function toStr(v) {
+  if (v === null || v === undefined) return '';
+  return String(v);
 }
 
-module.exports.init = async function init(meta) {
-  const conf = Conf.load(meta);
-  const log = SharedLog.create(meta, "FallbackCV");
+function cleanText(t) {
+  const s = toStr(t);
+  return s.replace(/\r/g, '').trim();
+}
 
-  const controlGroupId = conf.getStr("controlGroupId", "");
-  if (!controlGroupId) {
-    log.error("ControlGroupId is required but missing. Module disabled safely.");
-    return { onMessage: async () => {}, onEvent: async () => {} }; // Fail silently
+function getRaw(ctx) {
+  if (!ctx) return null;
+  if (ctx.message) return ctx.message;
+  if (ctx.raw) return ctx.raw;
+  return ctx;
+}
+
+function getRawType(raw) {
+  if (!raw) return '';
+  if (typeof raw.type === 'string') return raw.type;
+  if (raw._data && typeof raw._data.type === 'string') return raw._data.type;
+  return '';
+}
+
+function isFromMe(ctx) {
+  const raw = getRaw(ctx);
+  if (!raw) return false;
+  if (typeof raw.fromMe === 'boolean') return raw.fromMe;
+  if (raw._data && typeof raw._data.fromMe === 'boolean') return raw._data.fromMe;
+  return false;
+}
+
+function digitsOnly(s) {
+  return toStr(s).replace(/[^0-9]/g, '');
+}
+
+function chatIdToPhone(chatId) {
+  // 60123456789@c.us -> 60123456789
+  const v = toStr(chatId);
+  const m = v.match(/^([0-9]+)@/);
+  if (m && m[1]) return m[1];
+  return digitsOnly(v);
+}
+
+function getSender(ctx) {
+  const raw = getRaw(ctx);
+  const chatId = toStr(ctx && ctx.chatId ? ctx.chatId : raw && raw.from ? raw.from : '');
+  const fromName = toStr(ctx && ctx.senderName ? ctx.senderName : raw && raw._data && raw._data.notifyName ? raw._data.notifyName : '');
+  const fromPhone = chatIdToPhone(chatId);
+  return { chatId, fromName, fromPhone };
+}
+
+function parseTicketId(text) {
+  const t = toStr(text);
+  // Ticket format agreed: YYMMT + 7 digits, example: 2601T0000001
+  const m = t.match(/\b\d{4}T\d{7}\b/);
+  return m ? m[0] : '';
+}
+
+function getQuotedText(raw) {
+  if (!raw) return '';
+  // whatsapp-web.js: quotedMsg exists in some builds; otherwise in _data.quotedMsg
+  if (raw.quotedMsg && typeof raw.quotedMsg.body === 'string') return raw.quotedMsg.body;
+  if (raw._data && raw._data.quotedMsg) {
+    const q = raw._data.quotedMsg;
+    if (typeof q.body === 'string') return q.body;
+    if (typeof q.caption === 'string') return q.caption;
   }
+  return '';
+}
 
-  const sendSel = SafeSend.pickSend(meta, conf.getStr("sendPrefer", "outsend,sendout,send"));
-  const sendFn = sendSel?.fn;
+function formatInboundPrefix(ticketId, fromPhone, fromName, seq) {
+  const tid = toStr(ticketId);
+  const ph = toStr(fromPhone);
+  const nm = toStr(fromName);
+  const sq = Number.isFinite(seq) ? String(seq) : '';
+  // Keep ASCII and stable.
+  // Example: [2601T0000001] 60123456789 Name #3
+  let out = '[' + tid + ']';
+  if (ph) out += ' ' + ph;
+  if (nm) out += ' ' + nm;
+  if (sq) out += ' #' + sq;
+  return out.trim();
+}
 
-  if (!sendFn || typeof sendFn !== "function") {
-    log.error(`[FallbackCV] Missing or invalid send function. Available services:`, Object.keys(meta.services || {}));
-    return { onMessage: async () => {}, onEvent: async () => {} }; // Fail silently
-  }
+function cfgGetBool(cfg, k, d) {
+  if (!cfg || typeof cfg !== 'object') return d;
+  if (!(k in cfg)) return d;
+  const v = cfg[k];
+  if (typeof v === 'boolean') return v;
+  const s = toStr(v).toLowerCase();
+  if (s === '1' || s === 'true' || s === 'yes' || s === 'on') return true;
+  if (s === '0' || s === 'false' || s === 'no' || s === 'off') return false;
+  return d;
+}
 
-  async function onMessage(ctx) {
-    try {
-      if (!ctx || !ctx.chatId) return;
+function cfgGetInt(cfg, k, d) {
+  const n = parseInt(toStr(cfg && cfg[k]), 10);
+  return Number.isFinite(n) ? n : d;
+}
 
-      log.info("[FallbackCV] Handling new message:", ctx.text || ctx.message);
+function cfgGetStr(cfg, k, d) {
+  const v = cfg && cfg[k];
+  const s = toStr(v);
+  return s.length ? s : d;
+}
 
-      if (ctx.isGroup && ctx.chatId === controlGroupId) {
-        log.debug("[FallbackCV] Ignoring ControlGroup message.");
-        return; // Skip messages from the control group
-      }
+function normalizeTicketCfg(implConf) {
+  const cfg = Object.assign({}, implConf || {});
+  cfg.enabled = cfgGetBool(cfg, 'enabled', true);
 
-      const msg = ctx.message;
-      const isMedia = msg && msg.hasMedia;
-      const text = safeText(ctx.text);
+  // Canonical key only:
+  cfg.controlGroupId = cfgGetStr(cfg, 'controlGroupId', '');
 
-      if (!isMedia && !text) {
-        log.warn("[FallbackCV] Empty message received. Skipped.");
-        return;
-      }
+  cfg.ticketType = cfgGetStr(cfg, 'ticketType', 'fallback');
+  cfg.ticketPrefix = cfgGetStr(cfg, 'ticketPrefix', '');
+  cfg.ticketStoreSpec = cfgGetStr(cfg, 'ticketStoreSpec', '');
+  cfg.templateRel = cfgGetStr(cfg, 'templateRel', '');
+  cfg.sendPrefer = cfgGetStr(cfg, 'sendPrefer', 'sendout,outsend,send,transport');
 
-      // Attempt ticket processing
-      const ticketRes = await TicketCore.touch(meta, conf, conf.getStr("ticketType", "fallback"), ctx.chatId, {
-        name: ctx.sender?.name || "",
-        phone: ctx.sender?.phone || "",
-        text,
-      });
+  cfg.msgBufferMax = cfgGetInt(cfg, 'msgBufferMax', 8);
+  cfg.burstMs = cfgGetInt(cfg, 'burstMs', 1500);
+  cfg.mediaTimeoutMs = cfgGetInt(cfg, 'mediaTimeoutMs', 120000);
 
-      if (ticketRes && ticketRes.ok) {
-        log.debug(`[FallbackCV] Ticket processed. ID: ${ticketRes.ticketId}`);
-      }
+  cfg.moduleLog = cfgGetBool(cfg, 'moduleLog', true);
+  cfg.bugLog = cfgGetBool(cfg, 'bugLog', true);
+  cfg.detailLog = cfgGetBool(cfg, 'detailLog', false);
+  cfg.traceLog = cfgGetBool(cfg, 'traceLog', false);
 
-      // Forward the message
-      if (isMedia) {
-        const forwarded = await forwardMediaToGroup(log, sendFn, controlGroupId, msg);
-        if (forwarded) {
-          log.debug(`[FallbackCV] Media forwarded successfully.`);
-        } else {
-          log.warn(`[FallbackCV] Media forwarding failed.`);
-        }
-      }
+  cfg.cmdReply = cfgGetStr(cfg, 'cmdReply', 'r');
 
-    } catch (error) {
-      log.error("[FallbackCV] Error in onMessage handler:", { errorMessage: error.message, stack: error.stack });
-    }
-  }
+  // Optional header key (still config-driven)
+  cfg.phoneHeaderKey = cfgGetStr(cfg, 'phoneHeaderKey', 'phone');
 
-  async function onEvent(event) {
-    log.info("[FallbackCV] Received event:", event);
-  }
+  return cfg;
+}
 
-  return { onMessage, onEvent };
+function classifyMessage(raw) {
+  const t = getRawType(raw);
+  if (t === 'chat' || t === 'text') return 'text';
+  if (t === 'image' || t === 'document' || t === 'sticker') return 'media';
+  if (t === 'video' || t === 'audio' || t === 'ptt' || t === 'voice') return 'av';
+  if (raw && raw.hasMedia) return 'media';
+  return 'text';
+}
+
+module.exports = {
+  nowMs,
+  cleanText,
+  getRaw,
+  getRawType,
+  isFromMe,
+  getSender,
+  parseTicketId,
+  getQuotedText,
+  formatInboundPrefix,
+  normalizeTicketCfg,
+  classifyMessage,
 };

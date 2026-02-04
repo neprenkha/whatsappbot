@@ -1,2 +1,3 @@
-"use strict";
-module.exports = require("./BootAnnounceV1");
+'use strict';
+
+module.exports = require('./BootAnnounceV1');
