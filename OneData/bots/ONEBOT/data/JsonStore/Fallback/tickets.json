@@ -416,10 +416,33 @@
       "chatId": "60133335545@c.us",
       "status": "open",
       "createdAt": 1767815739748,
-      "updatedAt": 1767981965071,
+      "updatedAt": 1768749648402,
       "fromName": "Pa’Din",
       "fromPhone": "60133335545"
+    },
+    "fallback:[object Object]": {
+      "id": "202601T0000000001",
+      "type": "fallback",
+      "chatId": "[object Object]",
+      "status": "open",
+      "createdAt": 1768197384914,
+      "updatedAt": 1768198237085,
+      "fromName": "",
+      "fromPhone": ""
+    },
+    "60133335545@c.us:[object Object]": {
+      "id": "2601T0000001",
+      "type": "60133335545@c.us",
+      "chatId": "[object Object]",
+      "status": "open",
+      "createdAt": 1768499864168,
+      "updatedAt": 1768499879414,
+      "fromName": "",
+      "fromPhone": ""
     }
   },
-  "counter": 7
+  "counter": 7,
+  "seq": {
+    "60133335545@c.us:2601": 1
+  }
 }
