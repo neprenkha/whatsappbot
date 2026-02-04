@@ -1,52 +1,40 @@
 'use strict';
 
 // InboundDedupeHub
-// Loads Current impl and passes implConf to meta.implConf.
+// Standard hub style: use meta.loadConfRel to load implConfig from bot config root.
+// Pass implConf via meta.implConf and call impl.init(meta2).
 
 const path = require('path');
-const fs = require('fs');
-
-function readConf(meta, confRelPath) {
-  if (!confRelPath) return {};
-  const p = path.join(meta.dataRoot, confRelPath); // dataRoot points to X:\OneData\bots\ONEBOT
-  try {
-    const raw = fs.readFileSync(p, 'utf8');
-    // conf format is simple key=value lines; meta.parseConf exists in Kernel typically.
-    if (typeof meta.parseConf === 'function') return meta.parseConf(raw);
-    // fallback parser
-    const cfg = {};
-    for (const line of raw.split(/\r?\n/)) {
-      const t = String(line || '').trim();
-      if (!t || t.startsWith('#') || t.startsWith('//')) continue;
-      const idx = t.indexOf('=');
-      if (idx <= 0) continue;
-      const k = t.slice(0, idx).trim();
-      const v = t.slice(idx + 1).trim();
-      cfg[k] = v;
-    }
-    return cfg;
-  } catch (_e) {
-    return {};
-  }
-}
 
 module.exports.init = async function init(meta) {
   const hub = meta.hubConf || {};
-  const enabled = String(hub.enabled || '1') === '1';
-  if (!enabled) return;
+  const implFileRel = String(hub.implFile || '').trim();
+  const implConfRel = String(hub.implConfig || '').trim();
 
-  const implFile = String(hub.implFile || '').trim();
-  const implConfig = String(hub.implConfig || '').trim();
-  if (!implFile) throw new Error('[InboundDedupeHub] implFile missing');
+  if (!implFileRel) {
+    throw new Error('[InboundDedupeHub] implFile missing');
+  }
 
-  const implPath = path.join(meta.codeRoot, implFile);
+  const implPath = path.isAbsolute(implFileRel) ? implFileRel : path.join(meta.codeRoot, implFileRel);
   const impl = require(implPath);
 
-  const implConf = readConf(meta, implConfig);
+  if (!impl || typeof impl.init !== 'function') {
+    throw new Error('[InboundDedupeHub] impl.init not found: ' + implPath);
+  }
+
+  let implConf = {};
+  if (implConfRel) {
+    try {
+      const loaded = (typeof meta.loadConfRel === 'function') ? meta.loadConfRel(implConfRel) : null;
+      implConf = (loaded && loaded.conf) ? loaded.conf : {};
+    } catch (e) {
+      if (typeof meta.log === 'function') {
+        meta.log('InboundDedupeHub', 'warn: failed loading implConfig, file=' + implConfRel + ', error=' + String(e && e.message ? e.message : e));
+      }
+      implConf = {};
+    }
+  }
 
   const meta2 = Object.assign({}, meta, { implConf });
-  if (!impl || typeof impl.init !== 'function') {
-    throw new Error(`[InboundDedupeHub] impl.init not found: ${implPath}`);
-  }
   return impl.init(meta2);
 };

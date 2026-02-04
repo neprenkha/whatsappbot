@@ -3,8 +3,12 @@
 const path = require('path');
 
 function safeRequire(absPath) {
-  // eslint-disable-next-line global-require, import/no-dynamic-require
-  return require(absPath);
+  try {
+    // eslint-disable-next-line global-require, import/no-dynamic-require
+    return require(absPath);
+  } catch (err) {
+    return null;
+  }
 }
 
 module.exports.init = async (meta) => {
@@ -12,10 +16,20 @@ module.exports.init = async (meta) => {
   const implFile = hubConf.implFile || 'Modules/Core/MessageJournalV1.js';
   const implConfigRel = hubConf.implConfig || 'modules/Core/MessageJournalV1.conf';
 
-  const conf = meta.loadConfRel(implConfigRel) || {};
-  const enabled = (meta.asBool ? meta.asBool(conf.enabled, true) : (String(conf.enabled ?? '1') !== '0'));
+  let conf;
+  try {
+    conf = meta.loadConfRel(implConfigRel) || {};
+  } catch (e) {
+    meta.log('MessageJournalHub', `Error loading config file: ${implConfigRel}, error=${e.message}`);
+    conf = {};
+  }
+
+  const enabled = meta.asBool
+    ? meta.asBool(conf.enabled, true)
+    : String(conf.enabled ?? '1') !== '0';
+
   if (!enabled) {
-    meta.log('MessageJournalHub', `disabled via ${implConfigRel}`);
+    meta.log('MessageJournalHub', `Disabled via config: ${implConfigRel}`);
     return {};
   }
 
@@ -23,7 +37,7 @@ module.exports.init = async (meta) => {
   const impl = safeRequire(absImpl);
 
   if (!impl || typeof impl.init !== 'function') {
-    meta.log('MessageJournalHub', `invalid impl: ${implFile}`);
+    meta.log('MessageJournalHub', `Invalid implementation in file: ${implFile}`);
     return {};
   }
 

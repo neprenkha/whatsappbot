@@ -1,33 +1,41 @@
 'use strict';
 
-/**
- * PingDiagHub (Core - Freeze)
- * Loads implementation file + conf from its hub .conf
- */
 const path = require('path');
 
 module.exports.init = async function init(meta) {
-  const implFile = String(meta.hubConf.implFile || '').trim();
-  const implConfig = String(meta.hubConf.implConfig || '').trim();
+  const hubConf = meta.hubConf || {};
+  const implFile = (hubConf.implFile || '').trim();
 
   if (!implFile) {
-    meta.log('loader', `module.error id=${meta.id} err=Missing implFile in hubConf (${meta.hubConfPath})`);
-    return { onEvent: async () => {}, onMessage: async () => {} };
+    meta.log('OutboxHub', 'disabled: implFile missing in hub configuration.');
+    return {};
   }
 
-  const absImpl = path.isAbsolute(implFile) ? implFile : path.join(meta.codeRoot, implFile);
-  const impl = require(absImpl);
-
-  const cfg = implConfig ? meta.loadConfRel(implConfig) : { absPath: '', conf: {} };
+  const implPath = path.join(meta.codeRoot, implFile);
+  let impl;
+  try {
+    impl = require(implPath);
+  } catch (e) {
+    meta.log('OutboxHub', `Error: Failed to require implFile="${implFile}". Error=${e.message}`);
+    return {};
+  }
 
   if (!impl || typeof impl.init !== 'function') {
-    meta.log('loader', `module.error id=${meta.id} err=Impl missing init() file=${implFile}`);
-    return { onEvent: async () => {}, onMessage: async () => {} };
+    meta.log('OutboxHub', `Error: Implementation missing init() in file="${implFile}".`);
+    return {};
   }
 
-  return impl.init({
-    ...meta,
-    implConf: cfg.conf,
-    implConfPath: cfg.absPath,
-  });
+  const implConfig = (hubConf.implConfig || '').trim();
+  let implCfg = { conf: {} };
+  if (implConfig) {
+    try {
+      implCfg = meta.loadConfRel(implConfig) || { conf: {} };
+    } catch (e) {
+      meta.log('OutboxHub', `Error: Failed to load implConfig="${implConfig}". Error=${e.message}`);
+    }
+  }
+
+  const meta2 = { ...meta, implConf: implCfg.conf || {} };
+
+  return await impl.init(meta2);
 };

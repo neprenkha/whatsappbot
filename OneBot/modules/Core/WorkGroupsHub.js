@@ -8,25 +8,22 @@ module.exports.init = async function init(meta) {
   const implConfig = String(hubConf.implConfig || '').trim();
 
   if (!implFile) {
-    meta.log('WorkGroupsHub', 'disabled: missing implFile in hub conf');
+    meta.log('WorkGroupsHub', `Error: Missing implFile in hub configuration.`);
     return {};
   }
 
-  let implAbs = implFile;
-  if (!path.isAbsolute(implAbs)) {
-    implAbs = path.join(meta.codeRoot, implAbs);
-  }
+  const absImpl = path.isAbsolute(implFile) ? implFile : path.join(meta.codeRoot, implFile);
 
   let impl;
   try {
-    impl = require(implAbs);
-  } catch (e) {
-    meta.log('WorkGroupsHub', `disabled: require failed: ${e && e.message ? e.message : e}`);
+    impl = require(absImpl);
+  } catch (err) {
+    meta.log('WorkGroupsHub', `Error: Failed to require implFile="${implFile}". Error=${err.message}`);
     return {};
   }
 
   if (!impl || typeof impl.init !== 'function') {
-    meta.log('WorkGroupsHub', 'disabled: impl.init is not a function');
+    meta.log('WorkGroupsHub', `Error: impl.init() missing or invalid in file="${implFile}".`);
     return {};
   }
 
@@ -34,13 +31,11 @@ module.exports.init = async function init(meta) {
   if (implConfig) {
     try {
       const loaded = meta.loadConfRel(implConfig);
-      implConf = (loaded && loaded.conf) ? loaded.conf : {};
-    } catch (e) {
-      meta.log('WorkGroupsHub', `warn: implConfig load failed, using defaults: ${e && e.message ? e.message : e}`);
-      implConf = {};
+      implConf = loaded?.conf || {};
+    } catch (err) {
+      meta.log('WorkGroupsHub', `Warning: Failed to load implConfig="${implConfig}". Error=${err.message}`);
     }
   }
 
-  const meta2 = Object.assign({}, meta, { implConf });
-  return impl.init(meta2);
+  return impl.init({ ...meta, implConf });
 };

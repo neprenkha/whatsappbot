@@ -3,11 +3,12 @@
 const path = require('path');
 
 module.exports.init = async function init(meta) {
-  const implFile = String(meta.hubConf.implFile || '').trim();
-  const implConfig = String(meta.hubConf.implConfig || '').trim();
+  const hubConf = meta.hubConf || {};
+  const implFile = String(hubConf.implFile || '').trim();
+  const implConfig = String(hubConf.implConfig || '').trim();
 
   if (!implFile) {
-    meta.log('loader', `module.error id=${meta.id} err=Missing implFile in hubConf (${meta.hubConfPath})`);
+    meta.log('SchedulerHub', `Error: Missing implFile in hubConf. Path=${meta.hubConfPath}`);
     return { onEvent: async () => {}, onMessage: async () => {} };
   }
 
@@ -17,16 +18,20 @@ module.exports.init = async function init(meta) {
   try {
     impl = require(absImpl);
   } catch (e) {
-    meta.log('loader', `module.error id=${meta.id} err=Cannot load impl file=${implFile} (${e.message || e})`);
+    meta.log('SchedulerHub', `Error: Failed to require implementation file=${implFile}, Error=${e.message}`);
     return { onEvent: async () => {}, onMessage: async () => {} };
   }
 
   const cfg = implConfig ? meta.loadConfRel(implConfig) : { absPath: '', conf: {} };
 
   if (!impl || typeof impl.init !== 'function') {
-    meta.log('loader', `module.error id=${meta.id} err=Impl missing init() file=${implFile}`);
+    meta.log('SchedulerHub', `Error: Implementation missing init() in file=${implFile}`);
     return { onEvent: async () => {}, onMessage: async () => {} };
   }
 
-  return impl.init({ ...meta, implConf: cfg.conf, implConfPath: cfg.absPath });
+  return impl.init({
+    ...meta,
+    implConf: cfg.conf || {},
+    implConfPath: cfg.absPath || '',
+  });
 };

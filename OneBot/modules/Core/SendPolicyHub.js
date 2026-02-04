@@ -1,5 +1,4 @@
-// SendPolicyHub.js
-// OneBot Core Hub: loads SendPolicy implementation safely.
+'use strict';
 
 const path = require('path');
 
@@ -8,50 +7,45 @@ module.exports = {
   priority: 9218,
 
   init: (meta) => {
-    const log = (tag, msg) => {
+    const log = (tag, msg, details = {}) => {
       try {
-        if (meta && typeof meta.log === 'function') return meta.log(tag, msg);
-      } catch (_) {}
-      try { console.log(`[${tag}] ${msg}`); } catch (_) {}
+        meta.log(tag, `${msg} ${JSON.stringify(details)}`);
+      } catch (e) {
+        console.error(`[${tag}] ${msg}`);
+      }
     };
 
-    const hubConf = (meta && meta.hubConf) ? meta.hubConf : {};
-    const rootDir = (meta && meta.codeRoot) ? meta.codeRoot : process.cwd();
-
+    const hubConf = meta.hubConf || {};
+    const rootDir = meta.codeRoot || process.cwd();
     const implFile = hubConf.implFile || 'Modules/Core/SendPolicyV1.js';
 
     let implConf = {};
-    if (hubConf.implConfig && meta && typeof meta.loadConfRel === 'function') {
+    if (hubConf.implConfig) {
       try {
-        implConf = meta.loadConfRel(hubConf.implConfig).conf || {};
+        implConf = meta.loadConfRel(hubConf.implConfig)?.conf || {};
       } catch (e) {
-        log('SendPolicyHub', `WARN: implConfig load failed file=${hubConf.implConfig} err=${e && e.message ? e.message : e}`);
+        log('SendPolicyHub', 'Failed to load implementation config.', { file: hubConf.implConfig, error: e.message });
       }
     }
 
-    let impl = null;
+    let impl;
     try {
       impl = require(path.join(rootDir, implFile));
     } catch (e) {
-      log('SendPolicyHub', `ERROR: impl require failed file=${implFile} err=${e && e.message ? e.message : e}`);
+      log('SendPolicyHub', 'Failed to require implementation file.', { file: implFile, error: e.message });
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    let api = {};
-    try {
-      if (impl && typeof impl.init === 'function') {
-        api = impl.init({ ...meta, implConf }) || {};
-      } else {
-        log('SendPolicyHub', `WARN: impl has no init() file=${implFile}`);
-      }
-    } catch (e) {
-      log('SendPolicyHub', `ERROR: impl init failed file=${implFile} err=${e && e.message ? e.message : e}`);
-      api = {};
+    if (!impl || typeof impl.init !== 'function') {
+      log('SendPolicyHub', 'Implementation missing init() function.', { file: implFile });
+      return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    return {
-      onMessage: (typeof api.onMessage === 'function') ? api.onMessage : (async () => {}),
-      onEvent: (typeof api.onEvent === 'function') ? api.onEvent : (async () => {}),
-    };
+    try {
+      return impl.init({ ...meta, implConf }) || { onMessage: async () => {}, onEvent: async () => {} };
+    } catch (e) {
+      log('SendPolicyHub', 'Implementation init() failed.', { file: implFile, error: e.message });
+      return { onMessage: async () => {}, onEvent: async () => {} };
+    }
   },
 };

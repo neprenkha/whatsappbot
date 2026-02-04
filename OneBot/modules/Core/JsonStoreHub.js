@@ -6,64 +6,54 @@ const TAG = 'JsonStoreHub';
 const DEFAULT_PRIORITY = 9640;
 
 module.exports.init = async function init(meta) {
-  const hub = meta.hubConf || {};
+  const hubConf = meta.hubConf || {};
+  const moduleId = hubConf.moduleId || meta.moduleId || 'JsonStore';
+  const priority = Number.isFinite(Number(hubConf.priority)) ? Number(hubConf.priority) : DEFAULT_PRIORITY;
 
-  const moduleId = hub.moduleId || meta.moduleId || 'JsonStore';
-  const priority = Number.isFinite(Number(hub.priority)) ? Number(hub.priority) : DEFAULT_PRIORITY;
+  const implFile = String(hubConf.implFile || '').trim();
+  const implConfig = String(hubConf.implConfig || '').trim();
 
-  const implFileRel = (hub.implFile || '').trim();
-  const implConfRel = (hub.implConfig || hub.implConf || '').trim(); // support both keys
-
-  if (!implFileRel) {
-    meta.log(TAG, 'Missing implFile in hub config.');
+  if (!implFile) {
+    meta.log(TAG, `Missing implFile configuration. Module=${moduleId}`);
     return { id: moduleId, priority };
   }
 
-  const implAbs = path.isAbsolute(implFileRel) ? implFileRel : path.join(meta.codeRoot, implFileRel);
-
+  const absImpl = path.isAbsolute(implFile) ? implFile : path.join(meta.codeRoot, implFile);
   let impl;
   try {
-    impl = require(implAbs);
+    impl = require(absImpl);
   } catch (err) {
-    meta.log(TAG, `Impl require failed: ${implFileRel}`, { err: String(err) });
+    meta.log(TAG, `Require failed: ${err.message}, File=${implFile}`);
     return { id: moduleId, priority };
   }
 
-  // load impl config (optional)
   let cfg = { absPath: '', conf: {} };
-  if (implConfRel) {
+  if (implConfig) {
     try {
-      cfg = meta.loadConfRel(implConfRel);
+      cfg = meta.loadConfRel(implConfig) || {};
     } catch (err) {
-      meta.log(TAG, `Impl config load failed: ${implConfRel}`, { err: String(err) });
-      cfg = { absPath: '', conf: {} };
+      meta.log(TAG, `Config load failed: ${err.message}, File=${implConfig}`);
     }
   }
 
-  const childMeta = {
-    ...meta,
-    moduleId,
-    implConf: cfg.conf || {},
-    implConfPath: cfg.absPath || '',
-    implConfig: cfg.conf || {},       // alias
-    implConfigPath: cfg.absPath || '', // alias
-  };
-
   if (!impl || typeof impl.init !== 'function') {
-    meta.log(TAG, `Impl missing init() file=${implFileRel}`);
+    meta.log(TAG, `Implementation missing init(). File=${implFile}`);
     return { id: moduleId, priority };
   }
 
   let mod;
   try {
-    mod = await impl.init(childMeta);
+    mod = await impl.init({
+      ...meta,
+      moduleId,
+      implConf: cfg.conf || {},
+      implConfPath: cfg.absPath || '',
+    });
   } catch (err) {
-    meta.log(TAG, `Impl init failed: ${implFileRel}`, { err: String(err) });
+    meta.log(TAG, `Implementation init failed: ${err.message}, File=${implFile}`);
     return { id: moduleId, priority };
   }
 
-  // normalize
-  if (!mod || typeof mod !== 'object') mod = {};
   mod.id = mod.id || moduleId;
   mod.priority = Number.isFinite(Number(mod.priority)) ? Number(mod.priority) : priority;
 

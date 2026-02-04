@@ -5,8 +5,9 @@ const path = require('path');
 module.exports.init = async function init(meta) {
   const hubConf = meta.hubConf || {};
   const implFile = (hubConf.implFile || '').trim();
+
   if (!implFile) {
-    meta.log('OutboxHub', 'disabled: implFile missing in hub conf');
+    meta.log('OutboxHub', 'disabled: implFile missing in hub configuration.');
     return {};
   }
 
@@ -15,29 +16,26 @@ module.exports.init = async function init(meta) {
   try {
     impl = require(implPath);
   } catch (e) {
-    meta.log('OutboxHub', `disabled: require failed implFile="${implFile}" err=${e && e.message ? e.message : e}`);
+    meta.log('OutboxHub', `Error: Failed to require implFile="${implFile}". Error=${e.message}`);
     return {};
   }
 
   if (!impl || typeof impl.init !== 'function') {
-    meta.log('OutboxHub', `disabled: impl missing init() file=${implFile}`);
+    meta.log('OutboxHub', `Error: Implementation missing init() in file="${implFile}".`);
     return {};
   }
 
-  let implCfg = { conf: {} };
   const implConfig = (hubConf.implConfig || '').trim();
+  let implCfg = { conf: {} };
   if (implConfig) {
     try {
       implCfg = meta.loadConfRel(implConfig) || { conf: {} };
     } catch (e) {
-      meta.log('OutboxHub', `implConfig load failed file=${implConfig} err=${e && e.message ? e.message : e}`);
-      implCfg = { conf: {} };
+      meta.log('OutboxHub', `Error: Failed to load implConfig="${implConfig}". Error=${e.message}`);
     }
   }
 
-  const meta2 = Object.assign({}, meta, {
-    implConf: implCfg.conf || {},
-  });
+  const meta2 = { ...meta, implConf: implCfg.conf || {} };
 
   return await impl.init(meta2);
 };

@@ -1,6 +1,4 @@
-// InboundFilterHub.js
-// OneBot Core Hub: loads InboundFilter implementation safely.
-// Config: hubConf.implFile (default Modules/Core/InboundFilterV1.js), hubConf.implConfig (optional .conf relative to confRoot)
+'use strict';
 
 const path = require('path');
 
@@ -9,25 +7,25 @@ module.exports = {
   priority: 9680,
 
   init: (meta) => {
-    const log = (tag, msg) => {
+    const log = (tag, msg, details = {}) => {
       try {
-        if (meta && typeof meta.log === 'function') return meta.log(tag, msg);
-      } catch (_) {}
-      try { console.log(`[${tag}] ${msg}`); } catch (_) {}
+        if (meta && typeof meta.log === 'function') return meta.log(tag, `${msg} ${JSON.stringify(details)}`);
+      } catch (_) {
+        try { console.log(`[${tag}] ${msg}`, details); } catch (_) {}
+      }
     };
 
-    const hubConf = (meta && meta.hubConf) ? meta.hubConf : {};
-    const rootDir = (meta && meta.codeRoot) ? meta.codeRoot : process.cwd();
-
+    const hubConf = meta.hubConf || {};
+    const rootDir = meta.codeRoot || process.cwd();
     const implFile = hubConf.implFile || 'Modules/Core/InboundFilterV1.js';
 
-    // Optional implementation config (.conf) relative to confRoot
+    // Optional implementation config (.conf)
     let implConf = {};
-    if (hubConf.implConfig && meta && typeof meta.loadConfRel === 'function') {
+    if (hubConf.implConfig && typeof meta.loadConfRel === 'function') {
       try {
-        implConf = meta.loadConfRel(hubConf.implConfig).conf || {};
+        implConf = meta.loadConfRel(hubConf.implConfig)?.conf || {};
       } catch (e) {
-        log('InboundFilterHub', `WARN: implConfig load failed file=${hubConf.implConfig} err=${e && e.message ? e.message : e}`);
+        log('InboundFilterHub', 'Failed loading implementation config.', { file: hubConf.implConfig, error: e.message });
       }
     }
 
@@ -35,28 +33,24 @@ module.exports = {
     try {
       impl = require(path.join(rootDir, implFile));
     } catch (e) {
-      log('InboundFilterHub', `ERROR: impl require failed file=${implFile} err=${e && e.message ? e.message : e}`);
-      return {
-        onMessage: async () => {},
-        onEvent: async () => {},
-      };
+      log('InboundFilterHub', 'Failed to require implementation file.', { file: implFile, error: e.message });
+      return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
     let api = {};
-    try {
-      if (impl && typeof impl.init === 'function') {
+    if (impl && typeof impl.init === 'function') {
+      try {
         api = impl.init({ ...meta, implConf }) || {};
-      } else {
-        log('InboundFilterHub', `WARN: impl has no init() file=${implFile}`);
+      } catch (e) {
+        log('InboundFilterHub', 'Implementation initialization failed.', { file: implFile, error: e.message });
       }
-    } catch (e) {
-      log('InboundFilterHub', `ERROR: impl init failed file=${implFile} err=${e && e.message ? e.message : e}`);
-      api = {};
+    } else {
+      log('InboundFilterHub', 'Implementation missing init().', { file: implFile });
     }
 
     return {
-      onMessage: (typeof api.onMessage === 'function') ? api.onMessage : (async () => {}),
-      onEvent: (typeof api.onEvent === 'function') ? api.onEvent : (async () => {}),
+      onMessage: api.onMessage || (async () => {}),
+      onEvent: api.onEvent || (async () => {}),
     };
   },
 };
