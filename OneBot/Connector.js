@@ -95,8 +95,12 @@ async function main() {
     },
   });
 
-  const sendDirect = async (chatId, text, options = {}) => {
-    return client.sendMessage(chatId, text, options);
+  // Patch: enforce sendSeen=false by default to avoid WA Web API drift crash.
+  const sendDirect = async (chatId, text, options) => {
+    const optIn = options && typeof options === 'object' ? options : {};
+    const opts = Object.assign({}, optIn);
+    if (opts.sendSeen === undefined || opts.sendSeen === null) opts.sendSeen = false;
+    return client.sendMessage(chatId, text, opts);
   };
 
   kernel.attachTransport({ sendDirect });
