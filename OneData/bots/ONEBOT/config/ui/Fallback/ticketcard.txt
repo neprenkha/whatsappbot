@@ -1,0 +1,11 @@
+[NEW]
+Ticket: {{TICKET_ID}}
+Time: {{TIME_LOCAL}}
+FromName: {{FROM_NAME}}
+FromPhone: {{FROM_PHONE}}
+FromChatId: {{FROM_CHATID}}
+Text:
+{{TEXT}}
+Attachments: {{MEDIA_COUNT}}
+AttachTypes: {{MEDIA_TYPES}}
+Status: {{STATUS}}
