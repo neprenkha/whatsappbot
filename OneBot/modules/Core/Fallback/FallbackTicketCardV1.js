@@ -3,10 +3,8 @@
 /*
 FallbackTicketCardV1
 - Build ticket card text from template file (ASCII-only)
-- No hardcoded chatId/text; all text comes from template
-
-Config keys (canonical):
-- templateRel=ui/Fallback/ticketcard.txt
+- Template path is read from canonical config key only:
+  ticketCardTemplateRel
 */
 
 const fs = require('fs');
@@ -31,7 +29,7 @@ function safeReadText(p) {
 function buildTemplateAbs(meta, templateRel) {
   const rel = toStr(templateRel, '');
   if (!rel) return '';
-  const root = meta && meta.botConfigRoot ? String(meta.botConfigRoot) : '';
+  const root = meta && meta.confRoot ? String(meta.confRoot) : '';
   if (!root) return '';
   return path.resolve(root, rel);
 }
@@ -50,29 +48,49 @@ function buildVars(data) {
   };
 }
 
+function toCardData(envelope, ticketId, kinds) {
+  const env = envelope && typeof envelope === 'object' ? envelope : {};
+  const k = kinds && typeof kinds === 'object' ? kinds : {};
+  const count = (Number(k.pic || 0) + Number(k.doc || 0) + Number(k.av || 0));
+
+  const mediaTypes = [];
+  if (Number(k.pic || 0) > 0) mediaTypes.push('pic');
+  if (Number(k.doc || 0) > 0) mediaTypes.push('doc');
+  if (Number(k.av || 0) > 0) mediaTypes.push('av');
+
+  return {
+    ticketId: toStr(ticketId, ''),
+    timeLocal: toStr(env.at, ''),
+    fromName: toStr(env.authorName, ''),
+    fromPhone: toStr(env.authorPhone, ''),
+    fromChatId: toStr(env.chatId, ''),
+    text: toStr(env.text, ''),
+    mediaCount: count,
+    mediaTypes: mediaTypes.join(','),
+    status: 'OPEN',
+  };
+}
+
 function build(meta, cfg, data) {
-  const templateRel = toStr(cfg && cfg.templateRel, 'ui/Fallback/ticketcard.txt');
+  const templateRel = toStr(cfg && cfg.ticketCardTemplateRel, '');
   const absPath = buildTemplateAbs(meta, templateRel);
   const template = safeReadText(absPath);
 
-  const vars = buildVars(data || {});
-
   if (!template) {
-    // Fail-soft fallback (still ASCII-only).
-    return (
-      'Ticket: ' + vars.TICKET_ID + '\n' +
-      'Time: ' + vars.TIME_LOCAL + '\n' +
-      'FromName: ' + vars.FROM_NAME + '\n' +
-      'FromPhone: ' + vars.FROM_PHONE + '\n' +
-      'FromChatId: ' + vars.FROM_CHATID + '\n' +
-      'Text:\n' + vars.TEXT + '\n' +
-      'Attachments: ' + vars.MEDIA_COUNT + '\n' +
-      'AttachTypes: ' + vars.MEDIA_TYPES + '\n' +
-      'Status: ' + vars.STATUS + '\n'
-    );
+    throw new Error('FallbackTicketCardV1: template missing or empty. key=ticketCardTemplateRel');
   }
 
+  const vars = buildVars(data || {});
   return Template.render(template, vars);
 }
 
-module.exports = { build };
+module.exports = {
+  init: async function init(meta, cfg) {
+    return {
+      render: async function render(envelope, ticketId, kinds) {
+        const data = toCardData(envelope, ticketId, kinds);
+        return build(meta, cfg, data);
+      },
+    };
+  },
+};
