@@ -3,17 +3,13 @@
 const FallbackGroupRouterV1 = require('./FallbackGroupRouterV1');
 const FallbackForwardTextV1 = require('./FallbackForwardTextV1');
 const FallbackForwardMediaV1 = require('./FallbackForwardMediaV1');
-const FallbackForwardAvV1 = require('./FallbackForwardAvV1');
 const FallbackReplyTextV1 = require('./FallbackReplyTextV1');
 const FallbackReplyMediaV1 = require('./FallbackReplyMediaV1');
-const FallbackReplyAvV1 = require('./FallbackReplyAvV1');
-const FallbackCommandReplyV1 = require('./FallbackCommandReplyV1');
-const FallbackTicketCardV1 = require('./FallbackTicketCardV1');
-const FallbackMediaForwardQueueV1 = require('./FallbackMediaForwardQueueV1');
+const FallbackReplyAVV1 = require('./FallbackReplyAVV1');
 const TicketCoreV2 = require('../Shared/SharedTicketCoreV2');
 
 function cfgStr(cfg, key, defVal) {
-  if (!cfg) return defVal;
+  if (!cfg || typeof cfg !== 'object') return defVal;
   const v = cfg[key];
   if (v === undefined || v === null) return defVal;
   const s = String(v).trim();
@@ -21,192 +17,204 @@ function cfgStr(cfg, key, defVal) {
 }
 
 function cfgInt(cfg, key, defVal) {
-  const s = cfgStr(cfg, key, '');
-  if (!s) return defVal;
-  const n = parseInt(s, 10);
+  const n = parseInt(cfgStr(cfg, key, ''), 10);
   return Number.isFinite(n) ? n : defVal;
 }
 
 function cfgBool(cfg, key, defVal) {
   const s = cfgStr(cfg, key, '');
   if (!s) return !!defVal;
-  return s === '1' || s.toLowerCase() === 'true' || s.toLowerCase() === 'yes';
+  const t = s.toLowerCase();
+  return t === '1' || t === 'true' || t === 'yes' || t === 'on';
 }
 
-function safeObj(o) {
-  return (o && typeof o === 'object') ? o : {};
+function toChatId(v) {
+  return String(v || '').trim();
 }
 
-function countKinds(envelope) {
-  const env = safeObj(envelope);
-  let pic = 0;
-  let doc = 0;
-  let av = 0;
+function rawType(raw) {
+  if (!raw) return '';
+  if (typeof raw.type === 'string') return raw.type;
+  if (raw._data && typeof raw._data.type === 'string') return raw._data.type;
+  return '';
+}
 
-  const files = Array.isArray(env.files) ? env.files : [];
-  for (let i = 0; i < files.length; i++) {
-    const f = safeObj(files[i]);
-    const kind = String(f.kind || '');
-    if (kind === 'pic') pic++;
-    else if (kind === 'doc') doc++;
-    else if (kind === 'audio' || kind === 'video' || kind === 'ptt') av++;
+function isAvType(t) {
+  const x = String(t || '').toLowerCase();
+  return x === 'audio' || x === 'video' || x === 'ptt' || x === 'voice';
+}
+
+// Ticket id format spec from SharedTicketCoreV2: YYMMT + 7 digits.
+// Example: 2601T0000001
+const TICKET_ID_PATTERN = /\b\d{4}T\d{7}\b/;
+
+function parseTicketId(text) {
+  const s = String(text || '');
+  const m = s.match(TICKET_ID_PATTERN);
+  return m ? m[0] : '';
+}
+
+function stripTicket(text, ticketId) {
+  const s = String(text || '').trim();
+  if (!s || !ticketId) return s;
+  const i = s.toUpperCase().indexOf(String(ticketId).toUpperCase());
+  if (i === 0) return s.slice(String(ticketId).length).trim();
+  return s;
+}
+
+async function forwardAvInline(meta, toGroupId, raw, ticketId) {
+  const tId = String(ticketId || '');
+  if (!toGroupId || !raw) {
+    const msg = 'bug.forwardAv reason=bad_input ticketId=' + tId;
+    meta.log('FallbackCV', msg);
+    return { ok: false, reason: 'bad_input' };
   }
 
-  return { pic, doc, av };
+  const outsend = meta.getService('outsend');
+  if (typeof outsend !== 'function') {
+    const msg = 'bug.forwardAv reason=missingOutsend ticketId=' + tId;
+    meta.log('FallbackCV', msg);
+    return { ok: false, reason: 'missingOutsend' };
+  }
+
+  if (typeof raw.downloadMedia !== 'function') {
+    const msg = 'bug.forwardAv reason=noDownloadMedia ticketId=' + tId;
+    meta.log('FallbackCV', msg);
+    return { ok: false, reason: 'noDownloadMedia' };
+  }
+
+  let media = null;
+  try {
+    media = await raw.downloadMedia();
+  } catch (e) {
+    media = null;
+    const reason = e && e.message ? String(e.message) : String(e);
+    const msg = 'bug.forwardAv reason=downloadMediaFail ticketId=' + tId + ' err=' + reason;
+    meta.log('FallbackCV', msg);
+  }
+
+  if (media) {
+    const options = {};
+    const t = rawType(raw);
+    if (t === 'ptt' || t === 'voice' || t === 'audio') options.sendAudioAsVoice = true;
+    await outsend(toGroupId, media, options);
+    return { ok: true };
+  }
+
+  meta.log('FallbackCV', 'bug.forwardAv reason=downloadMediaEmpty ticketId=' + tId);
+  return { ok: false, reason: 'downloadFail' };
 }
 
 module.exports = {
   init: async function init(meta) {
-    const tag = '[FallbackCV]';
-    const log = meta && meta.log ? meta.log : function noop() {};
-
-    const hubConf = safeObj(meta && meta.hubConf);
-    const cfg = safeObj(meta && meta.implConf);
+    const tag = 'FallbackCV';
+    const cfg = meta && meta.implConf ? meta.implConf : {};
 
     const enabled = cfgBool(cfg, 'enabled', 1);
     if (!enabled) {
-      log(tag, 'disabled', { enabled: 0 });
-      return { enabled: false };
+      meta.log(tag, 'disabled enabled=0');
+      return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    // Canonical key only (per CONF STANDARD).
     const controlGroupId = cfgStr(cfg, 'controlGroupId', '');
-
     if (!controlGroupId) {
-      log(tag, 'config.missing', { key: 'controlGroupId', enabled: 1 });
-      return { enabled: false };
+      meta.log(tag, 'disabled missing controlGroupId');
+      return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    const burstMs = cfgInt(cfg, 'burstMs', 1200);
-    const msgBufferMax = cfgInt(cfg, 'msgBufferMax', 20);
-    const sendPreferKey = 'sendPrefer';
+    const ticketTtlMs = cfgInt(cfg, 'ticketTtlMs', 300000);
+    const sendPrefer = cfgStr(cfg, 'sendPrefer', 'sendout,outsend,send');
 
-    const moduleLog = cfgBool(cfg, 'moduleLog', 1);
-    const bugLog = cfgBool(cfg, 'bugLog', 1);
-    const detailLog = cfgBool(cfg, 'detailLog', 0);
-    const traceLog = cfgBool(cfg, 'traceLog', 0);
+    const ticketToChat = Object.create(null);
 
-    const router = await FallbackGroupRouterV1.init(meta, cfg, {
-      moduleLog, bugLog, detailLog, traceLog,
-      controlGroupId,
-      sendPreferKey,
-    });
+    meta.log(tag, 'ready enabled=1 controlGroupId=' + controlGroupId + ' sendPrefer=' + sendPrefer);
 
-    const ticketCard = await FallbackTicketCardV1.init(meta, cfg, {
-      moduleLog, bugLog, detailLog, traceLog,
-      controlGroupId,
-      sendPreferKey,
-    });
+    async function handleForward(ctx, raw) {
+      const fromChatId = toChatId(ctx.chatId);
+      const fromAuthorId = toChatId((ctx.sender && ctx.sender.id) || fromChatId);
+      if (!fromChatId || !fromAuthorId) return;
 
-    const mediaQueue = await FallbackMediaForwardQueueV1.init(meta, cfg, {
-      moduleLog, bugLog, detailLog, traceLog,
-      burstMs,
-      sendPreferKey,
-    });
+      const routeGroupId = FallbackGroupRouterV1.routeGroupId(meta, cfg, ctx);
+      if (!routeGroupId) return;
 
-    const forwardText = await FallbackForwardTextV1.init(meta, cfg, {
-      moduleLog, bugLog, detailLog, traceLog,
-      controlGroupId,
-      sendPreferKey,
-    });
+      const ticketRes = await TicketCoreV2.resolve(meta, cfg, fromChatId, fromAuthorId, ticketTtlMs);
+      if (!ticketRes || !ticketRes.ok || !ticketRes.ticketId) return;
 
-    const forwardMedia = await FallbackForwardMediaV1.init(meta, cfg, {
-      moduleLog, bugLog, detailLog, traceLog,
-      controlGroupId,
-      sendPreferKey,
-      mediaQueue,
-    });
+      ticketToChat[ticketRes.ticketId] = fromChatId;
 
-    const forwardAv = await FallbackForwardAvV1.init(meta, cfg, {
-      moduleLog, bugLog, detailLog, traceLog,
-      controlGroupId,
-      sendPreferKey,
-      mediaQueue,
-    });
+      const ticketCtx = {
+        controlGroupId: routeGroupId,
+        ticketId: ticketRes.ticketId,
+        seq: 0,
+        fromPhone: (ctx.sender && ctx.sender.phone) ? String(ctx.sender.phone) : '',
+        fromName: (ctx.sender && ctx.sender.name) ? String(ctx.sender.name) : '',
+      };
 
-    const replyText = await FallbackReplyTextV1.init(meta, cfg, {
-      moduleLog, bugLog, detailLog, traceLog,
-      sendPreferKey,
-    });
+      const t = rawType(raw);
+      if (isAvType(t) && raw && raw.hasMedia) {
+        await forwardAvInline(meta, routeGroupId, raw, ticketRes.ticketId);
+        return;
+      }
 
-    const replyMedia = await FallbackReplyMediaV1.init(meta, cfg, {
-      moduleLog, bugLog, detailLog, traceLog,
-      sendPreferKey,
-    });
+      if (raw && raw.hasMedia) {
+        await FallbackForwardMediaV1.handle(meta, cfg, ticketCtx, {
+          raw: raw,
+          text: ctx.text || '',
+        });
+        return;
+      }
 
-    const replyAv = await FallbackReplyAvV1.init(meta, cfg, {
-      moduleLog, bugLog, detailLog, traceLog,
-      sendPreferKey,
-    });
+      await FallbackForwardTextV1.handle(meta, cfg, ticketCtx, {
+        raw: raw,
+        text: ctx.text || '',
+      });
+    }
 
-    const cmdReply = await FallbackCommandReplyV1.init(meta, cfg, {
-      moduleLog, bugLog, detailLog, traceLog,
-      sendPreferKey,
-    });
+    async function handleReply(ctx, raw) {
+      const ticketId = parseTicketId(ctx.text || '');
+      if (!ticketId) return;
 
-    log(tag, 'ready', {
-      enabled: 1,
-      controlGroupId: controlGroupId,
-      msgBufferMax: msgBufferMax,
-      burstMs: burstMs,
-      moduleLog: moduleLog ? 1 : 0,
-      bugLog: bugLog ? 1 : 0,
-      detailLog: detailLog ? 1 : 0,
-      traceLog: traceLog ? 1 : 0,
-      implFile: cfgStr(hubConf, 'implFile', ''),
-      implConfig: cfgStr(hubConf, 'implConfig', ''),
-    });
+      const toCustomerChatId = toChatId(ticketToChat[ticketId]);
+      if (!toCustomerChatId) return;
 
-    async function onMessage(ev) {
-      try {
-        const e = safeObj(ev);
-        const env = safeObj(e.data && e.data.envelope);
+      const body = stripTicket(ctx.text || '', ticketId);
+      const t = rawType(raw);
 
-        const chatId = String(env.chatId || '');
-        const authorId = String(env.authorId || '');
+      if (isAvType(t) && raw && raw.hasMedia) {
+        await FallbackReplyAVV1.handle(meta, cfg, toCustomerChatId, raw, body);
+        return;
+      }
 
-        if (!chatId || !authorId) return;
+      if (raw && raw.hasMedia) {
+        await FallbackReplyMediaV1.handle(meta, cfg, toCustomerChatId, raw, body);
+        return;
+      }
 
-        const route = await router.route(env);
-        if (!route || !route.ok) return;
-
-        if (route.kind === 'forward') {
-          const k = countKinds(env);
-          const r = await TicketCoreV2.resolve(meta, cfg, chatId, authorId, cfgInt(cfg, 'ticketTtlMs', 300000));
-          if (!r || !r.ok || !r.ticketId) return;
-
-          await TicketCoreV2.touch(meta, cfg, chatId, authorId, r.ticketId);
-
-          const ticketText = await ticketCard.render(env, r.ticketId, k);
-          await forwardText.send(env, r.ticketId, ticketText);
-
-          await forwardMedia.send(env, r.ticketId);
-          await forwardAv.send(env, r.ticketId);
-
-          return;
-        }
-
-        if (route.kind === 'reply') {
-          const rr = await cmdReply.tryReply(env);
-          if (rr && rr.ok && rr.handled) return;
-
-          const rt = await replyText.tryReply(env);
-          if (rt && rt.ok && rt.handled) return;
-
-          const rm = await replyMedia.tryReply(env);
-          if (rm && rm.ok && rm.handled) return;
-
-          const ra = await replyAv.tryReply(env);
-          if (ra && ra.ok && ra.handled) return;
-
-          return;
-        }
-      } catch (err) {
-        const msg = err && err.stack ? String(err.stack) : String(err);
-        log('[FallbackCV]', 'bug.onMessage', { err: msg });
+      if (body) {
+        await FallbackReplyTextV1.handle(meta, cfg, toCustomerChatId, body);
       }
     }
 
-    return { enabled: true, onMessage };
-  }
+    async function onMessage(ctx) {
+      try {
+        const chatId = toChatId(ctx && ctx.chatId);
+        if (!chatId) return;
+
+        const raw = ctx && ctx.message ? ctx.message : null;
+        const isGroup = !!(ctx && ctx.isGroup);
+
+        if (!isGroup) {
+          await handleForward(ctx, raw);
+          return;
+        }
+
+        if (chatId !== controlGroupId) return;
+        await handleReply(ctx, raw);
+      } catch (e) {
+        meta.log(tag, 'bug.onMessage err=' + String(e && e.message ? e.message : e));
+      }
+    }
+
+    return { onMessage, onEvent: async () => {} };
+  },
 };
