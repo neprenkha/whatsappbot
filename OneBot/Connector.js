@@ -143,6 +143,17 @@ async function main() {
       console.error('[connector] message handler error:', e && e.stack ? e.stack : e);
     }
   });
+client.on('message_create', async (msg) => {
+  try {
+    if (!(msg && msg.fromMe === true)) return;
+    const fromMe = msg && msg.fromMe ? 1 : 0;
+    const chatId = String((msg && msg.from) || '');
+    console.log('[connector] inbound type=message_create fromMe=' + fromMe + ' chatId=' + chatId);
+    await kernel.onMessage(msg);
+  } catch (e) {
+    console.error('[connector] message_create handler error:', e && e.stack ? e.stack : e);
+  }
+});
 
   await kernel.init(); // load modules before WhatsApp starts
   await client.initialize();
