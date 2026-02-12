@@ -135,7 +135,7 @@ module.exports = function init(meta) {
       return await baseSend(chatId, payload, opts);
     }
 
-    const r = rl.check(chatId);
+    const r = rl.check({ chatId });
     if (!r || r.ok !== true) {
       const reason = r && r.reason ? r.reason : 'blocked';
       const waitMs = r && typeof r.waitMs === 'number' ? r.waitMs : 0;
