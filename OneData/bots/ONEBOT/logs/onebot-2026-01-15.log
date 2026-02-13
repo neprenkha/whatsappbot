@@ -1,0 +1,15 @@
+2026-01-15 01:41:26.400 [info] [LogV2] ready fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur logEvents=1 logMessages=1
+2026-01-15 01:41:38.199 [info] [event] event=event keys=event,at,data,botName,codeRoot,dataRoot,services,stop,stopPropagation
+2026-01-15 01:41:40.087 [info] [event] event=event keys=event,at,data,botName,codeRoot,dataRoot,services,stop,stopPropagation
+2026-01-15 07:30:50.278 [info] [LogV2] ready fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur logEvents=1 logMessages=1
+2026-01-15 07:30:58.760 [info] [event] event=event keys=event,at,data,botName,codeRoot,dataRoot,services,stop,stopPropagation
+2026-01-15 07:31:00.500 [info] [event] event=event keys=event,at,data,botName,codeRoot,dataRoot,services,stop,stopPropagation
+2026-01-15 13:32:42.722 [info] [LogV2] ready fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur logEvents=1 logMessages=1
+2026-01-15 13:32:49.916 [info] [event] event=event keys=event,at,data,botName,codeRoot,dataRoot,services,stop,stopPropagation
+2026-01-15 13:32:51.986 [info] [event] event=event keys=event,at,data,botName,codeRoot,dataRoot,services,stop,stopPropagation
+2026-01-15 15:06:56.577 [info] [LogV2] ready fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur logEvents=1 logMessages=1
+2026-01-15 15:07:05.378 [info] [event] event=event keys=event,at,data,botName,codeRoot,dataRoot,services,stop,stopPropagation
+2026-01-15 15:07:07.229 [info] [event] event=event keys=event,at,data,botName,codeRoot,dataRoot,services,stop,stopPropagation
+2026-01-15 22:30:38.151 [info] [LogV2] ready fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur logEvents=1 logMessages=1
+2026-01-15 22:30:47.131 [info] [event] event=event keys=event,at,data,botName,codeRoot,dataRoot,services,stop,stopPropagation
+2026-01-15 22:30:49.323 [info] [event] event=event keys=event,at,data,botName,codeRoot,dataRoot,services,stop,stopPropagation

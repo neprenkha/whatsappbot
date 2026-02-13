@@ -1,9 +1,16 @@
 {
   "version": 1,
-  "dateKey": "2026-01-22",
+  "dateKey": "2026-02-13",
   "global": {
     "sent": 0,
     "burst": []
   },
-  "chats": {}
+  "chats": {
+    "60133335545@c.us": {
+      "sent": 0,
+      "lastSentAtMs": 0,
+      "burst": [],
+      "lastSeenAtMs": 1770912000943
+    }
+  }
 }

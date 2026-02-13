@@ -1,0 +1,1368 @@
+2026-01-08 00:00:01.851 [RateLimitV1] day.reset dateKey=2026-01-08
+2026-01-08 00:31:17.823 [msg] chatId=120363250037409420@g.us isGroup=true sender={"id":"82527981195280@lid","phone":"82527981195280","lid":"","name":"🫶🏻"} text=M2U_20260108_0030.pdf
+2026-01-08 03:03:33.929 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"HH"} text=https://vt.tiktok.com/ZS5xdP6fk/
+2026-01-08 03:09:19.609 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"HH"} text=https://vt.tiktok.com/ZS5xdp1hk/
+2026-01-08 03:50:35.874 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 03:50:37.097 [process] exit
+2026-01-08 03:50:45.476 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 03:50:45.478 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 03:50:45.527 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 03:50:45.528 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 03:50:45.592 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 03:50:45] undefined
+2026-01-08 03:50:45.592 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 03:50:45.707 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 03:50:45.707 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 03:50:45.755 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 03:50:45.755 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 03:50:45.763 [InboundDedupeV1] info
+2026-01-08 03:50:45.763 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 03:50:45.789 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 03:50:45.789 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 03:50:45.815 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 03:50:45.884 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 03:50:45.884 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 03:50:45.928 [HelpV1] ready cmdHelp=help
+2026-01-08 03:50:45.929 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 03:50:45.987 [PingDiagV1] ready cmdPing=ping
+2026-01-08 03:50:45.988 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 03:50:46.051 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 03:50:46.052 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 03:50:46.104 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 03:50:46.104 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 03:50:46.150 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 03:50:46.151 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 03:50:46.182 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 03:50:46.183 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 03:50:46.252 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 03:50:46.252 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 03:50:46.260 [WorkGroupsCV] ready
+2026-01-08 03:50:46.260 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 03:50:46.383 [2026-01-07T19:50:46.383Z [FallbackCV] info ready {"controlGroupId":"120363402608825006@g.us","ticketType":"fallback","bufferMs":3000,"mediaDelayMs":2000,"textVia":"outsend","mediaVia":"outsend"}] undefined
+2026-01-08 03:50:46.383 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 03:50:46.452 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 03:50:46.453 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 03:50:46.482 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 03:50:46.482 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 03:50:46.483 [kernel] ready modules=21
+2026-01-08 03:50:56.869 [connector] authenticated
+2026-01-08 03:50:56.870 [event] keys=type,at
+2026-01-08 03:50:58.776 [connector] ready
+2026-01-08 03:50:58.777 [event] keys=type,at
+2026-01-08 03:50:58.820 [connector] browser minimized via CDP
+2026-01-08 03:55:36.717 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=text to fallback
+2026-01-08 03:55:40.529 [2026-01-07T19:55:40.529Z [FallbackCV] info ticket.card.sent {"ticket":{"id":"202601T0000000001","type":"fallback","chatId":"60133335545@c.us","status":"open","createdAt":1767815739748,"updatedAt":1767815739748,"fromName":"Pa’Din","fromPhone":"60133335545"},"media":0}] undefined
+2026-01-08 03:55:48.162 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=reply text to dm
+2026-01-08 03:55:48.181 [2026-01-07T19:55:48.181Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noMatch","type":"chat"}] undefined
+2026-01-08 03:56:11.104 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=6 doc to fallback
+2026-01-08 03:56:11.272 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=2025-10-03 XX.601 – XX.666 MAPPING TAJUK.txt
+2026-01-08 03:56:11.421 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=2025-10-03 XX.TA001 – XX.TA016 MAPPING TAJUK.txt
+2026-01-08 03:56:12.596 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=FB01.000.199-T114.csv
+2026-01-08 03:56:12.803 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=FB01.200.399-T106.csv
+2026-01-08 03:56:12.949 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=FB01.400.599-T91.csv
+2026-01-08 03:56:16.862 [2026-01-07T19:56:16.862Z [FallbackCV] info ticket.card.sent {"ticket":{"id":"202601T0000000001","type":"fallback","chatId":"60133335545@c.us","status":"open","createdAt":1767815739748,"updatedAt":1767815775959,"fromName":"Pa’Din","fromPhone":"60133335545"},"media":6}] undefined
+2026-01-08 03:56:47.795 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=reply 6 doc to dm
+2026-01-08 03:56:47.825 [2026-01-07T19:56:47.825Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noMatch","type":"document"}] undefined
+2026-01-08 03:56:48.816 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=2025-10-03 XX.601 – XX.666 MAPPING TAJUK.txt
+2026-01-08 03:56:48.823 [2026-01-07T19:56:48.823Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"document"}] undefined
+2026-01-08 03:56:49.064 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=2025-10-03 XX.TA001 – XX.TA016 MAPPING TAJUK.txt
+2026-01-08 03:56:49.071 [2026-01-07T19:56:49.070Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"document"}] undefined
+2026-01-08 03:56:49.282 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=FB01.000.199-T114.csv
+2026-01-08 03:56:49.287 [2026-01-07T19:56:49.287Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"document"}] undefined
+2026-01-08 03:56:49.516 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=FB01.200.399-T106.csv
+2026-01-08 03:56:49.523 [2026-01-07T19:56:49.522Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"document"}] undefined
+2026-01-08 03:56:49.838 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=FB01.400.599-T91.csv
+2026-01-08 03:56:49.843 [2026-01-07T19:56:49.842Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"document"}] undefined
+2026-01-08 03:57:25.006 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=4 pic to fallback
+2026-01-08 03:57:26.625 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 03:57:26.790 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 03:57:26.957 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 03:57:30.927 [2026-01-07T19:57:30.927Z [FallbackCV] info ticket.card.sent {"ticket":{"id":"202601T0000000001","type":"fallback","chatId":"60133335545@c.us","status":"open","createdAt":1767815739748,"updatedAt":1767815849966,"fromName":"Pa’Din","fromPhone":"60133335545"},"media":4}] undefined
+2026-01-08 03:58:00.967 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=reply 4 pic to dm
+2026-01-08 03:58:01.004 [2026-01-07T19:58:01.003Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noMatch","type":"image"}] undefined
+2026-01-08 03:58:01.310 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 03:58:01.319 [2026-01-07T19:58:01.319Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"image"}] undefined
+2026-01-08 03:58:01.558 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 03:58:01.564 [2026-01-07T19:58:01.564Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"image"}] undefined
+2026-01-08 03:58:01.769 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 03:58:01.775 [2026-01-07T19:58:01.775Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"image"}] undefined
+2026-01-08 03:58:02.040 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 03:58:02.045 [2026-01-07T19:58:02.045Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"image"}] undefined
+2026-01-08 03:58:02.243 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 03:58:02.251 [2026-01-07T19:58:02.251Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"image"}] undefined
+2026-01-08 03:58:02.421 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 03:58:02.426 [2026-01-07T19:58:02.426Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"image"}] undefined
+2026-01-08 03:58:02.656 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 03:58:02.663 [2026-01-07T19:58:02.662Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"image"}] undefined
+2026-01-08 03:59:05.927 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=4 video to fallback
+2026-01-08 03:59:06.120 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 03:59:06.348 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 03:59:06.502 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 03:59:10.524 [2026-01-07T19:59:10.524Z [FallbackCV] info ticket.card.sent {"ticket":{"id":"202601T0000000001","type":"fallback","chatId":"60133335545@c.us","status":"open","createdAt":1767815739748,"updatedAt":1767815949519,"fromName":"Pa’Din","fromPhone":"60133335545"},"media":4}] undefined
+2026-01-08 03:59:25.635 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 03:59:29.323 [2026-01-07T19:59:29.323Z [FallbackCV] info ticket.card.sent {"ticket":{"id":"202601T0000000001","type":"fallback","chatId":"60133335545@c.us","status":"open","createdAt":1767815739748,"updatedAt":1767815968652,"fromName":"Pa’Din","fromPhone":"60133335545"},"media":1}] undefined
+2026-01-08 04:33:58.132 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 04:33:59.356 [process] exit
+2026-01-08 04:34:00.228 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 04:34:00.229 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 04:34:00.239 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 04:34:00.240 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 04:34:00.255 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 04:34:00] undefined
+2026-01-08 04:34:00.256 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 04:34:00.265 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 04:34:00.265 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 04:34:00.268 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 04:34:00.268 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 04:34:00.271 [InboundDedupeV1] info
+2026-01-08 04:34:00.271 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 04:34:00.277 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 04:34:00.277 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 04:34:00.280 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 04:34:00.289 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 04:34:00.289 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 04:34:00.295 [HelpV1] ready cmdHelp=help
+2026-01-08 04:34:00.295 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 04:34:00.302 [PingDiagV1] ready cmdPing=ping
+2026-01-08 04:34:00.303 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 04:34:00.314 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 04:34:00.315 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 04:34:00.322 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 04:34:00.322 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 04:34:00.330 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 04:34:00.332 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 04:34:00.353 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 04:34:00.355 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 04:34:00.363 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 04:34:00.365 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 04:34:00.372 [WorkGroupsCV] ready
+2026-01-08 04:34:00.373 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 04:34:00.385 [2026-01-07T20:34:00.385Z [FallbackCV] info ready {"controlGroupId":"120363402608825006@g.us","ticketType":"fallback","bufferMs":3000,"mediaDelayMs":2000,"textVia":"outsend","mediaVia":"outsend"}] undefined
+2026-01-08 04:34:00.386 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 04:34:00.390 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 04:34:00.391 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 04:34:00.397 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 04:34:00.398 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 04:34:00.398 [kernel] ready modules=21
+2026-01-08 04:34:10.305 [connector] authenticated
+2026-01-08 04:34:10.306 [event] keys=type,at
+2026-01-08 04:34:12.227 [connector] ready
+2026-01-08 04:34:12.228 [event] keys=type,at
+2026-01-08 04:34:12.254 [connector] browser minimized via CDP
+2026-01-08 04:34:23.265 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=text to fallback
+2026-01-08 04:34:27.348 [2026-01-07T20:34:27.348Z [FallbackCV] info ticket.card.sent {"ticket":{"id":"202601T0000000001","type":"fallback","chatId":"60133335545@c.us","status":"open","createdAt":1767815739748,"updatedAt":1767818066287,"fromName":"Pa’Din","fromPhone":"60133335545"},"media":0}] undefined
+2026-01-08 04:34:34.716 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=reply to dm
+2026-01-08 04:34:34.734 [2026-01-07T20:34:34.734Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noMatch","type":"chat"}] undefined
+2026-01-08 04:35:26.760 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=4pic tu fallback
+2026-01-08 04:35:26.938 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 04:35:27.134 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 04:35:27.298 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 04:35:31.213 [2026-01-07T20:35:31.213Z [FallbackCV] info ticket.card.sent {"ticket":{"id":"202601T0000000001","type":"fallback","chatId":"60133335545@c.us","status":"open","createdAt":1767815739748,"updatedAt":1767818130313,"fromName":"Pa’Din","fromPhone":"60133335545"},"media":4}] undefined
+2026-01-08 04:37:07.206 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=reply 4 pic to dm
+2026-01-08 04:37:07.232 [2026-01-07T20:37:07.232Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noMatch","type":"image"}] undefined
+2026-01-08 04:37:07.485 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 04:37:07.494 [2026-01-07T20:37:07.493Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"image"}] undefined
+2026-01-08 04:37:07.811 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 04:37:07.819 [2026-01-07T20:37:07.819Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"image"}] undefined
+2026-01-08 04:37:08.028 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 04:37:08.034 [2026-01-07T20:37:08.034Z [FallbackQuoteReplyV1] debug noTicket {"reason":"noQuoted","type":"image"}] undefined
+2026-01-08 04:37:28.123 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=4 vid to fallback
+2026-01-08 04:37:28.276 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 04:37:28.415 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 04:37:28.549 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 04:37:32.557 [2026-01-07T20:37:32.557Z [FallbackCV] info ticket.card.sent {"ticket":{"id":"202601T0000000001","type":"fallback","chatId":"60133335545@c.us","status":"open","createdAt":1767815739748,"updatedAt":1767818251566,"fromName":"Pa’Din","fromPhone":"60133335545"},"media":4}] undefined
+2026-01-08 04:38:02.783 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 04:38:06.409 [2026-01-07T20:38:06.409Z [FallbackCV] info ticket.card.sent {"ticket":{"id":"202601T0000000001","type":"fallback","chatId":"60133335545@c.us","status":"open","createdAt":1767815739748,"updatedAt":1767818285797,"fromName":"Pa’Din","fromPhone":"60133335545"},"media":1}] undefined
+2026-01-08 04:38:30.198 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=2 doc to fallback
+2026-01-08 04:38:30.428 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=FOLDING DOOR DRAWING1.xlsx
+2026-01-08 04:38:34.049 [2026-01-07T20:38:34.049Z [FallbackCV] info ticket.card.sent {"ticket":{"id":"202601T0000000001","type":"fallback","chatId":"60133335545@c.us","status":"open","createdAt":1767815739748,"updatedAt":1767818313443,"fromName":"Pa’Din","fromPhone":"60133335545"},"media":2}] undefined
+2026-01-08 04:42:45.552 [2026-01-07T20:42:45.552Z [FallbackCV] error media.forward.failed {"error":"Protocol error (Runtime.callFunctionOn): Target closed."}] undefined
+2026-01-08 05:18:58.078 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 05:18:58.079 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 05:18:58.085 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 05:18:58.085 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 05:18:58.092 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 05:18:58] undefined
+2026-01-08 05:18:58.093 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 05:18:58.102 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 05:18:58.102 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 05:18:58.105 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 05:18:58.106 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 05:18:58.108 [InboundDedupeV1] info
+2026-01-08 05:18:58.108 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 05:18:58.111 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 05:18:58.111 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 05:18:58.114 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 05:18:58.123 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 05:18:58.123 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 05:18:58.129 [HelpV1] ready cmdHelp=help
+2026-01-08 05:18:58.130 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 05:18:58.133 [PingDiagV1] ready cmdPing=ping
+2026-01-08 05:18:58.133 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 05:18:58.138 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 05:18:58.139 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 05:18:58.144 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 05:18:58.144 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 05:18:58.147 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 05:18:58.148 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 05:18:58.162 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 05:18:58.163 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 05:18:58.168 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 05:18:58.169 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 05:18:58.174 [WorkGroupsCV] ready
+2026-01-08 05:18:58.175 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 05:18:58.190 [2026-01-07T21:18:58.190Z [FallbackCV] info ready {"controlGroupId":"120363402608825006@g.us","ticketType":"fallback","bufferMs":3000,"mediaDelayMs":2000,"textVia":"outsend","mediaVia":"outsend"}] undefined
+2026-01-08 05:18:58.190 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 05:18:58.195 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 05:18:58.196 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 05:18:58.199 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 05:18:58.200 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 05:18:58.200 [kernel] ready modules=21
+2026-01-08 05:19:06.600 [connector] authenticated
+2026-01-08 05:19:06.601 [event] keys=type,at
+2026-01-08 05:19:08.571 [connector] ready
+2026-01-08 05:19:08.572 [event] keys=type,at
+2026-01-08 05:19:08.590 [connector] browser minimized via CDP
+2026-01-08 06:19:27.532 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Jejaka Perantau"} text=bukan sabah la kalau tak membubut rutiii
+2026-01-08 06:30:59.060 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 06:31:00.279 [process] exit
+2026-01-08 06:31:01.070 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 06:31:01.072 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 06:31:01.079 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 06:31:01.084 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 06:31:01.100 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 06:31:01] undefined
+2026-01-08 06:31:01.100 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 06:31:01.108 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 06:31:01.109 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 06:31:01.113 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 06:31:01.114 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 06:31:01.117 [InboundDedupeV1] info
+2026-01-08 06:31:01.117 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 06:31:01.121 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 06:31:01.121 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 06:31:01.124 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 06:31:01.136 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 06:31:01.137 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 06:31:01.141 [HelpV1] ready cmdHelp=help
+2026-01-08 06:31:01.141 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 06:31:01.147 [PingDiagV1] ready cmdPing=ping
+2026-01-08 06:31:01.148 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 06:31:01.153 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 06:31:01.154 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 06:31:01.161 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 06:31:01.161 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 06:31:01.166 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 06:31:01.167 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 06:31:01.191 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 06:37:49.551 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 06:37:49.552 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 06:37:49.558 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 06:37:49.559 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 06:37:49.565 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 06:37:49] undefined
+2026-01-08 06:37:49.566 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 06:37:49.577 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 06:37:49.577 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 06:37:49.579 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 06:37:49.580 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 06:37:49.582 [InboundDedupeV1] info
+2026-01-08 06:37:49.582 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 06:37:49.584 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 06:37:49.585 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 06:37:49.586 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 06:37:49.593 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 06:37:49.594 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 06:37:49.597 [HelpV1] ready cmdHelp=help
+2026-01-08 06:37:49.598 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 06:37:49.600 [PingDiagV1] ready cmdPing=ping
+2026-01-08 06:37:49.601 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 06:37:49.604 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 06:37:49.605 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 06:37:49.610 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 06:37:49.611 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 06:37:49.617 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 06:37:49.617 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 06:37:49.633 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 06:37:49.634 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 06:37:49.638 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 06:37:49.639 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 06:37:49.642 [WorkGroupsCV] ready
+2026-01-08 06:37:49.642 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 06:37:49.650 [2026-01-07T22:37:49.650Z [FallbackCV] info ready {"controlGroupId":"120363402608825006@g.us","ticketType":"fallback","bufferMs":3000,"mediaDelayMs":2000,"textVia":"outsend","mediaVia":"outsend"}] undefined
+2026-01-08 06:37:49.651 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 06:37:49.657 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 06:37:49.657 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 06:37:49.661 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 06:37:49.662 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 06:37:49.662 [kernel] ready modules=21
+2026-01-08 06:37:58.948 [connector] authenticated
+2026-01-08 06:37:58.949 [event] keys=type,at
+2026-01-08 06:38:00.847 [connector] ready
+2026-01-08 06:38:00.847 [event] keys=type,at
+2026-01-08 06:38:00.881 [connector] browser minimized via CDP
+2026-01-08 06:38:13.601 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=text to fallback
+2026-01-08 06:38:17.634 [2026-01-07T22:38:17.634Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","seq":"0001","media":0}] undefined
+2026-01-08 06:38:27.213 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=quote reply text to dm
+2026-01-08 06:38:27.229 [2026-01-07T22:38:27.228Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:38:27.234 [2026-01-07T22:38:27.234Z [FallbackQuoteReplyV1] info replyText {"ok":true,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","via":"sendout"}] undefined
+2026-01-08 06:38:56.831 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=2 pic to fallback
+2026-01-08 06:38:56.988 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 06:39:00.994 [2026-01-07T22:39:00.994Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","seq":"0001","media":2}] undefined
+2026-01-08 06:39:01.256 [2026-01-07T22:39:01.256Z [FallbackCV] debug media.send.ok {"type":"image"}] undefined
+2026-01-08 06:39:03.464 [2026-01-07T22:39:03.464Z [FallbackCV] debug media.send.ok {"type":"image"}] undefined
+2026-01-08 06:39:47.684 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=quote reply 3 pic to dm
+2026-01-08 06:39:47.716 [2026-01-07T22:39:47.716Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:39:47.955 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 06:39:47.958 [2026-01-07T22:39:47.958Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 06:39:47.959 [2026-01-07T22:39:47.959Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:39:48.190 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 06:39:48.195 [2026-01-07T22:39:48.195Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 06:39:48.195 [2026-01-07T22:39:48.195Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:39:48.549 [2026-01-07T22:39:48.549Z [FallbackReplyMediaV1] debug send.ok {"via":"sendout","to":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 06:39:48.550 [2026-01-07T22:39:48.550Z [FallbackQuoteReplyV1] info replyMedia {"ok":true,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 06:39:48.798 [2026-01-07T22:39:48.798Z [FallbackReplyMediaV1] debug send.ok {"via":"sendout","to":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 06:39:48.799 [2026-01-07T22:39:48.799Z [FallbackQuoteReplyV1] info replyMedia {"ok":true,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 06:39:50.080 [2026-01-07T22:39:50.080Z [FallbackReplyMediaV1] debug send.ok {"via":"sendout","to":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 06:39:50.080 [2026-01-07T22:39:50.080Z [FallbackQuoteReplyV1] info replyMedia {"ok":true,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 06:40:19.474 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=WhatsApp Bot - 2026-01-03 GD.pdf
+2026-01-08 06:40:19.709 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=WhatsApp Bot - 2026-01-04 GD.pdf
+2026-01-08 06:40:19.920 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=WhatsApp Bot - 2026-01-05 GD.pdf
+2026-01-08 06:40:20.247 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=6 doc to fallback
+2026-01-08 06:40:20.377 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=WhatsApp Bot - 2025-12-20 GD 02.txt
+2026-01-08 06:40:20.645 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=WhatsApp Bot - 2025-12-21 GD.txt
+2026-01-08 06:40:24.578 [2026-01-07T22:40:24.578Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","seq":"0001","media":6}] undefined
+2026-01-08 06:40:29.379 [2026-01-07T22:40:29.379Z [FallbackCV] debug media.send.ok {"type":"document"}] undefined
+2026-01-08 06:40:36.286 [2026-01-07T22:40:36.286Z [FallbackCV] debug media.send.ok {"type":"document"}] undefined
+2026-01-08 06:40:43.125 [2026-01-07T22:40:43.125Z [FallbackCV] debug media.send.ok {"type":"document"}] undefined
+2026-01-08 06:40:45.514 [2026-01-07T22:40:45.514Z [FallbackCV] debug media.send.ok {"type":"document"}] undefined
+2026-01-08 06:40:47.898 [2026-01-07T22:40:47.898Z [FallbackCV] debug media.send.ok {"type":"document"}] undefined
+2026-01-08 06:40:50.415 [2026-01-07T22:40:50.415Z [FallbackCV] debug media.send.ok {"type":"document"}] undefined
+2026-01-08 06:41:34.316 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=quote reply 5 doc to dm
+2026-01-08 06:41:34.359 [2026-01-07T22:41:34.359Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:41:35.321 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=WhatsApp Bot - 2026-01-05 GD.pdf
+2026-01-08 06:41:35.329 [2026-01-07T22:41:35.329Z [FallbackReplyMediaV1] debug send.ok {"via":"sendout","to":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 06:41:35.329 [2026-01-07T22:41:35.329Z [FallbackQuoteReplyV1] info replyMedia {"ok":true,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 06:41:35.355 [2026-01-07T22:41:35.355Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 06:41:35.357 [2026-01-07T22:41:35.357Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:41:35.443 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=WhatsApp Bot - 2025-12-20 GD 01.txt
+2026-01-08 06:41:35.451 [2026-01-07T22:41:35.451Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 06:41:35.451 [2026-01-07T22:41:35.451Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:41:35.660 [2026-01-07T22:41:35.660Z [FallbackReplyMediaV1] debug send.ok {"via":"sendout","to":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 06:41:35.660 [2026-01-07T22:41:35.660Z [FallbackQuoteReplyV1] info replyMedia {"ok":true,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 06:41:36.114 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=WhatsApp Bot - 2025-12-20 GD 02.txt
+2026-01-08 06:41:36.119 [2026-01-07T22:41:36.119Z [FallbackReplyMediaV1] debug send.ok {"via":"sendout","to":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 06:41:36.119 [2026-01-07T22:41:36.119Z [FallbackQuoteReplyV1] info replyMedia {"ok":true,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 06:41:36.135 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=WhatsApp Bot - 2025-12-21 GD.txt
+2026-01-08 06:41:36.153 [2026-01-07T22:41:36.153Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 06:41:36.154 [2026-01-07T22:41:36.154Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:41:36.155 [2026-01-07T22:41:36.155Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 06:41:36.160 [2026-01-07T22:41:36.160Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:41:36.377 [2026-01-07T22:41:36.377Z [FallbackReplyMediaV1] debug send.ok {"via":"sendout","to":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 06:41:36.377 [2026-01-07T22:41:36.377Z [FallbackQuoteReplyV1] info replyMedia {"ok":true,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 06:41:36.403 [2026-01-07T22:41:36.403Z [FallbackReplyMediaV1] debug send.ok {"via":"sendout","to":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 06:41:36.404 [2026-01-07T22:41:36.404Z [FallbackQuoteReplyV1] info replyMedia {"ok":true,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 06:41:58.220 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 06:42:02.183 [2026-01-07T22:42:02.182Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","seq":"0001","media":1}] undefined
+2026-01-08 06:42:02.868 [2026-01-07T22:42:02.868Z [FallbackCV] debug media.forward.ok {"type":"ptt"}] undefined
+2026-01-08 06:42:15.853 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 06:42:19.482 [2026-01-07T22:42:19.482Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","seq":"0001","media":1}] undefined
+2026-01-08 06:42:20.246 [2026-01-07T22:42:20.246Z [FallbackCV] debug media.forward.ok {"type":"ptt"}] undefined
+2026-01-08 06:42:31.943 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 06:42:31.979 [2026-01-07T22:42:31.979Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:42:32.293 [2026-01-07T22:42:32.293Z [FallbackReplyMediaV1] debug send.ok {"via":"sendout","to":"60133335545@c.us","type":"ptt"}] undefined
+2026-01-08 06:42:32.294 [2026-01-07T22:42:32.294Z [FallbackQuoteReplyV1] info replyMedia {"ok":true,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"ptt"}] undefined
+2026-01-08 06:42:59.027 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=4 vid to fallback
+2026-01-08 06:42:59.179 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 06:42:59.322 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 06:42:59.534 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 06:43:03.430 [2026-01-07T22:43:03.430Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","seq":"0001","media":4}] undefined
+2026-01-08 06:43:23.689 [2026-01-07T22:43:23.689Z [FallbackCV] debug media.forward.ok {"type":"video"}] undefined
+2026-01-08 06:43:38.420 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=quote reply 4 vid to dm
+2026-01-08 06:43:38.472 [2026-01-07T22:43:38.472Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:43:38.755 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 06:43:38.767 [2026-01-07T22:43:38.767Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 06:43:38.768 [2026-01-07T22:43:38.768Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:43:38.962 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 06:43:38.970 [2026-01-07T22:43:38.970Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 06:43:38.970 [2026-01-07T22:43:38.970Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:43:39.270 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 06:43:39.277 [2026-01-07T22:43:39.277Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 06:43:39.278 [2026-01-07T22:43:39.278Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:43:45.873 [2026-01-07T22:43:45.873Z [FallbackReplyMediaV1] warn media.none] undefined
+2026-01-08 06:43:45.873 [2026-01-07T22:43:45.873Z [FallbackQuoteReplyV1] info replyMedia {"ok":false,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"video"}] undefined
+2026-01-08 06:43:45.881 [2026-01-07T22:43:45.881Z [FallbackCV] debug media.forward.ok {"type":"video"}] undefined
+2026-01-08 06:43:45.882 [2026-01-07T22:43:45.882Z [FallbackReplyMediaV1] warn media.none] undefined
+2026-01-08 06:43:45.882 [2026-01-07T22:43:45.882Z [FallbackQuoteReplyV1] info replyMedia {"ok":false,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"video"}] undefined
+2026-01-08 06:43:59.201 [2026-01-07T22:43:59.201Z [FallbackReplyMediaV1] warn media.none] undefined
+2026-01-08 06:43:59.202 [2026-01-07T22:43:59.202Z [FallbackQuoteReplyV1] info replyMedia {"ok":false,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"video"}] undefined
+2026-01-08 06:43:59.211 [2026-01-07T22:43:59.210Z [FallbackCV] debug media.forward.ok {"type":"video"}] undefined
+2026-01-08 06:43:59.211 [2026-01-07T22:43:59.211Z [FallbackReplyMediaV1] warn media.none] undefined
+2026-01-08 06:43:59.212 [2026-01-07T22:43:59.212Z [FallbackQuoteReplyV1] info replyMedia {"ok":false,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"video"}] undefined
+2026-01-08 06:44:21.397 [2026-01-07T22:44:21.397Z [FallbackCV] debug media.forward.ok {"type":"video"}] undefined
+2026-01-08 06:58:15.293 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 06:58:16.520 [process] exit
+2026-01-08 06:58:17.420 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 06:58:17.422 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 06:58:17.447 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 06:58:17.449 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 06:58:17.462 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 06:58:17] undefined
+2026-01-08 06:58:17.463 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 06:58:17.478 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 06:58:17.479 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 06:58:17.485 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 06:58:17.488 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 06:58:17.492 [InboundDedupeV1] info
+2026-01-08 06:58:17.496 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 06:58:17.499 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 06:58:17.499 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 06:58:17.507 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 06:58:17.514 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 06:58:17.517 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 06:58:17.524 [HelpV1] ready cmdHelp=help
+2026-01-08 06:58:17.527 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 06:58:17.537 [PingDiagV1] ready cmdPing=ping
+2026-01-08 06:58:17.539 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 06:58:17.548 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 06:58:17.550 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 06:58:17.562 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 06:58:17.564 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 06:58:17.576 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 06:58:17.577 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 06:58:17.603 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 06:58:17.606 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 06:58:17.611 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 06:58:17.612 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 06:58:17.616 [WorkGroupsCV] ready
+2026-01-08 06:58:17.618 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 06:58:17.640 [2026-01-07T22:58:17.640Z [FallbackCV] info ready {"controlGroupId":"120363402608825006@g.us","ticketType":"fallback","bufferMs":3000,"mediaDelayMs":2000,"textVia":"outsend","mediaVia":"outsend"}] undefined
+2026-01-08 06:58:17.643 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 06:58:17.649 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 06:58:17.650 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 06:58:17.655 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 06:58:17.655 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 06:58:17.656 [kernel] ready modules=21
+2026-01-08 06:58:26.673 [connector] authenticated
+2026-01-08 06:58:26.674 [event] keys=type,at
+2026-01-08 06:58:28.495 [connector] ready
+2026-01-08 06:58:28.496 [event] keys=type,at
+2026-01-08 06:58:28.525 [connector] browser minimized via CDP
+2026-01-08 06:58:32.033 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=text to dm
+2026-01-08 06:58:35.877 [2026-01-07T22:58:35.877Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","seq":"0001","media":0}] undefined
+2026-01-08 06:58:51.820 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=reply text from fallback to dm
+2026-01-08 06:58:51.845 [2026-01-07T22:58:51.845Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 06:58:51.850 [2026-01-07T22:58:51.850Z [FallbackQuoteReplyV1] info replyText {"ok":true,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","via":"sendout"}] undefined
+2026-01-08 07:02:14.682 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:02:14.892 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:02:15.052 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:02:15.196 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:02:19.114 [2026-01-07T23:02:19.114Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","seq":"0001","media":4}] undefined
+2026-01-08 07:02:39.357 [2026-01-07T23:02:39.357Z [FallbackCV] debug media.forward.ok {"type":"video"}] undefined
+2026-01-08 07:03:01.539 [2026-01-07T23:03:01.538Z [FallbackCV] debug media.forward.ok {"type":"video"}] undefined
+2026-01-08 07:03:23.740 [2026-01-07T23:03:23.740Z [FallbackCV] debug media.forward.ok {"type":"video"}] undefined
+2026-01-08 07:03:45.907 [2026-01-07T23:03:45.907Z [FallbackCV] debug media.forward.ok {"type":"video"}] undefined
+2026-01-08 07:06:10.893 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 07:06:12.110 [process] exit
+2026-01-08 07:06:12.870 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 07:06:12.871 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 07:06:12.881 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 07:06:12.882 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 07:06:12.888 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 07:06:12] undefined
+2026-01-08 07:06:12.889 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 07:06:12.903 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 07:06:12.904 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 07:06:12.908 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 07:06:12.911 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 07:06:12.916 [InboundDedupeV1] info
+2026-01-08 07:06:12.917 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 07:06:12.920 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 07:06:12.920 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 07:06:12.924 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 07:06:12.934 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 07:06:12.935 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 07:06:12.940 [HelpV1] ready cmdHelp=help
+2026-01-08 07:06:12.944 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 07:06:12.950 [PingDiagV1] ready cmdPing=ping
+2026-01-08 07:06:12.951 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 07:06:12.960 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 07:06:12.962 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 07:06:12.970 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 07:06:12.970 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 07:06:12.977 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 07:06:12.978 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 07:06:12.999 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 07:06:13.000 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 07:06:13.005 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 07:06:13.008 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 07:06:13.014 [WorkGroupsCV] ready
+2026-01-08 07:06:13.015 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 07:06:13.030 [2026-01-07T23:06:13.029Z [FallbackCV] info ready {"controlGroupId":"120363402608825006@g.us","ticketType":"fallback","bufferMs":3000,"mediaDelayMs":2000,"textVia":"outsend","mediaVia":"outsend"}] undefined
+2026-01-08 07:06:13.030 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 07:06:13.036 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 07:06:13.037 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 07:06:13.041 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 07:06:13.042 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 07:06:13.047 [kernel] ready modules=21
+2026-01-08 07:06:22.575 [connector] authenticated
+2026-01-08 07:06:22.576 [event] keys=type,at
+2026-01-08 07:06:24.450 [connector] ready
+2026-01-08 07:06:24.451 [event] keys=type,at
+2026-01-08 07:06:24.479 [connector] browser minimized via CDP
+2026-01-08 07:06:37.418 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=4vid to fallback
+2026-01-08 07:06:37.863 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:06:38.090 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:06:38.244 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:06:41.265 [2026-01-07T23:06:41.264Z [FallbackCV] trace media.detected {"type":"video","hasMedia":true}] undefined
+2026-01-08 07:06:41.265 [2026-01-07T23:06:41.265Z [FallbackCV] trace media.detected {"type":"video","hasMedia":true}] undefined
+2026-01-08 07:06:41.267 [2026-01-07T23:06:41.267Z [FallbackCV] trace media.detected {"type":"video","hasMedia":true}] undefined
+2026-01-08 07:06:41.272 [2026-01-07T23:06:41.272Z [FallbackCV] trace media.detected {"type":"video","hasMedia":true}] undefined
+2026-01-08 07:06:42.342 [2026-01-07T23:06:42.342Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","media":4}] undefined
+2026-01-08 07:06:42.343 [2026-01-07T23:06:42.343Z [FallbackCV] debug media.forward.attempt {"type":"video","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:07:02.549 [2026-01-07T23:07:02.548Z [FallbackCV] warn media.download.null {"type":"video"}] undefined
+2026-01-08 07:07:02.549 [2026-01-07T23:07:02.549Z [FallbackCV] debug media.forward.trying.forward {"type":"video"}] undefined
+2026-01-08 07:07:22.753 [2026-01-07T23:07:22.753Z [FallbackCV] info media.forward.sent {"type":"video","via":"forward"}] undefined
+2026-01-08 07:07:24.759 [2026-01-07T23:07:24.759Z [FallbackCV] debug media.forward.attempt {"type":"video","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:07:44.908 [2026-01-07T23:07:44.908Z [FallbackCV] warn media.download.null {"type":"video"}] undefined
+2026-01-08 07:07:44.908 [2026-01-07T23:07:44.908Z [FallbackCV] debug media.forward.trying.forward {"type":"video"}] undefined
+2026-01-08 07:08:05.110 [2026-01-07T23:08:05.110Z [FallbackCV] info media.forward.sent {"type":"video","via":"forward"}] undefined
+2026-01-08 07:08:07.119 [2026-01-07T23:08:07.119Z [FallbackCV] debug media.forward.attempt {"type":"video","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:08:27.268 [2026-01-07T23:08:27.268Z [FallbackCV] warn media.download.null {"type":"video"}] undefined
+2026-01-08 07:08:27.269 [2026-01-07T23:08:27.269Z [FallbackCV] debug media.forward.trying.forward {"type":"video"}] undefined
+2026-01-08 07:08:47.463 [2026-01-07T23:08:47.463Z [FallbackCV] info media.forward.sent {"type":"video","via":"forward"}] undefined
+2026-01-08 07:08:49.472 [2026-01-07T23:08:49.472Z [FallbackCV] debug media.forward.attempt {"type":"video","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:09:09.620 [2026-01-07T23:09:09.620Z [FallbackCV] warn media.download.null {"type":"video"}] undefined
+2026-01-08 07:09:09.621 [2026-01-07T23:09:09.621Z [FallbackCV] debug media.forward.trying.forward {"type":"video"}] undefined
+2026-01-08 07:09:29.816 [2026-01-07T23:09:29.816Z [FallbackCV] info media.forward.sent {"type":"video","via":"forward"}] undefined
+2026-01-08 07:10:19.644 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"178898457370835@lid","phone":"178898457370835","lid":"","name":"Mohd Azlin"} text=Sy masuk lambat,nk pergi beli buku sekolah anak.
+2026-01-08 07:10:32.078 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:10:35.092 [2026-01-07T23:10:35.092Z [FallbackCV] trace media.detected {"type":"ptt","hasMedia":true}] undefined
+2026-01-08 07:10:35.790 [2026-01-07T23:10:35.789Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","media":1}] undefined
+2026-01-08 07:10:35.790 [2026-01-07T23:10:35.790Z [FallbackCV] debug media.forward.attempt {"type":"ptt","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:10:35.946 [2026-01-07T23:10:35.946Z [FallbackCV] debug media.download.ok {"type":"ptt","size":2640}] undefined
+2026-01-08 07:11:01.868 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=text
+2026-01-08 07:11:05.604 [2026-01-07T23:11:05.604Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","media":0}] undefined
+2026-01-08 07:11:11.631 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=reply
+2026-01-08 07:11:11.654 [2026-01-07T23:11:11.653Z [FallbackQuoteReplyV1] trace ticket.from.quoted.text {"ticketId":"202601T0000000001"}] undefined
+2026-01-08 07:11:11.654 [2026-01-07T23:11:11.654Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 07:11:11.658 [2026-01-07T23:11:11.657Z [FallbackQuoteReplyV1] info replyText {"ok":true,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","via":"sendout"}] undefined
+2026-01-08 07:44:10.044 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 07:44:11.266 [process] exit
+2026-01-08 07:44:12.111 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 07:44:12.113 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 07:44:12.123 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 07:44:12.124 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 07:44:12.135 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 07:44:12] undefined
+2026-01-08 07:44:12.136 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 07:44:12.147 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 07:44:12.148 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 07:44:12.151 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 07:44:12.153 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 07:44:12.160 [InboundDedupeV1] info
+2026-01-08 07:44:12.161 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 07:44:12.169 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 07:44:12.169 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 07:44:12.173 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 07:44:12.183 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 07:44:12.183 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 07:44:12.193 [HelpV1] ready cmdHelp=help
+2026-01-08 07:44:12.194 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 07:44:12.200 [PingDiagV1] ready cmdPing=ping
+2026-01-08 07:44:12.201 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 07:44:12.210 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 07:44:12.211 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 07:44:12.223 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 07:44:12.224 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 07:44:12.229 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 07:44:12.230 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 07:44:12.255 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 07:44:12.256 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 07:44:12.264 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 07:44:12.265 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 07:44:12.273 [WorkGroupsCV] ready
+2026-01-08 07:44:12.274 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 07:44:12.293 [2026-01-07T23:44:12.293Z [FallbackCV] info ready {"controlGroupId":"120363402608825006@g.us","ticketType":"fallback","bufferMs":3000,"mediaDelayMs":2000,"textVia":"outsend","mediaVia":"outsend"}] undefined
+2026-01-08 07:44:12.293 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 07:44:12.299 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 07:44:12.300 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 07:44:12.305 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 07:44:12.305 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 07:44:12.308 [kernel] ready modules=21
+2026-01-08 07:44:21.798 [connector] authenticated
+2026-01-08 07:44:21.799 [event] keys=type,at
+2026-01-08 07:44:23.655 [connector] ready
+2026-01-08 07:44:23.656 [event] keys=type,at
+2026-01-08 07:44:23.691 [connector] browser minimized via CDP
+2026-01-08 07:45:12.742 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=text to fallback
+2026-01-08 07:45:16.563 [2026-01-07T23:45:16.563Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","media":0}] undefined
+2026-01-08 07:45:24.959 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=reply text to dm
+2026-01-08 07:45:24.982 [2026-01-07T23:45:24.982Z [FallbackQuoteReplyV1] trace ticket.from.quoted.text {"ticketId":"202601T0000000001"}] undefined
+2026-01-08 07:45:24.982 [2026-01-07T23:45:24.982Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 07:45:24.987 [2026-01-07T23:45:24.987Z [FallbackQuoteReplyV1] info replyText {"ok":true,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","via":"sendout"}] undefined
+2026-01-08 07:45:54.075 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=3 pic to fallback
+2026-01-08 07:45:54.251 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:45:54.502 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:45:57.512 [2026-01-07T23:45:57.512Z [FallbackCV] trace media.detected {"type":"image","hasMedia":true}] undefined
+2026-01-08 07:45:57.513 [2026-01-07T23:45:57.513Z [FallbackCV] trace media.detected {"type":"image","hasMedia":true}] undefined
+2026-01-08 07:45:57.514 [2026-01-07T23:45:57.514Z [FallbackCV] trace media.detected {"type":"image","hasMedia":true}] undefined
+2026-01-08 07:45:58.426 [2026-01-07T23:45:58.426Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","media":3}] undefined
+2026-01-08 07:45:58.427 [2026-01-07T23:45:58.427Z [FallbackCV] debug media.forward.attempt {"type":"image","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:45:58.586 [2026-01-07T23:45:58.586Z [FallbackCV] debug media.download.ok {"type":"image","size":161996}] undefined
+2026-01-08 07:46:01.092 [2026-01-07T23:46:01.092Z [FallbackCV] info media.forward.sent {"type":"image","via":"download"}] undefined
+2026-01-08 07:46:03.096 [2026-01-07T23:46:03.096Z [FallbackCV] debug media.forward.attempt {"type":"image","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:46:03.240 [2026-01-07T23:46:03.240Z [FallbackCV] debug media.download.ok {"type":"image","size":201764}] undefined
+2026-01-08 07:46:05.465 [2026-01-07T23:46:05.465Z [FallbackCV] info media.forward.sent {"type":"image","via":"download"}] undefined
+2026-01-08 07:46:07.475 [2026-01-07T23:46:07.475Z [FallbackCV] debug media.forward.attempt {"type":"image","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:46:07.617 [2026-01-07T23:46:07.617Z [FallbackCV] debug media.download.ok {"type":"image","size":160100}] undefined
+2026-01-08 07:46:10.232 [2026-01-07T23:46:10.232Z [FallbackCV] info media.forward.sent {"type":"image","via":"download"}] undefined
+2026-01-08 07:46:54.692 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=reply picture to dm
+2026-01-08 07:46:54.728 [2026-01-07T23:46:54.728Z [FallbackQuoteReplyV1] trace ticket.from.quoted.text {"ticketId":"202601T0000000001"}] undefined
+2026-01-08 07:46:54.729 [2026-01-07T23:46:54.729Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 07:46:54.976 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:46:54.984 [2026-01-07T23:46:54.984Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 07:46:54.984 [2026-01-07T23:46:54.984Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 07:46:55.193 [2026-01-07T23:46:55.193Z [FallbackReplyMediaV1] warn send.fail {"err":"TypeError: SafeSend.safeRun is not a function","via":"sendout","to":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 07:46:55.194 [2026-01-07T23:46:55.193Z [FallbackQuoteReplyV1] info replyMedia {"ok":false,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 07:46:55.381 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:46:55.388 [2026-01-07T23:46:55.388Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 07:46:55.388 [2026-01-07T23:46:55.388Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 07:46:55.753 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:46:55.759 [2026-01-07T23:46:55.759Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 07:46:55.760 [2026-01-07T23:46:55.760Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 07:46:55.855 [2026-01-07T23:46:55.855Z [FallbackReplyMediaV1] warn send.fail {"err":"TypeError: SafeSend.safeRun is not a function","via":"sendout","to":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 07:46:55.856 [2026-01-07T23:46:55.856Z [FallbackQuoteReplyV1] info replyMedia {"ok":false,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 07:46:56.034 [2026-01-07T23:46:56.033Z [FallbackReplyMediaV1] warn send.fail {"err":"TypeError: SafeSend.safeRun is not a function","via":"sendout","to":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 07:46:56.034 [2026-01-07T23:46:56.034Z [FallbackQuoteReplyV1] info replyMedia {"ok":false,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 07:46:56.176 [2026-01-07T23:46:56.175Z [FallbackReplyMediaV1] warn send.fail {"err":"TypeError: SafeSend.safeRun is not a function","via":"sendout","to":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 07:46:56.176 [2026-01-07T23:46:56.176Z [FallbackQuoteReplyV1] info replyMedia {"ok":false,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 07:47:11.555 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=vid to fallback
+2026-01-08 07:47:11.716 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:47:11.854 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:47:14.868 [2026-01-07T23:47:14.868Z [FallbackCV] trace media.detected {"type":"video","hasMedia":true}] undefined
+2026-01-08 07:47:14.868 [2026-01-07T23:47:14.868Z [FallbackCV] trace media.detected {"type":"video","hasMedia":true}] undefined
+2026-01-08 07:47:14.870 [2026-01-07T23:47:14.870Z [FallbackCV] trace media.detected {"type":"video","hasMedia":true}] undefined
+2026-01-08 07:47:15.929 [2026-01-07T23:47:15.929Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","media":3}] undefined
+2026-01-08 07:47:15.929 [2026-01-07T23:47:15.929Z [FallbackCV] debug media.forward.attempt {"type":"video","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:47:32.644 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:47:35.664 [2026-01-07T23:47:35.664Z [FallbackCV] trace media.detected {"type":"ptt","hasMedia":true}] undefined
+2026-01-08 07:47:36.121 [2026-01-07T23:47:36.121Z [FallbackCV] warn media.download.null {"type":"video"}] undefined
+2026-01-08 07:47:36.122 [2026-01-07T23:47:36.122Z [FallbackCV] debug media.forward.trying.forward {"type":"video"}] undefined
+2026-01-08 07:47:36.297 [2026-01-07T23:47:36.296Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","media":1}] undefined
+2026-01-08 07:47:36.297 [2026-01-07T23:47:36.297Z [FallbackCV] debug media.forward.attempt {"type":"ptt","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:47:36.451 [2026-01-07T23:47:36.451Z [FallbackCV] debug media.download.ok {"type":"ptt","size":4128}] undefined
+2026-01-08 07:47:56.364 [2026-01-07T23:47:56.364Z [FallbackCV] info media.forward.sent {"type":"video","via":"forward"}] undefined
+2026-01-08 07:47:58.377 [2026-01-07T23:47:58.377Z [FallbackCV] debug media.forward.attempt {"type":"video","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:48:08.259 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=BINA RUMAH.xlsx
+2026-01-08 07:48:08.530 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=CALCULATOR - COMPARE HARGA SUPPLIER.xlsx
+2026-01-08 07:48:08.681 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=CALCULATOR - DOOR & WINDOW FABRICATE CUT TO SIZE.xlsx
+2026-01-08 07:48:08.835 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=4 doc to fallback
+2026-01-08 07:48:11.845 [2026-01-07T23:48:11.845Z [FallbackCV] trace media.detected {"type":"document","hasMedia":true}] undefined
+2026-01-08 07:48:11.846 [2026-01-07T23:48:11.846Z [FallbackCV] trace media.detected {"type":"document","hasMedia":true}] undefined
+2026-01-08 07:48:11.848 [2026-01-07T23:48:11.848Z [FallbackCV] trace media.detected {"type":"document","hasMedia":true}] undefined
+2026-01-08 07:48:11.853 [2026-01-07T23:48:11.852Z [FallbackCV] trace media.detected {"type":"document","hasMedia":true}] undefined
+2026-01-08 07:48:12.506 [2026-01-07T23:48:12.506Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","media":4}] undefined
+2026-01-08 07:48:12.507 [2026-01-07T23:48:12.507Z [FallbackCV] debug media.forward.attempt {"type":"document","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:48:13.000 [2026-01-07T23:48:13.000Z [FallbackCV] debug media.download.ok {"type":"document","size":736916}] undefined
+2026-01-08 07:48:13.099 [2026-01-07T23:48:13.099Z [FallbackCV] info media.forward.sent {"type":"document","via":"download"}] undefined
+2026-01-08 07:48:15.107 [2026-01-07T23:48:15.107Z [FallbackCV] debug media.forward.attempt {"type":"document","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:48:15.471 [2026-01-07T23:48:15.471Z [FallbackCV] debug media.download.ok {"type":"document","size":160692}] undefined
+2026-01-08 07:48:15.544 [2026-01-07T23:48:15.544Z [FallbackCV] info media.forward.sent {"type":"document","via":"download"}] undefined
+2026-01-08 07:48:17.554 [2026-01-07T23:48:17.554Z [FallbackCV] debug media.forward.attempt {"type":"document","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:48:17.849 [2026-01-07T23:48:17.849Z [FallbackCV] debug media.download.ok {"type":"document","size":101068}] undefined
+2026-01-08 07:48:17.905 [2026-01-07T23:48:17.904Z [FallbackCV] info media.forward.sent {"type":"document","via":"download"}] undefined
+2026-01-08 07:48:18.527 [2026-01-07T23:48:18.527Z [FallbackCV] warn media.download.null {"type":"video"}] undefined
+2026-01-08 07:48:18.527 [2026-01-07T23:48:18.527Z [FallbackCV] debug media.forward.trying.forward {"type":"video"}] undefined
+2026-01-08 07:48:19.915 [2026-01-07T23:48:19.915Z [FallbackCV] debug media.forward.attempt {"type":"document","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:48:20.194 [2026-01-07T23:48:20.193Z [FallbackCV] debug media.download.ok {"type":"document","size":17212}] undefined
+2026-01-08 07:48:20.233 [2026-01-07T23:48:20.233Z [FallbackCV] info media.forward.sent {"type":"document","via":"download"}] undefined
+2026-01-08 07:48:38.740 [2026-01-07T23:48:38.740Z [FallbackCV] info media.forward.sent {"type":"video","via":"forward"}] undefined
+2026-01-08 07:48:40.745 [2026-01-07T23:48:40.745Z [FallbackCV] debug media.forward.attempt {"type":"video","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:49:00.891 [2026-01-07T23:49:00.891Z [FallbackCV] warn media.download.null {"type":"video"}] undefined
+2026-01-08 07:49:00.891 [2026-01-07T23:49:00.891Z [FallbackCV] debug media.forward.trying.forward {"type":"video"}] undefined
+2026-01-08 07:49:03.394 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=reply doc to dm
+2026-01-08 07:49:03.425 [2026-01-07T23:49:03.425Z [FallbackQuoteReplyV1] trace ticket.from.quoted.text {"ticketId":"202601T0000000001"}] undefined
+2026-01-08 07:49:03.426 [2026-01-07T23:49:03.426Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 07:49:03.812 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=DOOR & WINDOW DRAWING LABEL.xlsx
+2026-01-08 07:49:03.819 [2026-01-07T23:49:03.819Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 07:49:03.820 [2026-01-07T23:49:03.820Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 07:49:04.052 [2026-01-07T23:49:04.052Z [FallbackReplyMediaV1] warn send.fail {"err":"TypeError: SafeSend.safeRun is not a function","via":"sendout","to":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 07:49:04.053 [2026-01-07T23:49:04.053Z [FallbackQuoteReplyV1] info replyMedia {"ok":false,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 07:49:04.126 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=door drawing.docx
+2026-01-08 07:49:04.132 [2026-01-07T23:49:04.132Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 07:49:04.133 [2026-01-07T23:49:04.132Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 07:49:04.294 [2026-01-07T23:49:04.294Z [FallbackReplyMediaV1] warn send.fail {"err":"TypeError: SafeSend.safeRun is not a function","via":"sendout","to":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 07:49:04.294 [2026-01-07T23:49:04.294Z [FallbackQuoteReplyV1] info replyMedia {"ok":false,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 07:49:04.427 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=KITCHEN CABINET PRICE VITALLY.docx
+2026-01-08 07:49:04.434 [2026-01-07T23:49:04.434Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 07:49:04.435 [2026-01-07T23:49:04.435Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 07:49:04.585 [2026-01-07T23:49:04.585Z [FallbackReplyMediaV1] warn send.fail {"err":"TypeError: SafeSend.safeRun is not a function","via":"sendout","to":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 07:49:04.586 [2026-01-07T23:49:04.586Z [FallbackQuoteReplyV1] info replyMedia {"ok":false,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 07:49:04.605 [2026-01-07T23:49:04.605Z [FallbackReplyMediaV1] warn send.fail {"err":"TypeError: SafeSend.safeRun is not a function","via":"sendout","to":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 07:49:04.606 [2026-01-07T23:49:04.606Z [FallbackQuoteReplyV1] info replyMedia {"ok":false,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"document"}] undefined
+2026-01-08 07:49:21.088 [2026-01-07T23:49:21.088Z [FallbackCV] info media.forward.sent {"type":"video","via":"forward"}] undefined
+2026-01-08 07:49:26.807 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 07:49:29.823 [2026-01-07T23:49:29.823Z [FallbackCV] trace media.detected {"type":"ptt","hasMedia":true}] undefined
+2026-01-08 07:49:30.750 [2026-01-07T23:49:30.750Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","media":1}] undefined
+2026-01-08 07:49:30.751 [2026-01-07T23:49:30.751Z [FallbackCV] debug media.forward.attempt {"type":"ptt","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 07:49:30.902 [2026-01-07T23:49:30.902Z [FallbackCV] debug media.download.ok {"type":"ptt","size":4044}] undefined
+2026-01-08 07:50:21.204 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=send text to fall
+2026-01-08 07:50:24.841 [2026-01-07T23:50:24.841Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","media":0}] undefined
+2026-01-08 07:50:32.879 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=reply text to fallback
+2026-01-08 07:50:32.906 [2026-01-07T23:50:32.906Z [FallbackQuoteReplyV1] trace ticket.from.quoted.text {"ticketId":"202601T0000000001"}] undefined
+2026-01-08 07:50:32.907 [2026-01-07T23:50:32.907Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 07:50:32.910 [2026-01-07T23:50:32.910Z [FallbackQuoteReplyV1] info replyText {"ok":true,"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","via":"sendout"}] undefined
+2026-01-08 08:07:22.519 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 08:07:23.738 [process] exit
+2026-01-08 08:07:24.576 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 08:07:24.577 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 08:07:24.586 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 08:07:24.587 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 08:07:24.593 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 08:07:24] undefined
+2026-01-08 08:07:24.593 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 08:07:24.602 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 08:07:24.603 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 08:07:24.606 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 08:07:24.608 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 08:07:24.611 [InboundDedupeV1] info
+2026-01-08 08:07:24.611 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 08:07:24.614 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 08:07:24.614 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 08:07:24.616 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 08:07:24.627 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 08:07:24.627 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 08:07:24.630 [HelpV1] ready cmdHelp=help
+2026-01-08 08:07:24.631 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 08:07:24.634 [PingDiagV1] ready cmdPing=ping
+2026-01-08 08:07:24.634 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 08:07:24.638 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 08:07:24.640 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 08:07:24.645 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 08:07:24.645 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 08:07:24.650 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 08:07:24.650 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 08:07:24.666 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 08:07:24.667 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 08:07:24.670 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 08:07:24.673 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 08:07:24.676 [WorkGroupsCV] ready
+2026-01-08 08:07:24.676 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 08:07:24.685 [2026-01-08T00:07:24.685Z [FallbackCV] info ready {"controlGroupId":"120363402608825006@g.us","ticketType":"fallback","bufferMs":3000,"mediaDelayMs":2000,"textVia":"outsend","mediaVia":"outsend"}] undefined
+2026-01-08 08:07:24.686 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 08:07:24.689 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 08:07:24.689 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 08:07:24.692 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 08:07:24.692 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 08:07:24.693 [kernel] ready modules=21
+2026-01-08 08:07:35.042 [connector] authenticated
+2026-01-08 08:07:35.043 [event] keys=type,at
+2026-01-08 08:07:37.337 [connector] ready
+2026-01-08 08:07:37.338 [event] keys=type,at
+2026-01-08 08:07:37.368 [connector] browser minimized via CDP
+2026-01-08 08:07:58.680 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=2 video to fallback
+2026-01-08 08:07:59.244 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 08:08:02.263 [2026-01-08T00:08:02.263Z [FallbackCV] trace media.detected {"type":"video","hasMedia":true}] undefined
+2026-01-08 08:08:02.263 [2026-01-08T00:08:02.263Z [FallbackCV] trace media.detected {"type":"video","hasMedia":true}] undefined
+2026-01-08 08:08:02.963 [2026-01-08T00:08:02.963Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","media":2}] undefined
+2026-01-08 08:08:02.964 [2026-01-08T00:08:02.964Z [FallbackCV] debug media.forward.attempt {"type":"video","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 08:08:23.140 [2026-01-08T00:08:23.140Z [FallbackCV] warn media.download.null {"type":"video"}] undefined
+2026-01-08 08:08:23.140 [2026-01-08T00:08:23.140Z [FallbackCV] debug media.forward.trying.forward {"type":"video"}] undefined
+2026-01-08 08:08:43.343 [2026-01-08T00:08:43.343Z [FallbackCV] info media.forward.sent {"type":"video","via":"forward"}] undefined
+2026-01-08 08:08:45.357 [2026-01-08T00:08:45.357Z [FallbackCV] debug media.forward.attempt {"type":"video","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 08:09:05.498 [2026-01-08T00:09:05.498Z [FallbackCV] warn media.download.null {"type":"video"}] undefined
+2026-01-08 08:09:05.499 [2026-01-08T00:09:05.499Z [FallbackCV] debug media.forward.trying.forward {"type":"video"}] undefined
+2026-01-08 08:09:25.678 [2026-01-08T00:09:25.678Z [FallbackCV] info media.forward.sent {"type":"video","via":"forward"}] undefined
+2026-01-08 08:20:51.492 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=send text to dm
+2026-01-08 08:20:55.140 [2026-01-08T00:20:55.140Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","media":0}] undefined
+2026-01-08 08:21:23.203 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=pic to dm
+2026-01-08 08:21:23.240 [2026-01-08T00:21:23.240Z [FallbackQuoteReplyV1] trace ticket.from.quoted.text {"ticketId":"202601T0000000001"}] undefined
+2026-01-08 08:21:23.241 [2026-01-08T00:21:23.241Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 08:21:24.275 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 08:21:24.286 [2026-01-08T00:21:24.286Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 08:21:24.288 [2026-01-08T00:21:24.288Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 08:21:24.963 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=
+2026-01-08 08:21:24.969 [2026-01-08T00:21:24.969Z [FallbackQuoteReplyV1] trace sticky.use {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001"}] undefined
+2026-01-08 08:21:24.970 [2026-01-08T00:21:24.970Z [FallbackQuoteReplyV1] trace sticky.set {"senderKey":"82828612100333@lid","ticketId":"202601T0000000001","ttlSec":900}] undefined
+2026-01-08 08:21:25.761 [2026-01-08T00:21:25.761Z [FallbackQuoteReplyV1] info replyMedia {"ok":{"ok":true,"via":"sendout","type":"image"},"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 08:21:26.477 [2026-01-08T00:21:26.476Z [FallbackQuoteReplyV1] info replyMedia {"ok":{"ok":true,"via":"sendout","type":"image"},"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 08:21:26.539 [2026-01-08T00:21:26.539Z [FallbackQuoteReplyV1] info replyMedia {"ok":{"ok":true,"via":"sendout","type":"image"},"ticketId":"202601T0000000001","toChatId":"60133335545@c.us","type":"image"}] undefined
+2026-01-08 08:23:08.537 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=vid to fallback
+2026-01-08 08:23:09.061 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 08:23:12.080 [2026-01-08T00:23:12.080Z [FallbackCV] trace media.detected {"type":"video","hasMedia":true}] undefined
+2026-01-08 08:23:12.081 [2026-01-08T00:23:12.081Z [FallbackCV] trace media.detected {"type":"video","hasMedia":true}] undefined
+2026-01-08 08:23:12.675 [2026-01-08T00:23:12.675Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","media":2}] undefined
+2026-01-08 08:23:12.676 [2026-01-08T00:23:12.675Z [FallbackCV] debug media.forward.attempt {"type":"video","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 08:23:13.133 [2026-01-08T00:23:13.133Z [FallbackCV] warn media.download.null {"type":"video"}] undefined
+2026-01-08 08:23:13.133 [2026-01-08T00:23:13.133Z [FallbackCV] debug media.forward.trying.forward {"type":"video"}] undefined
+2026-01-08 08:23:13.502 [2026-01-08T00:23:13.502Z [FallbackCV] info media.forward.sent {"type":"video","via":"forward"}] undefined
+2026-01-08 08:23:15.517 [2026-01-08T00:23:15.517Z [FallbackCV] debug media.forward.attempt {"type":"video","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 08:23:15.699 [2026-01-08T00:23:15.698Z [FallbackCV] warn media.download.null {"type":"video"}] undefined
+2026-01-08 08:23:15.699 [2026-01-08T00:23:15.699Z [FallbackCV] debug media.forward.trying.forward {"type":"video"}] undefined
+2026-01-08 08:23:15.930 [2026-01-08T00:23:15.930Z [FallbackCV] info media.forward.sent {"type":"video","via":"forward"}] undefined
+2026-01-08 08:25:02.807 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 08:25:04.025 [process] exit
+2026-01-08 08:25:05.305 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 08:25:05.307 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 08:25:05.317 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 08:25:05.319 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 08:25:05.329 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 08:25:05] undefined
+2026-01-08 08:25:05.329 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 08:25:05.335 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 08:25:05.336 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 08:25:05.338 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 08:25:05.339 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 08:25:05.341 [InboundDedupeV1] info
+2026-01-08 08:25:05.341 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 08:25:05.344 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 08:25:05.344 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 08:25:05.347 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 08:25:05.354 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 08:25:05.355 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 08:25:05.359 [HelpV1] ready cmdHelp=help
+2026-01-08 08:25:05.361 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 08:25:05.365 [PingDiagV1] ready cmdPing=ping
+2026-01-08 08:25:05.366 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 08:25:05.370 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 08:25:05.370 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 08:25:05.375 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 08:25:05.375 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 08:25:05.380 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 08:25:05.380 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 08:25:05.394 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 08:25:05.396 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 08:25:05.399 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 08:25:05.399 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 08:25:05.402 [WorkGroupsCV] ready
+2026-01-08 08:25:05.402 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 08:25:05.411 [2026-01-08T00:25:05.411Z [FallbackCV] info ready {"controlGroupId":"120363402608825006@g.us","ticketType":"fallback","bufferMs":3000,"mediaDelayMs":2000,"textVia":"outsend","mediaVia":"outsend"}] undefined
+2026-01-08 08:25:05.412 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 08:25:05.415 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 08:25:05.415 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 08:25:05.418 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 08:25:05.418 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 08:25:05.419 [kernel] ready modules=21
+2026-01-08 08:25:17.935 [connector] authenticated
+2026-01-08 08:25:17.936 [event] keys=type,at
+2026-01-08 08:25:20.128 [connector] ready
+2026-01-08 08:25:20.129 [event] keys=type,at
+2026-01-08 08:25:20.159 [connector] browser minimized via CDP
+2026-01-08 08:25:42.752 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=vid to fallback
+2026-01-08 08:25:43.694 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 08:25:46.715 [2026-01-08T00:25:46.715Z [FallbackCV] trace media.detected {"type":"video","hasMedia":true}] undefined
+2026-01-08 08:25:46.716 [2026-01-08T00:25:46.716Z [FallbackCV] trace media.detected {"type":"video","hasMedia":true}] undefined
+2026-01-08 08:25:47.457 [2026-01-08T00:25:47.457Z [FallbackCV] info ticket.card.sent {"ticket":"202601T0000000001","media":2}] undefined
+2026-01-08 08:25:47.458 [2026-01-08T00:25:47.458Z [FallbackCV] debug media.forward.attempt {"type":"video","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 08:25:47.881 [2026-01-08T00:25:47.881Z [FallbackCV] warn media.download.null {"type":"video"}] undefined
+2026-01-08 08:25:47.883 [2026-01-08T00:25:47.882Z [FallbackCV] debug media.forward.trying.forward {"type":"video"}] undefined
+2026-01-08 08:25:48.350 [2026-01-08T00:25:48.350Z [FallbackCV] info media.forward.sent {"type":"video","via":"forward"}] undefined
+2026-01-08 08:25:50.355 [2026-01-08T00:25:50.355Z [FallbackCV] debug media.forward.attempt {"type":"video","hasDownload":true,"hasForward":true}] undefined
+2026-01-08 08:25:50.521 [2026-01-08T00:25:50.520Z [FallbackCV] warn media.download.null {"type":"video"}] undefined
+2026-01-08 08:25:50.521 [2026-01-08T00:25:50.521Z [FallbackCV] debug media.forward.trying.forward {"type":"video"}] undefined
+2026-01-08 08:25:51.415 [2026-01-08T00:25:51.415Z [FallbackCV] info media.forward.sent {"type":"video","via":"forward"}] undefined
+2026-01-08 08:40:19.746 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"23893423169652@lid","phone":"23893423169652","lid":"","name":"sohan"} text=Punch in
+2026-01-08 08:55:00.526 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 08:55:01.738 [process] exit
+2026-01-08 08:55:02.854 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 08:55:02.859 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 08:55:02.867 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 08:55:02.868 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 08:55:02.877 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 08:55:02] undefined
+2026-01-08 08:55:02.878 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 08:55:02.893 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 08:55:02.894 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 08:55:02.899 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 08:55:02.900 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 08:55:02.907 [InboundDedupeV1] info
+2026-01-08 08:55:02.917 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 08:55:02.927 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 08:55:02.928 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 08:55:02.935 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 08:55:02.967 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 08:55:02.974 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 08:55:02.987 [HelpV1] ready cmdHelp=help
+2026-01-08 08:55:02.987 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 08:55:02.993 [PingDiagV1] ready cmdPing=ping
+2026-01-08 08:55:02.994 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 08:55:03.005 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 08:55:03.006 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 08:55:03.017 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 08:55:03.018 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 08:55:03.026 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 08:55:03.029 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 08:55:03.063 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 09:12:17.111 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 09:12:17.113 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 09:12:17.121 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 09:12:17.121 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 09:12:17.132 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 09:12:17] undefined
+2026-01-08 09:12:17.132 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 09:12:17.141 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 09:12:17.142 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 09:12:17.148 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 09:12:17.148 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 09:12:17.152 [InboundDedupeV1] info
+2026-01-08 09:12:17.152 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 09:12:17.157 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 09:12:17.158 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 09:12:17.161 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 09:12:17.169 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 09:12:17.172 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 09:12:17.181 [HelpV1] ready cmdHelp=help
+2026-01-08 09:12:17.182 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 09:12:17.186 [PingDiagV1] ready cmdPing=ping
+2026-01-08 09:12:17.187 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 09:12:17.198 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 09:12:17.203 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 09:12:17.216 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 09:12:17.217 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 09:12:17.224 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 09:12:17.225 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 09:12:17.261 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 09:12:17.263 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 09:12:17.268 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 09:12:17.268 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 09:12:17.272 [WorkGroupsCV] ready
+2026-01-08 09:12:17.273 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 09:12:17.288 [FallbackHub] disabled: require failed Cannot find module '../Shared/SharedTicketCardV1'
+2026-01-08 09:12:17.288 Require stack:
+2026-01-08 09:12:17.288 - X:\OneBot\Modules\Core\Fallback\FallbackCV.js
+2026-01-08 09:12:17.289 - X:\OneBot\Modules\Core\FallbackHub.js
+2026-01-08 09:12:17.289 - X:\OneBot\Kernel.js
+2026-01-08 09:12:17.290 - X:\OneBot\Connector.js, file=X:\OneBot\Modules\Core\Fallback\FallbackCV.js
+2026-01-08 09:12:17.293 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 09:12:17.301 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 09:12:17.302 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 09:12:17.313 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 09:12:17.314 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 09:12:17.315 [kernel] ready modules=21
+2026-01-08 09:12:30.440 [connector] authenticated
+2026-01-08 09:12:30.441 [event] keys=type,at
+2026-01-08 09:12:33.713 [connector] ready
+2026-01-08 09:12:33.714 [event] keys=type,at
+2026-01-08 09:12:33.741 [connector] browser minimized via CDP
+2026-01-08 09:12:33.993 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"HH"} text=Jumpa tauke duit BK...haha
+2026-01-08 09:12:59.992 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=text to fallback
+2026-01-08 09:13:00.137 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=text to fallback
+2026-01-08 09:49:29.966 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"23893423169652@lid","phone":"23893423169652","lid":"","name":"sohan"} text=
+2026-01-08 10:19:24.547 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Imanina"} text=https://vt.tiktok.com/ZS5xV3FfV/
+2026-01-08 10:25:57.215 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"178898457370835@lid","phone":"178898457370835","lid":"","name":"Mohd Azlin"} text=Punch in
+2026-01-08 10:48:49.617 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"kamalsidri"} text=https://www.facebook.com/share/r/17zWtKmRbw/
+2026-01-08 10:52:46.154 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"kamalsidri"} text=https://www.facebook.com/share/r/17eY7Wx1B8/
+2026-01-08 10:54:39.470 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"kamalsidri"} text=https://www.facebook.com/share/r/1ZTgFVGZvL/
+2026-01-08 10:59:32.113 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"kamalsidri"} text=https://www.facebook.com/share/v/16pQJNAdxV/
+2026-01-08 11:00:22.829 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"kamalsidri"} text=https://www.facebook.com/share/r/1FRxQnkRaR/
+2026-01-08 11:15:21.347 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 11:15:22.569 [process] exit
+2026-01-08 11:15:23.923 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 11:15:23.926 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 11:15:23.940 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 11:15:23.941 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 11:15:23.953 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 11:15:23] undefined
+2026-01-08 11:15:23.953 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 11:15:23.962 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 11:15:23.963 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 11:15:23.969 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 11:15:23.969 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 11:15:23.974 [InboundDedupeV1] info
+2026-01-08 11:15:23.976 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 11:15:23.989 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 11:15:23.990 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 11:15:23.994 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 11:15:24.009 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 11:15:24.009 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 11:15:24.015 [HelpV1] ready cmdHelp=help
+2026-01-08 11:15:24.016 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 11:15:24.025 [PingDiagV1] ready cmdPing=ping
+2026-01-08 11:15:24.026 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 11:15:24.048 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 11:15:24.049 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 11:15:24.059 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 11:15:24.059 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 11:15:24.065 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 11:15:24.066 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 11:15:24.102 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 11:15:24.104 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 11:15:24.114 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 11:15:24.114 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 11:15:24.122 [WorkGroupsCV] ready
+2026-01-08 11:15:24.124 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 11:15:24.143 [2026-01-08T03:15:24.143Z [FallbackCV] warn disabled.missing.controlGroupId] undefined
+2026-01-08 11:15:24.144 [kernel] module.init_failed id=Fallback file=Modules/Core/FallbackHub.js
+2026-01-08 11:15:24.153 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 11:15:24.154 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 11:15:24.160 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 11:15:24.160 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 11:15:24.161 [kernel] ready modules=20
+2026-01-08 11:15:38.260 [connector] authenticated
+2026-01-08 11:15:38.261 [event] keys=type,at
+2026-01-08 11:15:40.812 [connector] ready
+2026-01-08 11:15:40.813 [event] keys=type,at
+2026-01-08 11:15:40.834 [connector] browser minimized via CDP
+2026-01-08 11:15:48.578 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=text to fallback
+2026-01-08 11:16:16.970 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=5 picture to fallback
+2026-01-08 11:16:17.195 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 11:16:17.414 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 11:16:17.708 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 11:16:18.066 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 11:19:38.918 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"23893423169652@lid","phone":"23893423169652","lid":"","name":"sohan"} text=6 bg roller tukar
+2026-01-08 11:34:10.616 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 11:34:11.832 [process] exit
+2026-01-08 11:34:13.010 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 11:34:13.012 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 11:34:13.022 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 11:34:13.025 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 11:34:13.043 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 11:34:13] undefined
+2026-01-08 11:34:13.043 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 11:34:13.052 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 11:34:13.053 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 11:34:13.060 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 11:34:13.060 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 11:34:13.064 [InboundDedupeV1] info
+2026-01-08 11:34:13.066 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 11:34:13.074 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 11:34:13.077 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 11:34:13.085 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 11:34:13.100 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 11:34:13.104 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 11:34:13.112 [HelpV1] ready cmdHelp=help
+2026-01-08 11:34:13.130 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 11:34:13.141 [PingDiagV1] ready cmdPing=ping
+2026-01-08 11:34:13.142 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 11:34:13.152 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 11:34:13.153 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 11:34:13.167 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 11:34:13.170 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 11:34:13.186 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 11:34:13.187 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 11:34:13.216 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 11:34:13.218 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 11:34:13.227 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 11:34:13.229 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 11:34:13.239 [WorkGroupsCV] ready
+2026-01-08 11:34:13.240 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 11:34:13.245 [FallbackHub] disabled: impl.init() not found, file=X:\OneBot\Modules\Core\Fallback\FallbackCV.js
+2026-01-08 11:34:13.245 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 11:34:13.254 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 11:34:13.257 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 11:34:13.268 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 11:34:13.268 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 11:34:13.269 [kernel] ready modules=21
+2026-01-08 11:34:26.370 [connector] authenticated
+2026-01-08 11:34:26.372 [event] keys=type,at
+2026-01-08 11:34:29.050 [connector] ready
+2026-01-08 11:34:29.051 [event] keys=type,at
+2026-01-08 11:34:29.092 [connector] browser minimized via CDP
+2026-01-08 11:34:31.915 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=txt to fallback
+2026-01-08 11:34:59.487 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 11:34:59.716 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 11:34:59.932 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 11:35:00.148 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 11:35:00.422 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 11:35:00.796 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 11:40:06.128 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=lin boleh hantar dulu staging mana yang tak pakai, tapi check dulu takut staging kita pon ada
+2026-01-08 11:40:46.567 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=dia orang ada nak guna lagi tapi bukan semua, guna yang nak buat ceiling tu je
+2026-01-08 12:23:00.564 [msg] chatId=120363315375464635@g.us isGroup=true sender={"id":"178898457370835@lid","phone":"178898457370835","lid":"","name":"Mohd Azlin"} text=
+2026-01-08 12:23:23.024 [msg] chatId=120363315375464635@g.us isGroup=true sender={"id":"178898457370835@lid","phone":"178898457370835","lid":"","name":"Mohd Azlin"} text=
+2026-01-08 12:23:30.531 [msg] chatId=120363315375464635@g.us isGroup=true sender={"id":"178898457370835@lid","phone":"178898457370835","lid":"","name":"Mohd Azlin"} text=
+2026-01-08 12:24:03.150 [msg] chatId=120363315375464635@g.us isGroup=true sender={"id":"178898457370835@lid","phone":"178898457370835","lid":"","name":"Mohd Azlin"} text=
+2026-01-08 12:24:19.763 [msg] chatId=120363315375464635@g.us isGroup=true sender={"id":"178898457370835@lid","phone":"178898457370835","lid":"","name":"Mohd Azlin"} text=
+2026-01-08 12:24:38.477 [msg] chatId=120363315375464635@g.us isGroup=true sender={"id":"178898457370835@lid","phone":"178898457370835","lid":"","name":"Mohd Azlin"} text=
+2026-01-08 13:02:16.768 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=/9j/4AAQSkZJRgABAQAASABIAAD/4QCMRXhpZgAATU0AKgAAAAgABQESAAMAAAABAAEAAAEaAAUAAAABAAAASgEbAAUAAAABAAAAUgEoAAMAAAABAAIAAIdpAAQAAAABAAAAWgAAAAAAAABIAAAAAQAAAEgAAAABAAOgAQADAAAAAQABAACgAgAEAAAAAQAAAGSgAwAEAAAAAQAAAGQAAAAA/+0AOFBob3Rvc2hvcCAzLjAAOEJJTQQEAAAAAAAAOEJJTQQlAAAAAAAQ1B2M2Y8AsgTpgAmY7PhCfv/AABEIAGQAZAMBIgACEQEDEQH/xAAfAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDAgQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEHInEUMoGRoQgjQrHBFVLR8CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQIDBAUGBwgJCgv/xAC1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQpGhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+Tl5ufo6ery8/T19vf4+fr/2wBDAAYGBgYGBgoGBgoOCgoKDhIODg4OEhcSEhISEhccFxcXFxcXHBwcHBwcHBwiIiIiIiInJycnJywsLCwsLCwsLCz/2wBDAQcHBwsKCxMKChMuHxofLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi4uLi7/3QAEAAf/2gAMAwEAAhEDEQA/APPqKKK9M4ApDwKOlM5b2FAxVOFzQBu5NIBu+gpzHA4pAOqa13NcAojMFPJVS2MjvgGq25u4rb8O6nBpl/589xcxAkYigXcJeCMMNw6Z44NDY0jMuM/aHBBBz0IIP5Goqu6msq38gmkuJWKod10pSUgjjIJPHpzVKmhMK0Yf+QbN/vf4VnVpQgnTZgOfm/woYIzaKXa/90/kaNrf3T+VAj//0PPqKKK9M4BjdR6Un3jgdBSsc/KKNgpDHdK1dJsI9QulincRxllUs3AG44yfYdTWP8w71o2F4ts5EgOxwMkdiKwxXP7KXstz0MqVD61T+tfBfX9L+V9zqdV0eys7yWxjeOdIzgSxcA8Z4Pt071g6bqdxoV5NFGsTiUgMWJRgFyRtdSGXPf1rQmu7eCJZnb5XBKY/iwccfjWRp15qctzNLp8W/eQZMRxyY67cbwcfhXm5W615e0vbz/4J9FxQsEo0lhmnPq42287aDNTkE9/Jdqjxi5CzhXcOf3g3feAHHoOoFUavao12b4fb23TGGIsNqpsyv3cLx8tUa9pHxrCtW0kaGwlkTqG4z+FZVaMP/INm/wB7/ChgieLX9TgTZE6heuNoP86l/wCEk1f/AJ6L/wB8L/hWFRRZBdn/0fPqaxxwOtXjLY/xRkf5+tJnTzyQy/n/APXr0rnFYpKMU6rm2xPRz+v+FL5VmekpH+fpRcVig3ShelaMlnDH8skhXIzzimC2tscTfyouOxLq2f7M03H/ADzk/wDRhrI020luZZMW8E+Av+ul8vHXp8y5zXR6jBE1hYL5o4jkx05+c1HpkFhELhpJLM3A8sRfbPubTu3kDkFuAOahaldTLu7a3trxo7XaF2oXVG3qshHzKrdwDUVbF5aWUt7J9ilgVNsZYQnMQkK/OEzjjPbtUP8AZ6/890/z+NWiWZtaMP8AyDZv97/Cl/s9f+e6f5/GrcdqFtJIfNUhjnd2HT3oYkjCorS/s9f+e6f5/Gj+z1/57p/n8adwsf/S87A3HJoPzHHanEcYoAwK9Oxw3FpD0paQ9KBGrqqOksW8EZjBGfQ9DWXXQ+JlEdxahWV/9Gj+7ziub3ikmNosTXMlxDb27oFFurKCDnduYt0xxxW1oGoabY+bHehvMkdSm2FZsqFbjDHIwxDcdcVz4IPSt3QtZudKmdII0kEjK7ZJR/k7B15APcEEGi1kNPUq6y6y6pM6q4JWPd5kflMzbBuYp23HmszAqe6kjmvJ5ot+2Ryw8xgzZPUFhwcHp7VDTQmRsVwRWpbj/iVzf73+FZ9dFaSkeGr2PC4M0fOOeh7/AIUmNHOYFGBS0UyT/9PgY4pJW2xruOM1HkVPBO9vJ5iYPGCDV5NQuJXWKKFXd2Cqo6lmOAB9TXpnCZWRQSMV6yPAfiZbeZrqK2VwitG3n7UQg5ff8uSdowP4eSSeBXN2VqL3wzd62jf6TbTELDxseJEVpCOM5UNu64wOlZ+1Rfs2c3qmfNjx/c/rWWSe4ruv7Et73R9Q1m5laNrSH/R0XADspUyE5Byqh1HGOTXPy6Fq0Nq17JBiNIxKy70Mixt0dow28KcjkrTU1sJxe5i/Kfat7QZtChkP9rQPK29Ssm1pI1TjKsikHJ9efpSp4Z1yVQy2hy8YmRS8e+RCu7KJu3PgHnaDjp1qfStP8TfZPtOkGZIZsuqxzLG0m3gsqFgzYAPIB6d8UOUe41F9jEu3El5O4eOQFzhoV2xkYGNq4GBjjGOtQVc1WU3WqXNw2wF3B/duJF+6P4hgMfUjvmqGz3qkQx9acLMNLnXPBYEjtxisoLiti0lMNjLIACQ3Q9O1DBGRkUZFaf8Aacv/ADzSj+05f+eaUwP/1ON/s279F/Or9hpWrxXEV9aRozQSpIuXAG5CGA5+lYYeQDG9vzNG9/7zfma9Jq5wpn0/deMPDzWhjv8AzUFxE26MxOTgjDJkDBPbIOPevENPuTptnbpFGWaHUJJ2hbJ3WzwiMqWxtJK5X681yBklPV2/M0nmSf3m/M1kqKRo6tzu7+e0T7ZY6e7yWiabJaWrOpDSSvIkjMwxwWOeTgYUVYL6NY/2gLDyVguLCaGALDK1z5jxgYlkYYBJBHBIPHQCvPRJKOjt+Zp3nzj/AJaN+Zo9j5h7U9KmhsoNe0rV7i7Mf2K0spHh2O0jFIwwWMgFcNnByRjJqto1wJYYE1OaB7UGYvBJDIs8JVmkKwyp8jKu4EFzgZOQBXn/ANquRyZZDgAcsTwowByTwAMAV0Glrr6WL3umXTS24UySrBKCYyRlt6OBz64zS9lpqx+07HOTbPtEvl+Vt3ceTny+gztz2z/9bimVfS7tZAXuIi7uS7PxkljknjFOxpb93T8//r1sjJmdWjFxpkpPdv8ACl+x2r/6q4H44/8ArVaNnJ9i+zxsrNu3Z7HmhsEjDoq2bC7Bxs/Iik+w3f8AzzP5j/GncLH/1fPqKKK9M4AooooAKKKKAGsMqRXU/wBpy+IPDt498iK1kqeX5W6NeXC/MgOw8H+7XLnoa19D/wCRb1f/AHY//Ri0mUjJooopkhTEyCSvB9qfTF6mgZZFzcgYEjfnS/arn/nq351BRQI//9k=
+2026-01-08 13:45:13.124 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Imanina"} text=Sejak ada peti ni seronok betholl laki aku mkn bekal hari2🤣🤣🤣 bila ada peti barulah boleh beli lauk byk. 🤣🤣
+2026-01-08 15:54:43.471 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"23893423169652@lid","phone":"23893423169652","lid":"","name":"sohan"} text=
+2026-01-08 16:16:47.552 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"23893423169652@lid","phone":"23893423169652","lid":"","name":"sohan"} text=
+2026-01-08 17:03:57.405 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Imanina"} text=Bawak bekal tp member lanje makan🥰
+2026-01-08 17:40:14.668 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=fallback
+2026-01-08 17:42:04.029 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 17:42:05.263 [process] exit
+2026-01-08 17:42:24.329 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 17:42:24.331 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 17:42:24.453 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 17:42:24.455 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 17:42:24.592 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 17:42:24] undefined
+2026-01-08 17:42:24.595 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 17:42:24.878 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 17:42:24.881 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 17:42:24.992 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 17:42:24.992 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 17:42:25.095 [InboundDedupeV1] info
+2026-01-08 17:42:25.095 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 17:42:25.204 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 17:42:25.205 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 17:42:25.311 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 17:42:25.503 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 17:42:25.503 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 17:42:25.612 [HelpV1] ready cmdHelp=help
+2026-01-08 17:42:25.613 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 17:42:25.726 [PingDiagV1] ready cmdPing=ping
+2026-01-08 17:42:25.726 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 17:42:25.853 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 17:42:25.854 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 17:42:26.018 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 17:42:26.019 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 17:42:26.175 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 17:42:26.176 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 17:42:26.359 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 17:42:26.361 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 17:42:26.531 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 17:42:26.532 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 17:42:26.656 [WorkGroupsCV] ready
+2026-01-08 17:42:26.657 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 17:42:26.865 [2026-01-08T09:42:26.865Z [FallbackCV] debug config.keys {"keys":["enabled","debugLog","traceLog","controlGroupId","fallbackGroupId","fallbackGroupChatId","groupId","targetGroupId","workGroupId","ticketType","ticketStoreSpec","storeSpec","ticketStore","msgBuffer","idleMs","burstMs","sendPrefer","bufferMs","mediaDelayMs","hideTicket","replySendPrefer","replyTryOnce","replyBypassWindow","replyDedupeMs","replyFailHoldMs","strictTicketType","humanReplyBypass","replyEventDedupeMs","replyTextDedupeMs","groupCardHideTicket","groupMediaHideTicket","replyMediaBufferMs","replyMediaBatchMax","replyMediaGapMs","replyMediaDownloadTimeoutMs","replyMediaMaxTries","replyMediaRetryBaseMs","replyMediaRetryJitterMs","replyAudioAsVoice","replyVideoAsDocument","allowStickyReply","stickyTtlSec","replyMediaSendPrefer","forwardMediaSendPrefer","debug","trace","replyStickyEnabled","replyStickyMs"]}] undefined
+2026-01-08 17:42:26.866 [2026-01-08T09:42:26.866Z [FallbackCV] info ready {"controlGroupId":"120363402608825006@g.us","ticketType":"fallback","bufferMs":3000,"mediaDelayMs":2000,"textVia":"outsend","mediaVia":"outsend"}] undefined
+2026-01-08 17:42:26.869 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 17:42:27.022 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 17:42:27.022 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 17:42:27.146 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 17:42:27.146 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 17:42:27.148 [kernel] ready modules=21
+2026-01-08 17:42:41.608 [connector] authenticated
+2026-01-08 17:42:41.610 [event] keys=type,at
+2026-01-08 17:42:44.420 [connector] ready
+2026-01-08 17:42:44.421 [event] keys=type,at
+2026-01-08 17:42:44.466 [connector] browser minimized via CDP
+2026-01-08 17:42:46.612 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=to fallback
+2026-01-08 17:44:47.825 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=3 pic to fallback
+2026-01-08 17:44:48.101 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 17:44:48.329 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 17:45:33.094 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=2 vid to fallback
+2026-01-08 17:45:33.299 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=
+2026-01-08 17:51:09.262 [msg] chatId=status@broadcast isGroup=false sender={"id":"status@broadcast","phone":"","lid":"","name":"Imanina"} text=Kemain lari hahaha baguss
+2026-01-08 18:26:47.979 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 18:26:49.201 [process] exit
+2026-01-08 18:26:50.481 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 18:26:50.486 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 18:26:50.509 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 18:26:50.510 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 18:26:50.527 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 18:26:50] undefined
+2026-01-08 18:26:50.528 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 18:26:50.542 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 18:26:50.543 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 18:26:50.555 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 18:26:50.559 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 18:26:50.565 [InboundDedupeV1] info
+2026-01-08 18:26:50.567 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 18:26:50.577 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 18:26:50.578 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 18:26:50.585 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 18:26:50.620 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 18:26:50.625 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 18:26:50.645 [HelpV1] ready cmdHelp=help
+2026-01-08 18:26:50.649 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 18:26:50.656 [PingDiagV1] ready cmdPing=ping
+2026-01-08 18:26:50.659 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 18:26:50.668 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 18:26:50.670 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 18:26:50.681 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 18:26:50.683 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 18:26:50.692 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 18:26:50.693 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 18:26:50.738 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 18:26:50.739 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 18:26:50.752 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 18:26:50.756 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 18:26:50.764 [WorkGroupsCV] ready
+2026-01-08 18:26:50.765 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 18:26:50.770 [FallbackHub] disabled: impl.init() not found, file=X:\OneBot\Modules\Core\Fallback\FallbackCV.js
+2026-01-08 18:26:50.771 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 18:26:50.779 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 18:26:50.780 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 18:26:50.788 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 18:26:50.789 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 18:26:50.790 [kernel] ready modules=21
+2026-01-08 18:27:04.659 [connector] authenticated
+2026-01-08 18:27:04.660 [event] keys=type,at
+2026-01-08 18:27:07.453 [connector] ready
+2026-01-08 18:27:07.454 [event] keys=type,at
+2026-01-08 18:27:07.479 [connector] browser minimized via CDP
+2026-01-08 18:27:09.462 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=text
+2026-01-08 18:27:53.888 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 18:27:55.098 [process] exit
+2026-01-08 18:27:56.228 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 18:27:56.236 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 18:27:56.272 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 18:27:56.275 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 18:27:56.283 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 18:27:56] undefined
+2026-01-08 18:27:56.289 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 18:27:56.310 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 18:27:56.319 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 18:27:56.324 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 18:27:56.328 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 18:27:56.334 [InboundDedupeV1] info
+2026-01-08 18:27:56.335 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 18:27:56.348 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 18:27:56.351 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 18:27:56.406 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 18:27:56.434 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 18:27:56.442 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 18:27:56.491 [HelpV1] ready cmdHelp=help
+2026-01-08 18:27:56.494 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 18:27:56.508 [PingDiagV1] ready cmdPing=ping
+2026-01-08 18:27:56.518 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 18:27:56.529 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 18:27:56.530 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 18:27:56.539 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 18:27:56.542 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 18:27:56.548 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 18:27:56.561 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 18:27:56.605 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 18:27:56.606 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 18:27:56.612 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 18:27:56.613 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 18:27:56.618 [WorkGroupsCV] ready
+2026-01-08 18:27:56.618 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 18:27:56.621 [FallbackHub] disabled: impl.init() not found, file=X:\OneBot\Modules\Core\Fallback\FallbackCV.js
+2026-01-08 18:27:56.622 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 18:27:56.630 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 18:27:56.635 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 18:27:56.643 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 18:27:56.647 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 18:27:56.649 [kernel] ready modules=21
+2026-01-08 18:28:09.556 [connector] authenticated
+2026-01-08 18:28:09.557 [event] keys=type,at
+2026-01-08 18:28:12.309 [connector] ready
+2026-01-08 18:28:12.310 [event] keys=type,at
+2026-01-08 18:28:12.344 [connector] browser minimized via CDP
+2026-01-08 18:28:14.623 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=Step B - Debug Message Buffering in FallbackCV
+2026-01-08 18:28:19.603 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=Step B - Debug Message Buffering in FallbackCV
+2026-01-08 18:28:54.733 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 18:28:55.951 [process] exit
+2026-01-08 18:28:57.024 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 18:28:57.031 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 18:28:57.043 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 18:28:57.044 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 18:28:57.059 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 18:28:57] undefined
+2026-01-08 18:28:57.060 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 18:28:57.069 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 18:28:57.070 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 18:28:57.075 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 18:28:57.076 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 18:28:57.082 [InboundDedupeV1] info
+2026-01-08 18:28:57.082 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 18:28:57.087 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 18:28:57.090 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 18:28:57.096 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 18:28:57.113 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 18:28:57.122 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 18:28:57.147 [HelpV1] ready cmdHelp=help
+2026-01-08 18:28:57.150 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 18:28:57.156 [PingDiagV1] ready cmdPing=ping
+2026-01-08 18:28:57.159 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 18:28:57.175 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 18:28:57.177 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 18:28:57.190 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 18:28:57.191 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 18:28:57.205 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 18:28:57.206 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 18:28:57.235 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 18:28:57.240 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 18:28:57.253 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 18:28:57.257 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 18:28:57.264 [WorkGroupsCV] ready
+2026-01-08 18:28:57.265 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 18:28:57.268 [FallbackHub] disabled: impl.init() not found, file=X:\OneBot\Modules\Core\Fallback\FallbackCV.js
+2026-01-08 18:28:57.269 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 18:28:57.278 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 18:28:57.279 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 18:28:57.290 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 18:28:57.292 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 18:28:57.293 [kernel] ready modules=21
+2026-01-08 18:29:09.419 [connector] authenticated
+2026-01-08 18:29:09.420 [event] keys=type,at
+2026-01-08 18:29:12.098 [connector] ready
+2026-01-08 18:29:12.099 [event] keys=type,at
+2026-01-08 18:29:12.176 [connector] browser minimized via CDP
+2026-01-08 18:29:16.022 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=Step C - Diagnose and Fix Ticket Creation and Card Sending
+2026-01-08 18:29:55.034 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 18:29:56.247 [process] exit
+2026-01-08 18:29:57.408 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 18:29:57.410 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 18:29:57.420 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 18:29:57.421 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 18:29:57.428 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 18:29:57] undefined
+2026-01-08 18:29:57.429 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 18:29:57.443 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 18:29:57.444 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 18:29:57.449 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 18:29:57.453 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 18:29:57.468 [InboundDedupeV1] info
+2026-01-08 18:29:57.469 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 18:29:57.476 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 18:29:57.477 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 18:29:57.483 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 18:29:57.497 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 18:29:57.510 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 18:29:57.521 [HelpV1] ready cmdHelp=help
+2026-01-08 18:29:57.524 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 18:29:57.530 [PingDiagV1] ready cmdPing=ping
+2026-01-08 18:29:57.533 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 18:29:57.548 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 18:29:57.550 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 18:29:57.560 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 18:29:57.561 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 18:29:57.570 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 18:29:57.570 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 18:29:57.621 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 18:29:57.624 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 18:29:57.632 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 18:29:57.634 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 18:29:57.641 [WorkGroupsCV] ready
+2026-01-08 18:29:57.647 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 18:29:57.653 [FallbackHub] disabled: impl.init() not found, file=X:\OneBot\Modules\Core\Fallback\FallbackCV.js
+2026-01-08 18:29:57.654 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 18:29:57.661 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 18:29:57.665 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 18:29:57.674 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 18:29:57.675 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 18:29:57.680 [kernel] ready modules=21
+2026-01-08 18:30:10.602 [connector] authenticated
+2026-01-08 18:30:10.603 [event] keys=type,at
+2026-01-08 18:30:13.391 [connector] ready
+2026-01-08 18:30:13.392 [event] keys=type,at
+2026-01-08 18:30:13.424 [connector] browser minimized via CDP
+2026-01-08 18:30:15.835 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=Step E - Fix SafeSend.safeRun in Media Reply
+2026-01-08 18:30:53.179 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 18:30:54.392 [process] exit
+2026-01-08 18:30:55.409 [LogV2] fileEnabled=1 dir=X:\OneData\bots\ONEBOT\logs mode=daily tz=Asia/Kuala_Lumpur
+2026-01-08 18:30:55.412 [kernel] module.loaded id=Log file=Modules/Core/LogHub.js prio=9900
+2026-01-08 18:30:55.423 [JsonStoreV1] ready service=jsonstore dir=X:\OneData\bots\ONEBOT\data\JsonStore defaultNs=core
+2026-01-08 18:30:55.424 [kernel] module.loaded id=JsonStore file=Modules/Core/JsonStoreHub.js prio=9850
+2026-01-08 18:30:55.439 [[TimeZoneV1] ready timeZone=Asia/Kuala_Lumpur locale=en-MY hour12=0 sample=08/01/2026, 18:30:55] undefined
+2026-01-08 18:30:55.441 [kernel] module.loaded id=TimeZone file=Modules/Core/TimeZoneHub.js prio=9800
+2026-01-08 18:30:55.457 [SendQueue] ready service=send delayMs=800 maxQueue=2000 batchMax=30 dedupeMs=6000
+2026-01-08 18:30:55.458 [kernel] module.loaded id=SendQueue file=Modules/Core/SendQueueHub.js prio=9700
+2026-01-08 18:30:55.464 [InboundFilterV1] ready enabled=1 dropStatusBroadcast=1 dropEmptySystem=1 dropFromMe=0
+2026-01-08 18:30:55.464 [kernel] module.loaded id=InboundFilter file=Modules/Core/InboundFilterHub.js prio=9685
+2026-01-08 18:30:55.469 [InboundDedupeV1] info
+2026-01-08 18:30:55.470 [kernel] module.loaded id=InboundDedupe file=Modules/Core/InboundDedupeHub.js prio=9680
+2026-01-08 18:30:55.486 [MessageJournalV1] ready dir=X:\OneData\bots\ONEBOT\data\MessageJournal tz=Asia/Kuala_Lumpur includeMessages=1 includeEvents=1
+2026-01-08 18:30:55.487 [kernel] module.loaded id=MessageJournal file=Modules/Core/MessageJournalHub.js prio=9650
+2026-01-08 18:30:55.496 [kernel] module.loaded id=Command file=Modules/Core/CommandHub.js prio=9600
+2026-01-08 18:30:55.509 [[AccessRolesV1] ready controlGroupId=120363402608825006@g.us rolesFile=X:\OneData\bots\ONEBOT\data\SystemControl\roles.json controllers=1] undefined
+2026-01-08 18:30:55.510 [kernel] module.loaded id=AccessRoles file=Modules/Core/AccessRolesHub.js prio=9500
+2026-01-08 18:30:55.514 [HelpV1] ready cmdHelp=help
+2026-01-08 18:30:55.516 [kernel] module.loaded id=Help file=Modules/Core/HelpHub.js prio=9400
+2026-01-08 18:30:55.520 [PingDiagV1] ready cmdPing=ping
+2026-01-08 18:30:55.520 [kernel] module.loaded id=PingDiag file=Modules/Core/PingDiagHub.js prio=9300
+2026-01-08 18:30:55.528 [SchedulerV1] ready tickMs=1000 maxJobs=5000 dueBatchMax=25 data=X:\OneData\bots\ONEBOT\data\Scheduler\jobs.json
+2026-01-08 18:30:55.529 [kernel] module.loaded id=Scheduler file=Modules/Core/SchedulerHub.js prio=9250
+2026-01-08 18:30:55.537 [RateLimitV1] ready enabled=1 windows=2 state=X:\OneData\bots\ONEBOT\data\RateLimit\state.json
+2026-01-08 18:30:55.537 [kernel] module.loaded id=RateLimit file=Modules/Core/RateLimitHub.js prio=9240
+2026-01-08 18:30:55.549 [OutboundGatewayV1] ready enabled=1 baseSend=transport rl=ratelimit svc=sendout,outsend bypassChatIds=1
+2026-01-08 18:30:55.550 [kernel] module.loaded id=OutboundGateway file=Modules/Core/OutboundGatewayHub.js prio=9235
+2026-01-08 18:30:55.592 [OutboxV1] ready enabled=1 service=outbox store=jsonstore:Outbox/state.json tickMs=2000 batchMax=5 sendPrefer=sendout,outsend,send
+2026-01-08 18:30:55.593 [kernel] module.loaded id=Outbox file=Modules/Core/OutboxHub.js prio=9220
+2026-01-08 18:30:55.602 [StatusFeedV1] ready feedTag=feed dedupeSec=30 ignoreEmpty=1
+2026-01-08 18:30:55.603 [kernel] module.loaded id=StatusFeed file=Modules/Core/StatusFeedHub.js prio=9200
+2026-01-08 18:30:55.616 [WorkGroupsCV] ready
+2026-01-08 18:30:55.617 [kernel] module.loaded id=WorkGroups file=Modules/Core/WorkGroupsHub.js prio=9190
+2026-01-08 18:30:55.623 [FallbackHub] disabled: impl.init() not found, file=X:\OneBot\Modules\Core\Fallback\FallbackCV.js
+2026-01-08 18:30:55.624 [kernel] module.loaded id=Fallback file=Modules/Core/FallbackHub.js prio=9180
+2026-01-08 18:30:55.636 [SystemControlV2] ready controlGroupId=120363402608825006@g.us cmdRestart=restart cmdStatus=status
+2026-01-08 18:30:55.637 [kernel] module.loaded id=SystemControl file=Modules/Core/SystemControlHub.js prio=9100
+2026-01-08 18:30:55.643 [BootAnnounceV1] ready controlGroupId=120363402608825006@g.us delayMs=2000 sendPrefer=outsend,sendout,send
+2026-01-08 18:30:55.644 [kernel] module.loaded id=BootAnnounce file=Modules/Core/BootAnnounceHub.js prio=9050
+2026-01-08 18:30:55.653 [kernel] ready modules=21
+2026-01-08 18:31:08.841 [connector] authenticated
+2026-01-08 18:31:08.842 [event] keys=type,at
+2026-01-08 18:31:11.632 [connector] ready
+2026-01-08 18:31:11.633 [event] keys=type,at
+2026-01-08 18:31:11.684 [connector] browser minimized via CDP
+2026-01-08 18:31:14.202 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=Step E - Fix SafeSend.safeRun in Media Reply
+2026-01-08 18:31:16.231 [msg] chatId=60133335545@c.us isGroup=false sender={"id":"60133335545@c.us","phone":"60133335545","lid":"","name":"Pa’Din"} text=Step E - Fix SafeSend.safeRun in Media Reply
+2026-01-08 18:38:11.366 [msg] chatId=60133335545-1581074968@g.us isGroup=true sender={"id":"23893423169652@lid","phone":"23893423169652","lid":"","name":"sohan"} text=
+2026-01-08 18:53:26.839 [msg] chatId=120363402608825006@g.us isGroup=true sender={"id":"82828612100333@lid","phone":"82828612100333","lid":"","name":"Pa’Din"} text=!restart
+2026-01-08 18:53:28.050 [process] exit
