@@ -122,11 +122,68 @@ async function main() {
     },
   });
 
-  const sendDirect = async (chatId, text, options) => {
+  let transportReady = false;
+
+  function sanitizeTransportOptions(options) {
     const optIn = options && typeof options === 'object' ? options : {};
     const opts = Object.assign({}, optIn);
+
+    const internalKeys = new Set([
+      'manualReply',
+      'allowOutsideWindow',
+      'bypassWindow',
+      'bypassRateLimit',
+      'moduleLog',
+      'bugLog',
+      'detailLog',
+      'traceLog',
+      'trace',
+      'debug',
+    ]);
+
+    for (const key of Object.keys(opts)) {
+      if (internalKeys.has(key)) delete opts[key];
+    }
+
     if (opts.sendSeen === undefined || opts.sendSeen === null) opts.sendSeen = false;
-    return client.sendMessage(chatId, text, opts);
+    return opts;
+  }
+
+  const sendDirect = async (chatId, payload, options) => {
+    const outChatId = typeof chatId === 'string' ? chatId.trim() : '';
+    if (!outChatId) {
+      const err = new Error('transport.invalid_chatId');
+      err.code = 'transport.invalid_chatId';
+      throw err;
+    }
+
+    let outPayload = payload;
+    if (typeof payload === 'string') {
+      outPayload = payload.trim();
+      if (!outPayload) {
+        const err = new Error('transport.empty_body');
+        err.code = 'transport.empty_body';
+        throw err;
+      }
+    }
+
+    const opts = sanitizeTransportOptions(options);
+
+    if (!transportReady) {
+      const err = new Error('transport.not_ready');
+      err.code = 'transport.not_ready';
+      err.waitMs = 2000;
+      throw err;
+    }
+
+    try {
+      return await client.sendMessage(outChatId, outPayload, opts);
+    } catch (e) {
+      const msg = String(e && e.message ? e.message : e || 'unknown_error');
+      const err = new Error('transport.send_failed: ' + msg);
+      err.code = 'transport.send_failed';
+      throw err;
+    }
   };
 
   kernel.attachTransport({ sendDirect });
@@ -144,17 +201,20 @@ async function main() {
   });
 
   client.on('auth_failure', (msg) => {
+    transportReady = false;
     console.log('[connector] auth_failure:', msg);
     kernel.onEvent({ type: 'auth_failure', message: String(msg || ''), at: nowIso() });
   });
 
   client.on('ready', async () => {
+    transportReady = true;
     console.log('[connector] ready');
     kernel.onEvent({ type: 'ready', at: nowIso() });
     await minimizeBrowser(client.pupBrowser);
   });
 
   client.on('disconnected', (reason) => {
+    transportReady = false;
     console.log('[connector] disconnected:', reason);
     kernel.onEvent({ type: 'disconnected', reason: String(reason || ''), at: nowIso() });
   });
