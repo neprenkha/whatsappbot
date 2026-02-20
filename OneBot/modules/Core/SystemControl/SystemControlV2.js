@@ -32,18 +32,40 @@ function formatUptime(sec) {
   return `${days}d ${pad2(hrs)}h ${pad2(mins)}m ${pad2(secs)}s`;
 }
 
+function errCode(e) {
+  if (e && e.code) return String(e.code);
+  return 'unknown';
+}
+
 async function safeReply(meta, ctx, text) {
   const msg = String(text || '').trim();
   if (!msg) return;
 
+  let firstErr = null;
+
   if (ctx && typeof ctx.reply === 'function') {
-    await ctx.reply(msg, { manualReply: 1 });
-    return;
+    try {
+      await ctx.reply(msg, { manualReply: 1 });
+      return;
+    } catch (e) {
+      firstErr = e;
+      meta.log('SystemControlV2', 'bug send.fail service=ctx.reply code=' + errCode(e) + ' err=' + String(e && e.message ? e.message : e));
+    }
   }
 
   const sendSvc = (typeof meta.getService === 'function') ? meta.getService('send') : null;
   if (typeof sendSvc === 'function' && ctx && ctx.chatId) {
-    await sendSvc(ctx.chatId, msg, { manualReply: 1 });
+    try {
+      await sendSvc(ctx.chatId, msg, { manualReply: 1 });
+      return;
+    } catch (e2) {
+      meta.log('SystemControlV2', 'bug send.fail service=send code=' + errCode(e2) + ' err=' + String(e2 && e2.message ? e2.message : e2));
+      return;
+    }
+  }
+
+  if (!firstErr) {
+    meta.log('SystemControlV2', 'bug send.fail service=send code=missing_service err=send service unavailable');
   }
 }
 
