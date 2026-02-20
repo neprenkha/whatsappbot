@@ -17,10 +17,14 @@ function toBool(v, defVal) {
   return s === '1' || s === 'true' || s === 'yes' || s === 'on';
 }
 
+function errCode(e) {
+  if (e && e.code) return String(e.code);
+  return 'unknown';
+}
+
 module.exports.init = async function init(meta) {
   const cfg = (meta && meta.implConf) || {};
   const cmdPing = toStr(cfg.cmdPing, 'ping');
-  const cmdPingHelp = toStr(cfg.cmdPingHelp, '');
   const pingReplyTemplate = toStr(cfg.pingReplyTemplate, '');
   const moduleLog = toBool(cfg.moduleLog, true);
   const traceLog = toBool(cfg.traceLog, false);
@@ -53,19 +57,35 @@ module.exports.init = async function init(meta) {
     const msg = String(text || '').trim();
     if (!msg) return;
 
+    let firstErr = null;
+
     try {
       if (ctx && typeof ctx.reply === 'function') {
         await ctx.reply(msg, { manualReply: 1 });
         return;
       }
-    } catch (_) {}
+    } catch (e) {
+      firstErr = e;
+      try {
+        meta.log('PingDiagV1', 'bug send.fail service=ctx.reply code=' + errCode(e) + ' err=' + String(e && e.message ? e.message : e));
+      } catch (_) {}
+    }
 
     try {
       const send = meta && meta.getService ? meta.getService('send') : null;
       if (typeof send === 'function' && ctx && ctx.chatId) {
         await send(ctx.chatId, msg, { manualReply: 1 });
+        return;
       }
-    } catch (_) {}
+      if (firstErr) return;
+      try {
+        meta.log('PingDiagV1', 'bug send.fail service=send code=missing_service err=send service unavailable');
+      } catch (_) {}
+    } catch (e2) {
+      try {
+        meta.log('PingDiagV1', 'bug send.fail service=send code=' + errCode(e2) + ' err=' + String(e2 && e2.message ? e2.message : e2));
+      } catch (_) {}
+    }
   }
 
   const cmd = meta && meta.getService ? (meta.getService('command') || meta.getService('commands')) : null;
@@ -83,7 +103,7 @@ module.exports.init = async function init(meta) {
       if (!msg) return;
       await reply(ctx, msg);
     },
-    { owner: 'PingDiagV1', help: cmdPingHelp }
+    { owner: 'PingDiagV1', help: 'Ping / health check.' }
   );
 
   try { meta.log('PingDiagV1', 'ready cmdPing=' + cmdPing); } catch (_) {}
