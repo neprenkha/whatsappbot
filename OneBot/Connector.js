@@ -32,6 +32,7 @@ const Kernel = require('./Kernel');
 const BOT_NAME = (process.env.BOT_NAME || 'ONEBOT').trim();
 const CODE_ROOT = (process.env.CODE_ROOT || __dirname).trim();
 const DATA_ROOT = (process.env.DATA_ROOT || 'X:\\OneData').trim();
+const TRACE_INBOUND = String(process.env.ONEBOT_TRACE_INBOUND || '').trim() === '1';
 
 const botDataRoot = path.join(DATA_ROOT, 'bots', BOT_NAME);
 const sessionRoot = path.join(botDataRoot, 'session');
@@ -47,13 +48,42 @@ function nowIso() {
   return new Date().toISOString().replace('T', ' ').replace('Z', '');
 }
 
+function traceInbound(stage, eventName, msg, err) {
+  if (!TRACE_INBOUND) return;
+  try {
+    const m = msg || {};
+    const chatId = String(m.from || '');
+    const fromMe = m && m.fromMe ? 1 : 0;
+    const isGroup = chatId.endsWith('@g.us') ? 1 : 0;
+    const msgId = String((m.id && m.id._serialized) || m.id || '');
+    const msgType = String((m.type || (m._data && m._data.type) || ''));
+    const textLen = typeof m.body === 'string' ? m.body.length : 0;
+    let line = '[connector][trace] stage=' + String(stage || '') +
+      ' eventName=' + String(eventName || '') +
+      ' chatId=' + chatId +
+      ' fromMe=' + fromMe +
+      ' isGroup=' + isGroup +
+      ' msgId=' + msgId +
+      ' msgType=' + msgType +
+      ' textLen=' + textLen;
+    if (err) {
+      line += ' err=' + String(err && err.message ? err.message : err);
+    }
+    console.log(line);
+  } catch (traceErr) {
+    if (TRACE_INBOUND) {
+      console.error('[connector][trace] stage=error eventName=trace chatId= fromMe=0 isGroup=0 msgId= msgType= textLen=0 err=' + String(traceErr && traceErr.message ? traceErr.message : traceErr));
+    }
+  }
+}
+
 const kernel = new Kernel({
   botName: BOT_NAME,
   codeRoot: CODE_ROOT,
   dataRoot: DATA_ROOT,
 });
 
-// Force-minimize Chrome window via CDP (fallback jika flag tidak berkesan)
+// Force-minimize Chrome window via CDP (fallback if flag does not work)
 async function minimizeBrowser(browser) {
   if (!browser) return;
   try {
@@ -61,8 +91,8 @@ async function minimizeBrowser(browser) {
     const page = pages && pages[0];
     if (!page) return;
     const session = await page.target().createCDPSession();
-    const { windowId } = await session.send('Browser.getWindowForTarget');
-    await session.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'minimized' } });
+    const x = await session.send('Browser.getWindowForTarget');
+    await session.send('Browser.setWindowBounds', { windowId: x.windowId, bounds: { windowState: 'minimized' } });
     console.log('[connector] browser minimized via CDP');
   } catch (e) {
     console.log('[connector] minimize via CDP failed:', e && e.message ? e.message : e);
@@ -82,20 +112,16 @@ async function main() {
   const client = new Client({
     authStrategy: new LocalAuth({ clientId: BOT_NAME, dataPath: sessionRoot }),
     puppeteer: {
-      headless: false, // keep UI visible
+      headless: false,
       args: [
-        '--start-minimized',          // auto-minimize on launch/restart
+        '--start-minimized',
         '--disable-dev-shm-usage',
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        // Optional: keep small/off-screen if needed
-        // '--window-position=9999,9999',
-        // '--window-size=400,300',
       ],
     },
   });
 
-  // Patch: enforce sendSeen=false by default to avoid WA Web API drift crash.
   const sendDirect = async (chatId, text, options) => {
     const optIn = options && typeof options === 'object' ? options : {};
     const opts = Object.assign({}, optIn);
@@ -107,11 +133,8 @@ async function main() {
 
   client.on('qr', (qr) => {
     console.log('[connector] qr updated');
-    if (qrcode) {
-      qrcode.generate(qr, { small: true });
-    } else {
-      console.log('[connector] QR:', qr);
-    }
+    if (qrcode) qrcode.generate(qr, { small: true });
+    else console.log('[connector] QR:', qr);
     kernel.onEvent({ type: 'qr', qr, at: nowIso() });
   });
 
@@ -128,7 +151,7 @@ async function main() {
   client.on('ready', async () => {
     console.log('[connector] ready');
     kernel.onEvent({ type: 'ready', at: nowIso() });
-    await minimizeBrowser(client.pupBrowser); // force minimize if flag not honored
+    await minimizeBrowser(client.pupBrowser);
   });
 
   client.on('disconnected', (reason) => {
@@ -137,25 +160,29 @@ async function main() {
   });
 
   client.on('message', async (msg) => {
+    traceInbound('received', 'message', msg, null);
     try {
+      traceInbound('forward', 'message', msg, null);
       await kernel.onMessage(msg);
     } catch (e) {
+      traceInbound('error', 'message', msg, e);
       console.error('[connector] message handler error:', e && e.stack ? e.stack : e);
     }
   });
-client.on('message_create', async (msg) => {
-  try {
-    if (!(msg && msg.fromMe === true)) return;
-    const fromMe = msg && msg.fromMe ? 1 : 0;
-    const chatId = String((msg && msg.from) || '');
-    console.log('[connector] inbound type=message_create fromMe=' + fromMe + ' chatId=' + chatId);
-    await kernel.onMessage(msg);
-  } catch (e) {
-    console.error('[connector] message_create handler error:', e && e.stack ? e.stack : e);
-  }
-});
 
-  await kernel.init(); // load modules before WhatsApp starts
+  client.on('message_create', async (msg) => {
+    if (!(msg && msg.fromMe === true)) return;
+    traceInbound('received', 'message_create', msg, null);
+    try {
+      traceInbound('forward', 'message_create', msg, null);
+      await kernel.onMessage(msg);
+    } catch (e) {
+      traceInbound('error', 'message_create', msg, e);
+      console.error('[connector] message_create handler error:', e && e.stack ? e.stack : e);
+    }
+  });
+
+  await kernel.init();
   await client.initialize();
 }
 
