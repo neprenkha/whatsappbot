@@ -122,8 +122,6 @@ async function main() {
     },
   });
 
-  let transportReady = false;
-
   function sanitizeTransportOptions(options) {
     const optIn = options && typeof options === 'object' ? options : {};
     const opts = Object.assign({}, optIn);
@@ -169,13 +167,6 @@ async function main() {
 
     const opts = sanitizeTransportOptions(options);
 
-    if (!transportReady) {
-      const err = new Error('transport.not_ready');
-      err.code = 'transport.not_ready';
-      err.waitMs = 2000;
-      throw err;
-    }
-
     try {
       return await client.sendMessage(outChatId, outPayload, opts);
     } catch (e) {
@@ -201,20 +192,17 @@ async function main() {
   });
 
   client.on('auth_failure', (msg) => {
-    transportReady = false;
     console.log('[connector] auth_failure:', msg);
     kernel.onEvent({ type: 'auth_failure', message: String(msg || ''), at: nowIso() });
   });
 
   client.on('ready', async () => {
-    transportReady = true;
     console.log('[connector] ready');
     kernel.onEvent({ type: 'ready', at: nowIso() });
     await minimizeBrowser(client.pupBrowser);
   });
 
   client.on('disconnected', (reason) => {
-    transportReady = false;
     console.log('[connector] disconnected:', reason);
     kernel.onEvent({ type: 'disconnected', reason: String(reason || ''), at: nowIso() });
   });
