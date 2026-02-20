@@ -3,9 +3,14 @@
 /**
  * SystemControlV2
  * - restart, status
- * - FIX: cfg was undefined (caused crash)
  * - RULE: ASCII only
  */
+
+function toBool(v, defVal) {
+  const s = String(v === undefined || v === null ? '' : v).trim().toLowerCase();
+  if (!s) return !!defVal;
+  return s === '1' || s === 'true' || s === 'yes' || s === 'on';
+}
 
 function roleRank(role) {
   const r = String(role || '').toLowerCase();
@@ -32,13 +37,13 @@ async function safeReply(meta, ctx, text) {
   if (!msg) return;
 
   if (ctx && typeof ctx.reply === 'function') {
-    await ctx.reply(msg);
+    await ctx.reply(msg, { manualReply: 1 });
     return;
   }
 
   const sendSvc = (typeof meta.getService === 'function') ? meta.getService('send') : null;
   if (typeof sendSvc === 'function' && ctx && ctx.chatId) {
-    await sendSvc(ctx.chatId, msg, {});
+    await sendSvc(ctx.chatId, msg, { manualReply: 1 });
   }
 }
 
@@ -47,7 +52,7 @@ function sleep(ms) {
 }
 
 module.exports.init = async function init(meta) {
-  const cfg = meta.implConf || {}; // FIX: define cfg
+  const cfg = meta.implConf || {};
 
   const controlGroupId = String(cfg.controlGroupId || '').trim();
   const cmdRestart = String(cfg.cmdRestart || 'restart').trim().toLowerCase();
@@ -56,6 +61,10 @@ module.exports.init = async function init(meta) {
   const minRoleRestart = String(cfg.minRoleRestart || 'admin').trim().toLowerCase();
   const replyNoAccess = String(cfg.replyNoAccess || '').trim();
   const replyRestarting = String(cfg.replyRestarting || '').trim();
+  const statusReplyTemplate = String(cfg.statusReplyTemplate || '').trim();
+
+  const moduleLog = toBool(cfg.moduleLog, true);
+  const traceLog = toBool(cfg.traceLog, false);
 
   const cmdSvc =
     (typeof meta.getService === 'function')
@@ -67,6 +76,13 @@ module.exports.init = async function init(meta) {
       ? (meta.getService('access') || meta.getService('roles'))
       : null;
 
+  function logExec(cmdName, ctx) {
+    if (!moduleLog && !traceLog) return;
+    const chatId = String((ctx && ctx.chatId) || '');
+    const isGroup = ctx && ctx.isGroup ? 1 : 0;
+    meta.log('SystemControlV2', 'exec cmd=' + String(cmdName || '') + ' chatId=' + chatId + ' isGroup=' + isGroup + ' manualReply=1');
+  }
+
   function isControlGroup(chatId) {
     if (!controlGroupId) return false;
     return String(chatId || '') === controlGroupId;
@@ -77,7 +93,6 @@ module.exports.init = async function init(meta) {
     const lidDigits = String(s.lid || '').replace(/[^0-9]/g, '');
     if (lidDigits) return `lid:${lidDigits}`;
 
-    // Backward compatible: fall back to id/phone as-is.
     return String(s.id || s.phone || '').trim();
   }
 
@@ -108,7 +123,25 @@ module.exports.init = async function init(meta) {
     return new Date().toISOString();
   }
 
+  function buildStatusReply() {
+    if (!statusReplyTemplate) {
+      meta.log('SystemControlV2', 'bug missing statusReplyTemplate in implConf');
+      return '';
+    }
+
+    const bot = String(meta.botName || '').trim() || 'ONEBOT';
+    const now = formatNow();
+    const uptime = formatUptime(process.uptime());
+
+    return statusReplyTemplate
+      .split('{BOT}').join(bot)
+      .split('{TIME}').join(now)
+      .split('{UPTIME}').join(uptime);
+  }
+
   async function handleRestart(ctx) {
+    logExec(cmdRestart, ctx);
+
     if (!canRun(ctx, minRoleRestart)) {
       await safeReply(meta, ctx, replyNoAccess);
       return { stop: true };
@@ -116,20 +149,19 @@ module.exports.init = async function init(meta) {
 
     if (replyRestarting) await safeReply(meta, ctx, replyRestarting);
 
-    // allow queue time
     await sleep(1200);
     process.exit(100);
   }
 
   async function handleStatus(ctx) {
+    logExec(cmdStatus, ctx);
+
     if (!isControlGroup(ctx.chatId)) return { stop: true };
 
-    const lines = [];
-    lines.push(`Bot: ${String(meta.botName || '').trim() || 'ONEBOT'}`);
-    lines.push(`Time: ${formatNow()}`);
-    lines.push(`Uptime: ${formatUptime(process.uptime())}`);
+    const reply = buildStatusReply();
+    if (!reply) return { stop: true };
 
-    await safeReply(meta, ctx, lines.join('\n'));
+    await safeReply(meta, ctx, reply);
     return { stop: true };
   }
 
