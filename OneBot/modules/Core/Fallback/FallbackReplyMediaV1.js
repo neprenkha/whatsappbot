@@ -1,3 +1,4 @@
+// OneBot/modules/Core/Fallback/FallbackReplyMediaV1.js
 'use strict';
 
 const SafeSend = require('../Shared/SharedSafeSendV1');
@@ -14,26 +15,37 @@ async function downloadWithTimeout(raw, timeoutMs) {
   ]);
 }
 
+function isVideoMime(mime) {
+  const m = String(mime || '').trim().toLowerCase();
+  return m.startsWith('video/');
+}
+
 async function handle(meta, cfg, toChatId, raw, captionText) {
   const tag = 'FallbackReplyMediaV1';
   try {
     const media = await downloadWithTimeout(raw, cfg && cfg.mediaTimeoutMs);
     if (!media) {
-      meta && meta.log && meta.log(tag, 'warn media download returned empty');
+      if (meta && meta.log) meta.log(tag, 'warn media download returned empty');
       return { ok: false, reason: 'download_empty' };
     }
 
-    const type = (raw && raw.type) ? String(raw.type) : '';
-    const options = {};
+    const type = raw && raw.type ? String(raw.type) : '';
+    const options = { manualReply: 1 };
     const cap = String(captionText || '').trim();
     if (cap) options.caption = cap;
 
-    if (type === 'document') options.sendMediaAsDocument = true;
+    // Keep videos inline even if the original message type is "document".
+    if (type === 'document') {
+      options.sendMediaAsDocument = true;
+      if (media && isVideoMime(media.mimetype)) {
+        delete options.sendMediaAsDocument;
+      }
+    }
 
     await SafeSend.send(meta, cfg, toChatId, media, options);
     return { ok: true };
   } catch (e) {
-    meta && meta.log && meta.log(tag, `error send failed err=${e && e.message ? e.message : e}`);
+    if (meta && meta.log) meta.log(tag, 'error send failed err=' + (e && e.message ? e.message : e));
     return { ok: false, reason: e && e.message ? e.message : 'send_failed' };
   }
 }
