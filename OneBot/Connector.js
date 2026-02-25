@@ -207,27 +207,56 @@ async function main() {
     kernel.onEvent({ type: 'disconnected', reason: String(reason || ''), at: nowIso() });
   });
 
-  client.on('message', async (msg) => {
-    traceInbound('received', 'message', msg, null);
+  const inboundSeen = new Map();
+
+  function msgKey(msg) {
     try {
-      traceInbound('forward', 'message', msg, null);
+      if (!msg) return '';
+      if (msg.id && msg.id._serialized) return String(msg.id._serialized);
+      if (msg.id) return String(msg.id);
+      if (msg._data && msg._data.id && msg._data.id._serialized) return String(msg._data.id._serialized);
+      return '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function shouldForwardMessage(msg) {
+    const key = msgKey(msg);
+    if (!key) return true;
+    const now = Date.now();
+
+    for (const [k, exp] of inboundSeen.entries()) {
+      if (exp <= now) inboundSeen.delete(k);
+    }
+
+    const exp = inboundSeen.get(key) || 0;
+    if (exp > now) return false;
+    inboundSeen.set(key, now + 10000);
+    return true;
+  }
+
+  async function forwardInbound(eventName, msg) {
+    traceInbound('received', eventName, msg, null);
+    if (!shouldForwardMessage(msg)) {
+      traceInbound('dedupe', eventName, msg, null);
+      return;
+    }
+    try {
+      traceInbound('forward', eventName, msg, null);
       await kernel.onMessage(msg);
     } catch (e) {
-      traceInbound('error', 'message', msg, e);
-      console.error('[connector] message handler error:', e && e.stack ? e.stack : e);
+      traceInbound('error', eventName, msg, e);
+      console.error('[connector] ' + eventName + ' handler error:', e && e.stack ? e.stack : e);
     }
+  }
+
+  client.on('message', async (msg) => {
+    await forwardInbound('message', msg);
   });
 
   client.on('message_create', async (msg) => {
-    if (!(msg && msg.fromMe === true)) return;
-    traceInbound('received', 'message_create', msg, null);
-    try {
-      traceInbound('forward', 'message_create', msg, null);
-      await kernel.onMessage(msg);
-    } catch (e) {
-      traceInbound('error', 'message_create', msg, e);
-      console.error('[connector] message_create handler error:', e && e.stack ? e.stack : e);
-    }
+    await forwardInbound('message_create', msg);
   });
 
   await kernel.init();
