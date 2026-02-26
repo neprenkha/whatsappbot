@@ -177,6 +177,7 @@ async function main() {
 
   kernel.attachTransport({ sendDirect });
 
+
   const runtimeState = {
     authenticatedAt: 0,
     readyAt: 0,
@@ -275,6 +276,7 @@ async function main() {
     console.log('[connector] disconnected:', reason);
     kernel.onEvent({ type: 'disconnected', reason: String(reason || ''), at: nowIso() });
   });
+
 
   client.on('change_state', (state) => {
     runtimeState.waState = String(state || '');
