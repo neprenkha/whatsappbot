@@ -39,6 +39,8 @@ async function handle(meta, cfg, ticketCtx, ctx) {
 
   const r = await SharedSafeSend.send(log, outsend, ticketCtx.controlGroupId, msg, {
     tag: 'fallback.in.text',
+    manualReply: 1,
+    allowOutsideWindow: 1,
   });
 
   if (!r.ok) {

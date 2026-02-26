@@ -48,7 +48,7 @@ function nowIso() {
   return new Date().toISOString().replace('T', ' ').replace('Z', '');
 }
 
-function traceInbound(stage, eventName, msg, err) {
+function traceInbound(eventName, result, msg, err) {
   if (!TRACE_INBOUND) return;
   try {
     const m = msg || {};
@@ -58,8 +58,8 @@ function traceInbound(stage, eventName, msg, err) {
     const msgId = String((m.id && m.id._serialized) || m.id || '');
     const msgType = String((m.type || (m._data && m._data.type) || ''));
     const textLen = typeof m.body === 'string' ? m.body.length : 0;
-    let line = '[connector][trace] stage=' + String(stage || '') +
-      ' eventName=' + String(eventName || '') +
+    let line = '[connector][trace] eventName=' + String(eventName || '') +
+      ' result=' + String(result || '') +
       ' chatId=' + chatId +
       ' fromMe=' + fromMe +
       ' isGroup=' + isGroup +
@@ -71,9 +71,7 @@ function traceInbound(stage, eventName, msg, err) {
     }
     console.log(line);
   } catch (traceErr) {
-    if (TRACE_INBOUND) {
-      console.error('[connector][trace] stage=error eventName=trace chatId= fromMe=0 isGroup=0 msgId= msgType= textLen=0 err=' + String(traceErr && traceErr.message ? traceErr.message : traceErr));
-    }
+    console.error('[connector][trace] eventName=trace result=error chatId= fromMe=0 isGroup=0 msgId= msgType= textLen=0 err=' + String(traceErr && traceErr.message ? traceErr.message : traceErr));
   }
 }
 
@@ -179,6 +177,71 @@ async function main() {
 
   kernel.attachTransport({ sendDirect });
 
+
+  const runtimeState = {
+    authenticatedAt: 0,
+    readyAt: 0,
+    waState: '',
+    loadingPercent: -1,
+    loadingMessage: '',
+    watchdogTimer: null,
+  };
+
+  function clearReadyWatchdog() {
+    if (runtimeState.watchdogTimer) {
+      clearTimeout(runtimeState.watchdogTimer);
+      runtimeState.watchdogTimer = null;
+    }
+  }
+
+  function scheduleReadyWatchdog() {
+    clearReadyWatchdog();
+    runtimeState.watchdogTimer = setTimeout(() => {
+      if (runtimeState.readyAt > 0) return;
+      const sinceAuthMs = runtimeState.authenticatedAt > 0 ? (Date.now() - runtimeState.authenticatedAt) : -1;
+      console.warn('[connector] ready_watchdog timeout=60000 ready=0 sinceAuthMs=' + String(sinceAuthMs) + ' state=' + String(runtimeState.waState || '') + ' loading=' + String(runtimeState.loadingPercent) + ' loadingMsg=' + String(runtimeState.loadingMessage || ''));
+    }, 60000);
+  }
+
+  function attachBrowserDiagnostics(browser) {
+    if (!browser || browser.__onebotDiagAttached) return;
+    browser.__onebotDiagAttached = true;
+
+    try {
+      browser.on('disconnected', () => {
+        console.warn('[connector] browser.disconnected');
+      });
+    } catch (_) {}
+
+    try {
+      browser.on('targetcreated', async (target) => {
+        try {
+          const type = String(target && target.type ? target.type() : '');
+          if (type !== 'page') return;
+          const page = await target.page();
+          if (!page || page.__onebotDiagAttached) return;
+          page.__onebotDiagAttached = true;
+
+          page.on('pageerror', (err) => {
+            console.warn('[connector] page.pageerror err=' + String(err && err.message ? err.message : err));
+          });
+          page.on('error', (err) => {
+            console.warn('[connector] page.error err=' + String(err && err.message ? err.message : err));
+          });
+          page.on('console', (msg) => {
+            try {
+              const t = String(msg && msg.type ? msg.type() : 'log');
+              const text = String(msg && msg.text ? msg.text() : '');
+              if (!text) return;
+              if (text.indexOf('webpack') >= 0 || text.indexOf('DevTools') >= 0) return;
+              console.log('[connector] page.console type=' + t + ' text=' + text);
+            } catch (_) {}
+          });
+        } catch (_) {}
+      });
+    } catch (_) {}
+  }
+
   client.on('qr', (qr) => {
     console.log('[connector] qr updated');
     if (qrcode) qrcode.generate(qr, { small: true });
@@ -187,47 +250,94 @@ async function main() {
   });
 
   client.on('authenticated', () => {
+    runtimeState.authenticatedAt = Date.now();
     console.log('[connector] authenticated');
+    scheduleReadyWatchdog();
     kernel.onEvent({ type: 'authenticated', at: nowIso() });
   });
 
   client.on('auth_failure', (msg) => {
+    clearReadyWatchdog();
     console.log('[connector] auth_failure:', msg);
     kernel.onEvent({ type: 'auth_failure', message: String(msg || ''), at: nowIso() });
   });
 
   client.on('ready', async () => {
+    runtimeState.readyAt = Date.now();
+    clearReadyWatchdog();
     console.log('[connector] ready');
     kernel.onEvent({ type: 'ready', at: nowIso() });
+    attachBrowserDiagnostics(client.pupBrowser);
     await minimizeBrowser(client.pupBrowser);
   });
 
   client.on('disconnected', (reason) => {
+    clearReadyWatchdog();
     console.log('[connector] disconnected:', reason);
     kernel.onEvent({ type: 'disconnected', reason: String(reason || ''), at: nowIso() });
   });
 
-  client.on('message', async (msg) => {
-    traceInbound('received', 'message', msg, null);
+
+  client.on('change_state', (state) => {
+    runtimeState.waState = String(state || '');
+    console.log('[connector] state=' + runtimeState.waState);
+  });
+
+  client.on('loading_screen', (percent, message) => {
+    runtimeState.loadingPercent = Number.isFinite(Number(percent)) ? Number(percent) : -1;
+    runtimeState.loadingMessage = String(message || '');
+    console.log('[connector] loading_screen percent=' + String(runtimeState.loadingPercent) + ' msg=' + runtimeState.loadingMessage);
+  });
+
+  const inboundSeen = new Map();
+
+  function msgKey(msg) {
     try {
-      traceInbound('forward', 'message', msg, null);
-      await kernel.onMessage(msg);
-    } catch (e) {
-      traceInbound('error', 'message', msg, e);
-      console.error('[connector] message handler error:', e && e.stack ? e.stack : e);
+      if (!msg) return '';
+      if (msg.id && msg.id._serialized) return String(msg.id._serialized);
+      if (msg.id) return String(msg.id);
+      if (msg._data && msg._data.id && msg._data.id._serialized) return String(msg._data.id._serialized);
+      return '';
+    } catch (_) {
+      return '';
     }
+  }
+
+  function shouldForwardMessage(msg) {
+    const key = msgKey(msg);
+    if (!key) return true;
+    const now = Date.now();
+
+    for (const [k, exp] of inboundSeen.entries()) {
+      if (exp <= now) inboundSeen.delete(k);
+    }
+
+    const exp = inboundSeen.get(key) || 0;
+    if (exp > now) return false;
+    inboundSeen.set(key, now + 10000);
+    return true;
+  }
+
+  async function forwardInbound(eventName, msg) {
+    if (!shouldForwardMessage(msg)) {
+      traceInbound(eventName, 'dedupe', msg, null);
+      return;
+    }
+    try {
+      await kernel.onMessage(msg);
+      traceInbound(eventName, 'forward', msg, null);
+    } catch (e) {
+      traceInbound(eventName, 'error', msg, e);
+      console.error('[connector] ' + eventName + ' handler error:', e && e.stack ? e.stack : e);
+    }
+  }
+
+  client.on('message', async (msg) => {
+    await forwardInbound('message', msg);
   });
 
   client.on('message_create', async (msg) => {
-    if (!(msg && msg.fromMe === true)) return;
-    traceInbound('received', 'message_create', msg, null);
-    try {
-      traceInbound('forward', 'message_create', msg, null);
-      await kernel.onMessage(msg);
-    } catch (e) {
-      traceInbound('error', 'message_create', msg, e);
-      console.error('[connector] message_create handler error:', e && e.stack ? e.stack : e);
-    }
+    await forwardInbound('message_create', msg);
   });
 
   await kernel.init();

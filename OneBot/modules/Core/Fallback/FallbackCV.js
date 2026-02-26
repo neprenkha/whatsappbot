@@ -62,6 +62,14 @@ function stripTicket(text, ticketId) {
   return s;
 }
 
+function errCode(err) {
+  if (!err) return '';
+  if (typeof err === 'string') return err;
+  if (err.code) return String(err.code);
+  if (err.reason) return String(err.reason);
+  return '';
+}
+
 async function forwardAvInline(meta, toGroupId, raw, ticketId) {
   const tId = String(ticketId || '');
   if (!toGroupId || !raw) {
@@ -132,15 +140,21 @@ module.exports = {
     async function handleForward(ctx, raw) {
       const fromChatId = toChatId(ctx.chatId);
       const fromAuthorId = toChatId((ctx.sender && ctx.sender.id) || fromChatId);
+      const senderPhone = (ctx && ctx.sender && ctx.sender.phone) ? String(ctx.sender.phone) : '';
+      meta.log(tag, 'exec forward chatId=' + fromChatId + ' isGroup=' + (ctx && ctx.isGroup ? '1' : '0') + ' senderId=' + fromAuthorId + ' senderPhone=' + senderPhone);
       if (!fromChatId || !fromAuthorId) return;
 
       const routeGroupId = FallbackGroupRouterV1.routeGroupId(meta, cfg, ctx);
       if (!routeGroupId) return;
 
       const ticketRes = await TicketCoreV2.resolve(meta, cfg, fromChatId, fromAuthorId, ticketTtlMs);
-      if (!ticketRes || !ticketRes.ok || !ticketRes.ticketId) return;
+      if (!ticketRes || !ticketRes.ok || !ticketRes.ticketId) {
+        meta.log(tag, 'bug.ticket.resolve_failed chatId=' + fromChatId + ' senderId=' + fromAuthorId + ' reason=' + String(ticketRes && ticketRes.reason ? ticketRes.reason : 'unknown'));
+        return;
+      }
 
       ticketToChat[ticketRes.ticketId] = fromChatId;
+      meta.log(tag, 'exec ticket chatId=' + fromChatId + ' ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' service=' + sendPrefer);
 
       const ticketCtx = {
         controlGroupId: routeGroupId,
@@ -151,23 +165,36 @@ module.exports = {
       };
 
       const t = rawType(raw);
-      if (isAvType(t) && raw && raw.hasMedia) {
-        await forwardAvInline(meta, routeGroupId, raw, ticketRes.ticketId);
-        return;
-      }
+      try {
+        if (isAvType(t) && raw && raw.hasMedia) {
+          const rr = await forwardAvInline(meta, routeGroupId, raw, ticketRes.ticketId);
+          if (!rr || rr.ok !== true) {
+            meta.log(tag, 'bug.forward.av_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' reason=' + String(rr && rr.reason ? rr.reason : 'unknown'));
+          }
+          return;
+        }
 
-      if (raw && raw.hasMedia) {
-        await FallbackForwardMediaV1.handle(meta, cfg, ticketCtx, {
+        if (raw && raw.hasMedia) {
+          const rr = await FallbackForwardMediaV1.handle(meta, cfg, ticketCtx, {
+            raw: raw,
+            text: ctx.text || '',
+          });
+          if (!rr || rr.ok !== true) {
+            meta.log(tag, 'bug.forward.media_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' reason=' + String(rr && rr.reason ? rr.reason : 'unknown'));
+          }
+          return;
+        }
+
+        const rr = await FallbackForwardTextV1.handle(meta, cfg, ticketCtx, {
           raw: raw,
           text: ctx.text || '',
         });
-        return;
+        if (!rr || rr.ok !== true) {
+          meta.log(tag, 'bug.forward.text_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' reason=' + String(rr && rr.reason ? rr.reason : 'unknown'));
+        }
+      } catch (e) {
+        meta.log(tag, 'bug.forward.send_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' code=' + errCode(e) + ' reason=' + String(e && e.message ? e.message : e));
       }
-
-      await FallbackForwardTextV1.handle(meta, cfg, ticketCtx, {
-        raw: raw,
-        text: ctx.text || '',
-      });
     }
 
     async function handleReply(ctx, raw) {

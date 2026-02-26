@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const util = require('util');
 
 function toInt(v, d) {
   const n = parseInt(String(v || ''), 10);
@@ -34,6 +35,12 @@ function clamp(s, maxLen) {
 }
 
 const LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
+
+
+const CONSOLE_HOOK_STATE = {
+  installed: false,
+  original: null,
+};
 
 function levelNum(name, dflt) {
   const k = String(name || '').trim().toLowerCase();
@@ -71,6 +78,26 @@ function formatTzTs(d, timeZone) {
   }
 }
 
+
+function resolveLogDir(meta, configuredDir) {
+  const confDir = toStr(configuredDir, '').trim();
+  const fallback = path.join(
+    String((meta && meta.dataRoot) || '').trim(),
+    'bots',
+    String((meta && meta.botName) || '').trim(),
+    'logs'
+  );
+
+  if (!confDir) return fallback;
+
+  const hasWindowsDrive = /^[A-Za-z]:\\/.test(confDir);
+  if (hasWindowsDrive && path.sep !== '\\') {
+    return fallback;
+  }
+
+  return confDir;
+}
+
 class LogV2 {
   constructor(meta, conf) {
     this.meta = meta || {};
@@ -81,12 +108,13 @@ class LogV2 {
     this.tz = toStr(this.conf.timeZone, 'Asia/Kuala_Lumpur');
 
     this.fileEnabled = toBool(this.conf.fileEnabled, false);
-    this.dir = toStr(this.conf.dir, '');
+    this.dir = resolveLogDir(this.meta, this.conf.dir);
     this.mode = toStr(this.conf.mode, 'daily');
     this.fileLevel = levelNum(this.conf.fileLevel, LEVELS.info);
 
     this.consoleEnabled = toBool(this.conf.consoleEnabled, true);
     this.consoleLevel = levelNum(this.conf.consoleLevel, LEVELS.info);
+    this.hookConsole = toBool(this.conf.hookConsole, false);
 
     this.logMessages = toBool(this.conf.logMessages, false);
     this.logEvents = toBool(this.conf.logEvents, false);
@@ -109,7 +137,9 @@ class LogV2 {
       if (this.purgeDays > 0) this.purgeOldFilesSafe(this.dir, this.purgeDays);
     }
 
-    this.logInfo('LogV2', `ready fileEnabled=${this.fileEnabled ? 1 : 0} dir=${this.dir || '(none)'} mode=${this.mode} tz=${this.tz} logEvents=${this.logEvents ? 1 : 0} logMessages=${this.logMessages ? 1 : 0}`);
+    if (this.enabled && this.hookConsole) this.installConsoleHook();
+
+    this.logInfo('LogV2', `ready fileEnabled=${this.fileEnabled ? 1 : 0} dir=${this.dir || '(none)'} configuredDir=${toStr(this.conf.dir, '(none)')} mode=${this.mode} tz=${this.tz} logEvents=${this.logEvents ? 1 : 0} logMessages=${this.logMessages ? 1 : 0} hookConsole=${this.hookConsole ? 1 : 0}`);
   }
 
   ensureDir(dir) {
@@ -197,6 +227,57 @@ class LogV2 {
     } catch (_) {}
   }
 
+  formatConsoleMessage(args) {
+    try {
+      const arr = Array.isArray(args) ? args : [];
+      const msg = util.format.apply(util, arr);
+      const trimmed = clamp(String(msg || ''), this.metaMaxLen);
+      return this.asciiOnly ? asciiSafe(trimmed) : trimmed;
+    } catch (_) {
+      return 'console_format_error';
+    }
+  }
+
+  writeConsoleHookLine(level, args) {
+    if (!this.fileEnabled || !this.dir) return;
+    const d = new Date();
+    const ts = formatTzTs(d, this.tz);
+    const lvl = String(level || 'log').toLowerCase();
+    const msg = this.formatConsoleMessage(args);
+    const line = `${ts} [console] [${lvl}] ${msg}\n`;
+    this.enqueueLine(line);
+  }
+
+  installConsoleHook() {
+    if (CONSOLE_HOOK_STATE.installed) return;
+    const original = {
+      log: console.log.bind(console),
+      info: console.info.bind(console),
+      warn: console.warn.bind(console),
+      error: console.error.bind(console),
+    };
+
+    const self = this;
+    function wrap(level) {
+      return function wrappedConsoleMethod() {
+        const args = Array.prototype.slice.call(arguments);
+        try {
+          self.writeConsoleHookLine(level, args);
+        } catch (_) {}
+        return original[level].apply(console, args);
+      };
+    }
+
+    console.log = wrap('log');
+    console.info = wrap('info');
+    console.warn = wrap('warn');
+    console.error = wrap('error');
+
+    CONSOLE_HOOK_STATE.installed = true;
+    CONSOLE_HOOK_STATE.original = original;
+  }
+
+
   emit(levelName, tag, message, metaObj) {
     const d = new Date();
     const ts = formatTzTs(d, this.tz);
@@ -279,14 +360,12 @@ class LogV2 {
     }
 
     return {
+      onMessage: async function onMessage(ctx) {
+        if (!ctx) return;
+        if (self.logMessages) self.onMsg(ctx);
+      },
       onEvent: async function onEvent(ctx) {
         if (!ctx) return;
-
-        // Only tap when configured
-        if (ctx.event === 'msg') {
-          if (self.logMessages) self.onMsg(ctx);
-          return;
-        }
         if (self.logEvents) self.onEvent(ctx);
       },
     };
