@@ -33,6 +33,11 @@ const BOT_NAME = (process.env.BOT_NAME || 'ONEBOT').trim();
 const CODE_ROOT = (process.env.CODE_ROOT || __dirname).trim();
 const DATA_ROOT = (process.env.DATA_ROOT || 'X:\\OneData').trim();
 const TRACE_INBOUND = String(process.env.ONEBOT_TRACE_INBOUND || '').trim() === '1';
+const TRACE_DIAG = TRACE_INBOUND || String(process.env.ONEBOT_TRACE_DIAG || '').trim() === '1';
+const READY_WATCHDOG_MS = (function () {
+  const n = parseInt(String(process.env.ONEBOT_READY_WATCHDOG_MS || ''), 10);
+  return Number.isFinite(n) && n >= 5000 ? n : 60000;
+})();
 
 const botDataRoot = path.join(DATA_ROOT, 'bots', BOT_NAME);
 const sessionRoot = path.join(botDataRoot, 'session');
@@ -71,9 +76,7 @@ function traceInbound(stage, eventName, msg, err) {
     }
     console.log(line);
   } catch (traceErr) {
-    if (TRACE_INBOUND) {
-      console.error('[connector][trace] stage=error eventName=trace chatId= fromMe=0 isGroup=0 msgId= msgType= textLen=0 err=' + String(traceErr && traceErr.message ? traceErr.message : traceErr));
-    }
+    console.error('[connector][trace] stage=error eventName=trace chatId= fromMe=0 isGroup=0 msgId= msgType= textLen=0 err=' + String(traceErr && traceErr.message ? traceErr.message : traceErr));
   }
 }
 
@@ -121,6 +124,92 @@ async function main() {
       ],
     },
   });
+
+  const runtime = {
+    authAt: 0,
+    readyAt: 0,
+    readyFired: 0,
+    lastState: '',
+    lastLoadingPct: -1,
+    lastLoadingMsg: '',
+    diagAttached: 0,
+  };
+
+  function logDiag(line) {
+    if (!TRACE_DIAG) return;
+    console.log('[connector] ' + line);
+  }
+
+  function startReadyWatchdog() {
+    const startedAt = Date.now();
+    setTimeout(async () => {
+      if (runtime.readyFired) return;
+      let state = '';
+      try {
+        if (client && typeof client.getState === 'function') {
+          state = String(await client.getState());
+        }
+      } catch (_) {
+        state = '';
+      }
+      const sinceAuthMs = runtime.authAt ? (Date.now() - runtime.authAt) : (Date.now() - startedAt);
+      const loading = (runtime.lastLoadingPct >= 0) ? String(runtime.lastLoadingPct) : '';
+      const loadingMsg = runtime.lastLoadingMsg ? runtime.lastLoadingMsg : '';
+      console.log('[connector] ready_watchdog timeoutMs=' + READY_WATCHDOG_MS +
+        ' ready=0 sinceAuthMs=' + sinceAuthMs +
+        ' state=' + (state || runtime.lastState || '') +
+        ' loadingPct=' + loading +
+        ' loadingMsg=' + loadingMsg);
+    }, READY_WATCHDOG_MS);
+  }
+
+  async function tryAttachPuppeteerDiagnostics() {
+    if (runtime.diagAttached) return;
+    const page = client && (client.pupPage || null);
+    if (!page) return;
+    runtime.diagAttached = 1;
+
+    try {
+      page.on('pageerror', (err) => {
+        const msg = err && err.message ? err.message : String(err || '');
+        console.log('[connector] pageerror ' + msg);
+      });
+    } catch (_) {}
+
+    try {
+      page.on('error', (err) => {
+        const msg = err && err.message ? err.message : String(err || '');
+        console.log('[connector] page_error ' + msg);
+      });
+    } catch (_) {}
+
+    try {
+      page.on('console', (msg) => {
+        try {
+          const type = msg && typeof msg.type === 'function' ? String(msg.type()) : '';
+          if (type !== 'error' && type !== 'warning') return;
+          const text = msg && typeof msg.text === 'function' ? String(msg.text()) : '';
+          console.log('[connector] page_console type=' + type + ' text=' + text);
+        } catch (_) {}
+      });
+    } catch (_) {}
+
+    logDiag('puppeteer_diag attached=1');
+  }
+
+  function startDiagPoller() {
+    if (runtime.diagAttached) return;
+    let tries = 0;
+    const t = setInterval(async () => {
+      tries += 1;
+      try {
+        await tryAttachPuppeteerDiagnostics();
+      } catch (_) {}
+      if (runtime.diagAttached || tries >= 120) {
+        clearInterval(t);
+      }
+    }, 1000);
+  }
 
   function sanitizeTransportOptions(options) {
     const optIn = options && typeof options === 'object' ? options : {};
@@ -187,8 +276,11 @@ async function main() {
   });
 
   client.on('authenticated', () => {
+    runtime.authAt = Date.now();
     console.log('[connector] authenticated');
     kernel.onEvent({ type: 'authenticated', at: nowIso() });
+    startReadyWatchdog();
+    startDiagPoller();
   });
 
   client.on('auth_failure', (msg) => {
@@ -196,7 +288,31 @@ async function main() {
     kernel.onEvent({ type: 'auth_failure', message: String(msg || ''), at: nowIso() });
   });
 
+  client.on('change_state', (state) => {
+    runtime.lastState = String(state || '');
+    logDiag('change_state state=' + runtime.lastState);
+    kernel.onEvent({ type: 'change_state', state: runtime.lastState, at: nowIso() });
+  });
+
+  client.on('loading_screen', (percent, message) => {
+    const pct = parseInt(String(percent || ''), 10);
+    const msg = String(message || '');
+    const bucket = Number.isFinite(pct) ? Math.floor(pct / 10) : -1;
+    const lastBucket = (runtime.lastLoadingPct >= 0) ? Math.floor(runtime.lastLoadingPct / 10) : -2;
+    if (bucket !== lastBucket || msg !== runtime.lastLoadingMsg) {
+      runtime.lastLoadingPct = Number.isFinite(pct) ? pct : runtime.lastLoadingPct;
+      runtime.lastLoadingMsg = msg;
+      logDiag('loading_screen percent=' + String(percent) + ' message=' + msg);
+    }
+  });
+
+  client.on('remote_session_saved', () => {
+    logDiag('remote_session_saved');
+  });
+
   client.on('ready', async () => {
+    runtime.readyFired = 1;
+    runtime.readyAt = Date.now();
     console.log('[connector] ready');
     kernel.onEvent({ type: 'ready', at: nowIso() });
     await minimizeBrowser(client.pupBrowser);
