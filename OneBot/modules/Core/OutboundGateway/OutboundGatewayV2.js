@@ -84,22 +84,31 @@ module.exports.init = async function init(meta) {
     const opts = options || {};
     const weight = Math.max(1, toInt(opts.weight, 1));
 
+    const manualReply = toBool(opts.manualReply, false);
+    const allowOutsideWindow = toBool(opts.allowOutsideWindow, false) || toBool(opts.bypassWindow, false);
+    const bypassRateLimit = toBool(opts.bypassRateLimit, false);
+
     if (bypassChatIds.has(id)) {
       trace(`bypass chatId=${id}`);
       return base.fn(id, payload, opts);
     }
 
-    if (hasRl) {
+    if (hasRl && !bypassRateLimit) {
       const ck = rl.check({ chatId: id, weight });
       if (!ck || !ck.ok) {
-        const w = ck ? toInt(ck.waitMs, 0) : 0;
-        return { ok: false, reason: ck ? String(ck.reason || 'rate') : 'rate', waitMs: w };
+        const reason = ck ? String(ck.reason || 'rate') : 'rate';
+        if (allowOutsideWindow && reason === 'window') {
+          trace(`window bypass chatId=${id} manualReply=${manualReply ? 1 : 0}`);
+        } else {
+          const w = ck ? toInt(ck.waitMs, 0) : 0;
+          return { ok: false, reason, waitMs: w };
+        }
       }
     }
 
     try {
       const res = await base.fn(id, payload, opts);
-      if (hasRl) rl.commit({ chatId: id, weight });
+      if (hasRl && !bypassRateLimit) rl.commit({ chatId: id, weight });
       return res;
     } catch (e) {
       warn(`send failed chatId=${id} reason=${e && e.message ? e.message : 'error'}`);
