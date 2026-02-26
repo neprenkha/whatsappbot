@@ -36,23 +36,93 @@ function makeTicket(yymm, seq, seqDigits) {
   return yymm + 'T' + padLeft(seq, seqDigits, '0');
 }
 
+function parseStoreSpec(spec) {
+  const raw = String(spec || '').trim();
+  const idx = raw.indexOf(':');
+  if (idx <= 0) return null;
+  const svc = raw.slice(0, idx).trim();
+  const rel = raw.slice(idx + 1).trim();
+  if (!svc || !rel) return null;
+
+  const parts = rel.split('/').filter(Boolean);
+  if (parts.length < 2) return null;
+
+  const ns = parts[0];
+  const file = parts.slice(1).join('/');
+  const key = file.toLowerCase().endsWith('.json') ? file.slice(0, -5) : file;
+  return { svc, rel, ns, key };
+}
+
+function getService(meta, name) {
+  if (!meta) return null;
+  if (typeof meta.getService === 'function') {
+    const s = meta.getService(name);
+    if (s) return s;
+  }
+  if (meta.services && meta.services[name]) return meta.services[name];
+  return null;
+}
+
+function getJsonStore(meta, tried) {
+  const names = ['jsonstore', 'jsonStore'];
+  for (const n of names) {
+    tried.push(n);
+    const s = getService(meta, n);
+    if (s) return s;
+  }
+  return null;
+}
+
+async function storeRead(store, spec, defaultDoc) {
+  if (store && typeof store.load === 'function') {
+    return await store.load(spec.svc, spec.rel, defaultDoc);
+  }
+  if (store && typeof store.open === 'function') {
+    const nsStore = store.open(spec.ns);
+    if (nsStore && typeof nsStore.get === 'function') {
+      return await nsStore.get(spec.key, defaultDoc);
+    }
+  }
+  return null;
+}
+
+async function storeWrite(store, spec, doc) {
+  if (store && typeof store.save === 'function') {
+    await store.save(spec.svc, spec.rel, doc);
+    return true;
+  }
+  if (store && typeof store.open === 'function') {
+    const nsStore = store.open(spec.ns);
+    if (nsStore && typeof nsStore.set === 'function') {
+      await nsStore.set(spec.key, doc);
+      return true;
+    }
+  }
+  return false;
+}
+
 async function loadDoc(meta, cfg) {
   const storeSpec = cfgStr(cfg, 'ticketStoreSpec', '');
   if (!storeSpec) {
     return { ok: false, reason: 'missing.ticketStoreSpec' };
   }
 
-  const store = meta.services && meta.services.jsonstore;
-  if (!store) {
-    return { ok: false, reason: 'missing.jsonstore' };
-  }
-
-  const [svc, rel] = storeSpec.split(':', 2);
-  if (!svc || !rel) {
+  const parsed = parseStoreSpec(storeSpec);
+  if (!parsed) {
     return { ok: false, reason: 'bad.ticketStoreSpec' };
   }
 
-  const doc = await store.load(svc, rel, { yymm: '', seq: 0, map: {} });
+  const tried = [];
+  const store = getJsonStore(meta, tried);
+  if (!store) {
+    if (meta && typeof meta.log === 'function') {
+      meta.log('SharedTicketCoreV2', 'bug.missing.jsonstore tried=' + tried.join(','));
+    }
+    return { ok: false, reason: 'missing.jsonstore' };
+  }
+
+  const defaultDoc = { yymm: '', seq: 0, map: {} };
+  const doc = await storeRead(store, parsed, defaultDoc);
   if (!doc || typeof doc !== 'object') {
     return { ok: false, reason: 'bad.store.doc' };
   }
@@ -61,13 +131,17 @@ async function loadDoc(meta, cfg) {
   if (typeof doc.seq !== 'number') doc.seq = 0;
   if (typeof doc.yymm !== 'string') doc.yymm = '';
 
-  return { ok: true, svc, rel, doc };
+  return { ok: true, store, spec: parsed, doc };
 }
 
 async function saveDoc(meta, state) {
-  const store = meta.services && meta.services.jsonstore;
-  if (!store) return { ok: false, reason: 'missing.jsonstore' };
-  await store.save(state.svc, state.rel, state.doc);
+  const ok = await storeWrite(state.store, state.spec, state.doc);
+  if (!ok) {
+    if (meta && typeof meta.log === 'function') {
+      meta.log('SharedTicketCoreV2', 'bug.missing.jsonstore tried=jsonstore,jsonStore');
+    }
+    return { ok: false, reason: 'missing.jsonstore' };
+  }
   return { ok: true };
 }
 

@@ -229,6 +229,7 @@ module.exports = {
 
         const raw = ctx && ctx.message ? ctx.message : null;
         const isGroup = !!(ctx && ctx.isGroup);
+        if (raw && raw.fromMe === true) return;
 
         if (!isGroup) {
           await handleForward(ctx, raw);
