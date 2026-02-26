@@ -36,7 +36,6 @@ function clamp(s, maxLen) {
 
 const LEVELS = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 
-
 const CONSOLE_HOOK_STATE = {
   installed: false,
   original: null,
@@ -61,7 +60,6 @@ function formatLocalTs(d) {
 }
 
 function formatTzTs(d, timeZone) {
-  // Keep simple and stable: use Intl if available, else local.
   try {
     const dtf = new Intl.DateTimeFormat('en-GB', {
       timeZone,
@@ -78,24 +76,13 @@ function formatTzTs(d, timeZone) {
   }
 }
 
-
-function resolveLogDir(meta, configuredDir) {
-  const confDir = toStr(configuredDir, '').trim();
-  const fallback = path.join(
-    String((meta && meta.dataRoot) || '').trim(),
-    'bots',
-    String((meta && meta.botName) || '').trim(),
-    'logs'
-  );
-
-  if (!confDir) return fallback;
-
-  const hasWindowsDrive = /^[A-Za-z]:\\/.test(confDir);
-  if (hasWindowsDrive && path.sep !== '\\') {
-    return fallback;
-  }
-
-  return confDir;
+function resolveLogDir(confDir, dataRoot, botName) {
+  const raw = toStr(confDir, '');
+  if (raw) return raw;
+  const dr = toStr(dataRoot, '');
+  const bn = toStr(botName, '');
+  if (!dr || !bn) return '';
+  return path.join(dr, 'bots', bn, 'logs');
 }
 
 class LogV2 {
@@ -108,7 +95,7 @@ class LogV2 {
     this.tz = toStr(this.conf.timeZone, 'Asia/Kuala_Lumpur');
 
     this.fileEnabled = toBool(this.conf.fileEnabled, false);
-    this.dir = resolveLogDir(this.meta, this.conf.dir);
+    this.dir = resolveLogDir(this.conf.dir, this.meta.dataRoot, this.meta.botName);
     this.mode = toStr(this.conf.mode, 'daily');
     this.fileLevel = levelNum(this.conf.fileLevel, LEVELS.info);
 
@@ -126,6 +113,7 @@ class LogV2 {
     this.redactPhone = toBool(this.conf.redactPhone, false);
 
     this.purgeDays = toInt(this.conf.purgeDays, 0);
+    this.captureUnhandled = toBool(this.conf.captureUnhandled, false);
 
     this.currentDateKey = null;
     this.stream = null;
@@ -138,15 +126,18 @@ class LogV2 {
     }
 
     if (this.enabled && this.hookConsole) this.installConsoleHook();
+    if (this.enabled && this.captureUnhandled) this.installProcessHook();
 
-    this.logInfo('LogV2', `ready fileEnabled=${this.fileEnabled ? 1 : 0} dir=${this.dir || '(none)'} configuredDir=${toStr(this.conf.dir, '(none)')} mode=${this.mode} tz=${this.tz} logEvents=${this.logEvents ? 1 : 0} logMessages=${this.logMessages ? 1 : 0} hookConsole=${this.hookConsole ? 1 : 0}`);
+    this.logInfo(
+      'LogV2',
+      `ready fileEnabled=${this.fileEnabled ? 1 : 0} dir=${this.dir || '(none)'} configuredDir=${toStr(this.conf.dir, '(none)')} mode=${this.mode} tz=${this.tz} logEvents=${this.logEvents ? 1 : 0} logMessages=${this.logMessages ? 1 : 0} hookConsole=${this.hookConsole ? 1 : 0}`
+    );
   }
 
   ensureDir(dir) {
     try {
       fs.mkdirSync(dir, { recursive: true });
     } catch (e) {
-      // If cannot create, disable file output safely
       this.fileEnabled = false;
       this.dir = '';
       this.logWarn('LogV2', `file disabled (mkdir failed) err=${asciiSafe(e && e.message ? e.message : e)}`);
@@ -177,7 +168,6 @@ class LogV2 {
       const day = String(d.getDate()).padStart(2, '0');
       return `${y}-${m}-${day}`;
     }
-    // fallback daily
     return this.getDateKey(new Date(d.getTime()));
   }
 
@@ -261,9 +251,7 @@ class LogV2 {
     function wrap(level) {
       return function wrappedConsoleMethod() {
         const args = Array.prototype.slice.call(arguments);
-        try {
-          self.writeConsoleHookLine(level, args);
-        } catch (_) {}
+        try { self.writeConsoleHookLine(level, args); } catch (_) {}
         return original[level].apply(console, args);
       };
     }
@@ -277,6 +265,23 @@ class LogV2 {
     CONSOLE_HOOK_STATE.original = original;
   }
 
+  installProcessHook() {
+    const self = this;
+    if (this._processHookInstalled) return;
+    this._processHookInstalled = true;
+
+    process.on('unhandledRejection', (reason) => {
+      try {
+        self.logError('process', 'unhandledRejection', { reason: String(reason && reason.message ? reason.message : reason) });
+      } catch (_) {}
+    });
+
+    process.on('uncaughtException', (err) => {
+      try {
+        self.logError('process', 'uncaughtException', { err: String(err && err.stack ? err.stack : err) });
+      } catch (_) {}
+    });
+  }
 
   emit(levelName, tag, message, metaObj) {
     const d = new Date();
@@ -301,11 +306,9 @@ class LogV2 {
     const line = `${ts} [${lvl}] [${cleanTag}] ${cleanMsg}${metaStr ? ' meta=' + metaStr : ''}\n`;
 
     if (this.consoleEnabled && lvlN <= this.consoleLevel) {
-      // Use kernel meta.log if present (keeps style consistent)
       if (this.meta && typeof this.meta.log === 'function') {
         this.meta.log(`${cleanTag}`, `${lvl} ${cleanMsg}${metaStr ? ' meta=' + metaStr : ''}`);
       } else {
-        // fallback
         console.log(line.trimEnd());
       }
     }
@@ -322,7 +325,9 @@ class LogV2 {
 
   safeSender(sender) {
     const s = sender || {};
-    const phone = this.redactPhone && s.phone ? (String(s.phone).slice(0, 4) + '****' + String(s.phone).slice(-2)) : (s.phone || '');
+    const phone = this.redactPhone && s.phone
+      ? (String(s.phone).slice(0, 4) + '****' + String(s.phone).slice(-2))
+      : (s.phone || '');
     return {
       id: s.id || '',
       phone: phone || '',
@@ -332,20 +337,20 @@ class LogV2 {
   }
 
   onMsg(ctx) {
-    const chatId = ctx.chatId || '';
-    const isGroup = ctx.isGroup ? 1 : 0;
-    const sender = this.safeSender(ctx.sender);
-    const text = clamp(ctx.text || '', this.messagePreviewLen);
+    const chatId = ctx && (ctx.chatId || ctx.from || '') || '';
+    const isGroup = ctx && (ctx.isGroup ? 1 : 0);
+    const sender = this.safeSender(ctx && ctx.sender ? ctx.sender : {});
+    const text = clamp(ctx && typeof ctx.text === 'string' ? ctx.text : (ctx && typeof ctx.body === 'string' ? ctx.body : ''), this.messagePreviewLen);
 
-    this.logInfo('msg', `chatId=${chatId} isGroup=${isGroup} sender=${JSON.stringify(sender)} text=${JSON.stringify(text)}`, {
-      chatId,
-      isGroup: !!ctx.isGroup,
-      sender,
-    });
+    this.logInfo(
+      'msg',
+      `chatId=${chatId} isGroup=${isGroup} sender=${JSON.stringify(sender)} text=${JSON.stringify(text)}`,
+      { chatId, isGroup: !!(ctx && ctx.isGroup), sender }
+    );
   }
 
   onEvent(ctx) {
-    const ev = ctx.event || '';
+    const ev = (ctx && (ctx.event || ctx.type || '')) || '';
     const keys = Object.keys(ctx || {}).join(',');
     this.logInfo('event', `event=${ev} keys=${keys}`);
   }
@@ -355,6 +360,7 @@ class LogV2 {
 
     if (!this.enabled) {
       return {
+        onMessage: async function noop() {},
         onEvent: async function noop() {},
       };
     }
