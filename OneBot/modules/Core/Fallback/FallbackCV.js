@@ -1,5 +1,7 @@
 'use strict';
 
+const util = require('util');
+
 const FallbackGroupRouterV1 = require('./FallbackGroupRouterV1');
 const FallbackForwardTextV1 = require('./FallbackForwardTextV1');
 const FallbackForwardMediaV1 = require('./FallbackForwardMediaV1');
@@ -32,6 +34,11 @@ function toChatId(v) {
   return String(v || '').trim();
 }
 
+function asGroupId(v) {
+  const id = toChatId(v);
+  return id && id.endsWith('@g.us') ? id : '';
+}
+
 function rawType(raw) {
   if (!raw) return '';
   if (typeof raw.type === 'string') return raw.type;
@@ -56,10 +63,10 @@ function parseTicketId(text) {
 
 function stripTicket(text, ticketId) {
   const s = String(text || '').trim();
-  if (!s || !ticketId) return s;
-  const i = s.toUpperCase().indexOf(String(ticketId).toUpperCase());
-  if (i === 0) return s.slice(String(ticketId).length).trim();
-  return s;
+  if (!s) return s;
+  const escaped = String(ticketId || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const p = escaped ? new RegExp(escaped, 'ig') : TICKET_ID_PATTERN;
+  return s.replace(p, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function errCode(err) {
@@ -70,7 +77,26 @@ function errCode(err) {
   return '';
 }
 
-async function forwardAvInline(meta, toGroupId, raw, ticketId) {
+function errDetail(err) {
+  try {
+    if (!err) return '';
+    if (typeof err === 'string') return err;
+    const msg = err.message ? String(err.message) : '';
+    const stack = err.stack ? String(err.stack).split('\n')[0] : '';
+    const obj = util.inspect(err, { depth: 3, breakLength: 140, maxArrayLength: 20 });
+    return [msg, stack, obj].filter(Boolean).join(' | ');
+  } catch (_) {
+    return String(err || '');
+  }
+}
+
+function mediaSizeBytes(raw) {
+  const d = raw && raw._data ? raw._data : {};
+  const n = Number(d.size || d.fileSize || 0);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+async function forwardAvInline(meta, cfg, toGroupId, raw, ticketId) {
   const tId = String(ticketId || '');
   if (!toGroupId || !raw) {
     const msg = 'bug.forwardAv reason=bad_input ticketId=' + tId;
@@ -91,22 +117,56 @@ async function forwardAvInline(meta, toGroupId, raw, ticketId) {
     return { ok: false, reason: 'noDownloadMedia' };
   }
 
+  const t = rawType(raw);
+  const maxInlineMb = cfgInt(cfg, 'forwardAvInlineMaxMb', 15);
+  const maxInlineBytes = Math.max(1, maxInlineMb) * 1024 * 1024;
+  const sizeBytes = mediaSizeBytes(raw);
+
+  if (sizeBytes > 0 && sizeBytes > maxInlineBytes) {
+    meta.log('FallbackCV', 'warn.forwardAv size_exceeds_inline ticketId=' + tId + ' sizeBytes=' + String(sizeBytes) + ' maxInlineBytes=' + String(maxInlineBytes));
+    if (typeof raw.forward === 'function') {
+      try {
+        await raw.forward(toGroupId);
+        return { ok: true, mode: 'raw.forward' };
+      } catch (e) {
+        const detail = errDetail(e);
+        meta.log('FallbackCV', 'bug.forwardAv reason=rawForwardFail ticketId=' + tId + ' err=' + detail);
+      }
+    }
+  }
+
   let media = null;
   try {
     media = await raw.downloadMedia();
   } catch (e) {
     media = null;
-    const reason = e && e.message ? String(e.message) : String(e);
-    const msg = 'bug.forwardAv reason=downloadMediaFail ticketId=' + tId + ' err=' + reason;
+    const detail = errDetail(e);
+    const msg = 'bug.forwardAv reason=downloadMediaFail ticketId=' + tId + ' err=' + detail;
     meta.log('FallbackCV', msg);
   }
 
   if (media) {
     const options = {};
-    const t = rawType(raw);
     if (t === 'ptt' || t === 'voice' || t === 'audio') options.sendAudioAsVoice = true;
-    await outsend(toGroupId, media, options);
-    return { ok: true };
+    try {
+      await outsend(toGroupId, media, options);
+      return { ok: true };
+    } catch (e) {
+      const detail = errDetail(e);
+      meta.log('FallbackCV', 'bug.forwardAv reason=outsendFail ticketId=' + tId + ' err=' + detail);
+      return { ok: false, reason: 'outsendFail', detail: detail };
+    }
+  }
+
+  if (typeof raw.forward === 'function') {
+    try {
+      await raw.forward(toGroupId);
+      return { ok: true, mode: 'raw.forward' };
+    } catch (e) {
+      const detail = errDetail(e);
+      meta.log('FallbackCV', 'bug.forwardAv reason=rawForwardFail ticketId=' + tId + ' err=' + detail);
+      return { ok: false, reason: 'rawForwardFail', detail: detail };
+    }
   }
 
   meta.log('FallbackCV', 'bug.forwardAv reason=downloadMediaEmpty ticketId=' + tId);
@@ -124,7 +184,7 @@ module.exports = {
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    const controlGroupId = cfgStr(cfg, 'controlGroupId', '');
+    const controlGroupId = asGroupId(cfgStr(cfg, 'controlGroupId', ''));
     if (!controlGroupId) {
       meta.log(tag, 'disabled missing controlGroupId');
       return { onMessage: async () => {}, onEvent: async () => {} };
@@ -144,8 +204,13 @@ module.exports = {
       meta.log(tag, 'exec forward chatId=' + fromChatId + ' isGroup=' + (ctx && ctx.isGroup ? '1' : '0') + ' senderId=' + fromAuthorId + ' senderPhone=' + senderPhone);
       if (!fromChatId || !fromAuthorId) return;
 
-      const routeGroupId = FallbackGroupRouterV1.routeGroupId(meta, cfg, ctx);
+      const routeCandidate = FallbackGroupRouterV1.routeGroupId(meta, cfg, ctx);
+      const routed = asGroupId(routeCandidate);
+      const routeGroupId = routed || controlGroupId;
       if (!routeGroupId) return;
+      if (!routed) {
+        meta.log(tag, 'warn.route.invalid target=' + String(routeCandidate || '') + ' fallback=' + controlGroupId);
+      }
 
       const ticketRes = await TicketCoreV2.resolve(meta, cfg, fromChatId, fromAuthorId, ticketTtlMs);
       if (!ticketRes || !ticketRes.ok || !ticketRes.ticketId) {
@@ -167,9 +232,9 @@ module.exports = {
       const t = rawType(raw);
       try {
         if (isAvType(t) && raw && raw.hasMedia) {
-          const rr = await forwardAvInline(meta, routeGroupId, raw, ticketRes.ticketId);
+          const rr = await forwardAvInline(meta, cfg, routeGroupId, raw, ticketRes.ticketId);
           if (!rr || rr.ok !== true) {
-            meta.log(tag, 'bug.forward.av_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' reason=' + String(rr && rr.reason ? rr.reason : 'unknown'));
+            meta.log(tag, 'bug.forward.av_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' reason=' + String(rr && rr.reason ? rr.reason : 'unknown') + ' detail=' + String(rr && rr.detail ? rr.detail : ''));
           }
           return;
         }
@@ -180,7 +245,7 @@ module.exports = {
             text: ctx.text || '',
           });
           if (!rr || rr.ok !== true) {
-            meta.log(tag, 'bug.forward.media_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' reason=' + String(rr && rr.reason ? rr.reason : 'unknown'));
+            meta.log(tag, 'bug.forward.media_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' reason=' + String(rr && rr.reason ? rr.reason : 'unknown') + ' detail=' + String(rr && rr.detail ? rr.detail : ''));
           }
           return;
         }
@@ -193,7 +258,7 @@ module.exports = {
           meta.log(tag, 'bug.forward.text_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' reason=' + String(rr && rr.reason ? rr.reason : 'unknown'));
         }
       } catch (e) {
-        meta.log(tag, 'bug.forward.send_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' code=' + errCode(e) + ' reason=' + String(e && e.message ? e.message : e));
+        meta.log(tag, 'bug.forward.send_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' code=' + errCode(e) + ' reason=' + String(e && e.message ? e.message : e) + ' detail=' + errDetail(e));
       }
     }
 

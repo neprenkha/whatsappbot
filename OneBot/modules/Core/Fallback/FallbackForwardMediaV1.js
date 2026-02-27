@@ -1,5 +1,7 @@
 'use strict';
 
+const util = require('util');
+
 const SharedLog = require('../Shared/SharedLogV1');
 const SharedSafeSend = require('../Shared/SharedSafeSendV1');
 const TypeUtil = require('./FallbackTypeUtilV1');
@@ -10,6 +12,19 @@ function createLogger(meta, cfg) {
     debug: !!cfg.debug,
     trace: !!cfg.trace,
   });
+}
+
+function errDetail(err) {
+  try {
+    if (!err) return '';
+    if (typeof err === 'string') return err;
+    const msg = err.message ? String(err.message) : '';
+    const stack = err.stack ? String(err.stack).split('\n')[0] : '';
+    const obj = util.inspect(err, { depth: 3, breakLength: 140, maxArrayLength: 20 });
+    return [msg, stack, obj].filter(Boolean).join(' | ');
+  } catch (_) {
+    return String(err || '');
+  }
 }
 
 function getFileName(raw) {
@@ -24,8 +39,9 @@ async function tryDownloadMedia(raw, log) {
     if (!m) return { ok: false, reason: 'downloadNull' };
     return { ok: true, media: m };
   } catch (e) {
-    log.warn('downloadMedia failed ' + (e && e.message ? e.message : e));
-    return { ok: false, reason: 'downloadFail' };
+    const detail = errDetail(e);
+    log.warn('downloadMedia failed ' + detail);
+    return { ok: false, reason: 'downloadFail', detail: detail };
   }
 }
 
@@ -59,17 +75,23 @@ async function handle(meta, cfg, ticketCtx, ctx) {
   const dl = await tryDownloadMedia(raw, log);
   if (dl.ok) {
     log.trace(`media downloaded, forwarding to controlGroup=${ticketCtx.controlGroupId}`);
-    
+
     const sendOpt = { tag: 'fallback.in.media' };
     if (caption) sendOpt.caption = caption;
 
-    const r = await SharedSafeSend.send(log, outsend, ticketCtx.controlGroupId, dl.media, sendOpt);
-    if (!r.ok) {
-      log.error(`send media failed to controlGroup=${ticketCtx.controlGroupId} reason=${r.reason || ''}`);
-    } else {
-      log.trace(`media forwarded successfully to controlGroup=${ticketCtx.controlGroupId}`);
+    try {
+      const r = await SharedSafeSend.send(log, outsend, ticketCtx.controlGroupId, dl.media, sendOpt);
+      if (!r.ok) {
+        log.error(`send media failed to controlGroup=${ticketCtx.controlGroupId} reason=${r.reason || ''}`);
+      } else {
+        log.trace(`media forwarded successfully to controlGroup=${ticketCtx.controlGroupId}`);
+      }
+      return r;
+    } catch (e) {
+      const detail = errDetail(e);
+      log.error(`send media exception controlGroup=${ticketCtx.controlGroupId} err=${detail}`);
+      return { ok: false, reason: 'sendException', detail: detail };
     }
-    return r;
   }
 
   // fallback: forward raw without caption
@@ -80,8 +102,9 @@ async function handle(meta, cfg, ticketCtx, ctx) {
       log.trace(`raw.forward success to controlGroup=${ticketCtx.controlGroupId}`);
       return { ok: true, mode: 'forward' };
     } catch (e) {
-      log.warn(`raw.forward failed to controlGroup=${ticketCtx.controlGroupId} err=${e && e.message ? e.message : e}`);
-      return { ok: false, reason: 'forwardFail' };
+      const detail = errDetail(e);
+      log.warn(`raw.forward failed to controlGroup=${ticketCtx.controlGroupId} err=${detail}`);
+      return { ok: false, reason: 'forwardFail', detail: detail };
     }
   }
 
