@@ -27,7 +27,7 @@ module.exports.init = async function init(meta) {
   const tx = Transport.create(meta, cfg.transportService);
   const pump = Pump.create(meta, cfg, store, tx);
 
-  const sendFn = Service.createSend(meta, cfg, store, pump, Normalize);
+  const sendFn = Service.createSend(meta, cfg, store, pump, Normalize, tx);
 
   if (typeof meta.registerService === 'function') {
     meta.registerService(cfg.serviceName, sendFn);

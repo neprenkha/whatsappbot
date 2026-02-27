@@ -43,7 +43,7 @@ function create(meta, cfg, store, transport) {
 
         var res = null;
         try {
-          res = await transport.sendDirect(item.chatId, item.text, item.options || {});
+          res = await transport.sendDirect(item.chatId, item.content, item.options || {});
         } catch (e) {
           res = { ok: false, reason: e && e.message ? String(e.message) : 'error' };
         }
@@ -51,7 +51,7 @@ function create(meta, cfg, store, transport) {
         if (!res || res.ok === false) {
           // Keep item for retry later.
           // Only log when there is an actual failure.
-          log('blocked chatId=' + item.chatId + ' reason=' + (res && res.reason ? res.reason : 'unknown'));
+          log('blocked chatId=' + item.chatId + ' reason=' + (res && res.reason ? res.reason : 'unknown') + ' detail=' + (res && res.detail ? res.detail : 'no_detail'));
           break;
         }
 

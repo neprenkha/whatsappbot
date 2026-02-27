@@ -11,7 +11,17 @@ function toInt(v, d) {
   return Number.isFinite(n) ? n : d;
 }
 
-function createSend(meta, cfg, store, pump, Normalize) {
+function payloadFingerprint(payload) {
+  if (typeof payload === 'string') return payload;
+  if (payload === undefined || payload === null) return '';
+  if (typeof payload === 'object') {
+    const t = payload.mimetype || payload.type || payload.filename || payload.fileName || payload.data || '';
+    return '[media:' + String(t).slice(0, 120) + ']';
+  }
+  return String(payload);
+}
+
+function createSend(meta, cfg, store, pump, Normalize, transport) {
   const dedupeMs = Math.max(0, toInt(cfg.dedupeMs, 6000));
   const dedupeMax = Math.max(1000, toInt(cfg.dedupeMax, 8000));
   const dedupeLog = !!cfg.dedupeLog;
@@ -29,57 +39,66 @@ function createSend(meta, cfg, store, pump, Normalize) {
       for (const k of seen.keys()) {
         if (i >= extra) break;
         seen.delete(k);
-        i++;
+        i += 1;
       }
     }
   }
 
-  function shouldDrop(id, body) {
+  function shouldDrop(id, payload) {
     if (!dedupeMs) return false;
     const now = Date.now();
 
-    tick++;
+    tick += 1;
     if (tick % 50 === 0 || seen.size > dedupeMax) sweep(now);
 
-    const key = id + '|' + sha1(body);
+    const key = id + '|' + sha1(payloadFingerprint(payload));
     const exp = seen.get(key);
     if (exp && exp > now) return true;
 
-    // only mark as seen when we decide to enqueue (success path handles it)
     return false;
   }
 
-  function markSent(id, body) {
+  function markQueued(id, payload) {
     if (!dedupeMs) return;
     const now = Date.now();
-    const key = id + '|' + sha1(body);
+    const key = id + '|' + sha1(payloadFingerprint(payload));
     seen.set(key, now + dedupeMs);
   }
 
-  return async function send(chatId, text, options = {}) {
+  return async function send(chatId, payload, options = {}) {
     const id = Normalize.normalize(chatId);
-    if (!id) return false;
+    if (!id) return { ok: false, reason: 'chatid.empty', detail: 'empty chatId after normalization' };
 
-    const body = (typeof text === 'string') ? text : String(text || '');
-
-    if (shouldDrop(id, body)) {
-      if (dedupeLog) {
-        try { meta.log(cfg.logPrefix || 'SendQueue', `dedupe drop chatId=${id} len=${body.length}`); } catch (_) {}
-      }
-      return true; // treat as already-sent (prevents upstream retry/fallback)
+    if (!transport || typeof transport.isReady !== 'function' || !transport.isReady()) {
+      return { ok: false, reason: 'transport.missing', detail: 'sendqueue transport service unavailable' };
     }
 
-    const item = { chatId: id, text: body, options: options || {} };
+    if (typeof payload === 'string' && payload.trim().length === 0) {
+      return { ok: false, reason: 'payload.empty', detail: 'text payload is empty' };
+    }
+
+    if (payload === undefined || payload === null) {
+      return { ok: false, reason: 'payload.invalid', detail: 'payload is null or undefined' };
+    }
+
+    if (shouldDrop(id, payload)) {
+      if (dedupeLog) {
+        try { meta.log(cfg.logPrefix || 'SendQueue', 'dedupe drop chatId=' + id); } catch (_) {}
+      }
+      return { ok: true, deduped: true };
+    }
+
+    const item = { chatId: id, content: payload, options: options || {} };
 
     const r = store.enqueue(item);
     if (!r.ok) {
-      try { meta.log(cfg.logPrefix || 'SendQueue', `drop chatId=${id} reason=${r.reason} max=${cfg.maxQueue}`); } catch (_) {}
-      return false;
+      try { meta.log(cfg.logPrefix || 'SendQueue', 'drop chatId=' + id + ' reason=' + r.reason + ' max=' + cfg.maxQueue); } catch (_) {}
+      return { ok: false, reason: r.reason || 'queue.full', detail: 'sendqueue enqueue failed' };
     }
 
-    markSent(id, body);
+    markQueued(id, payload);
     pump.kick();
-    return true;
+    return { ok: true, queued: true, size: r.size };
   };
 }
 

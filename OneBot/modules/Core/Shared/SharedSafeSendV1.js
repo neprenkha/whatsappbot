@@ -8,6 +8,31 @@ function toCsvList(csv) {
     .filter((s) => s.length > 0);
 }
 
+function normalizeResult(res, senderName) {
+  if (res && typeof res === 'object' && Object.prototype.hasOwnProperty.call(res, 'ok')) {
+    const out = Object.assign({}, res);
+    if (!out.sender && senderName) out.sender = senderName;
+    if (!out.reason && out.ok === false) out.reason = 'send_failed';
+    if (!out.detail && out.ok === false) out.detail = 'send returned ok=false';
+    return out;
+  }
+  return { ok: true, sender: senderName || '', result: res };
+}
+
+function toErrorObject(err, senderName) {
+  const reason = String((err && (err.code || err.message || err.reason)) || 'send_failed');
+  const detail = String((err && (err.stack || err.message || err.reason || err.code)) || 'send_failed_no_detail');
+  return {
+    ok: false,
+    sender: senderName || '',
+    reason,
+    detail,
+    retryable: err && err.retryable === true ? 1 : 0,
+    waitMs: err && typeof err.waitMs === 'number' ? err.waitMs : 0,
+    error: err || null,
+  };
+}
+
 function pickSend(meta, preferCsv) {
   const prefer = toCsvList(preferCsv);
   const out = [];
@@ -54,7 +79,7 @@ async function safeSend(meta, preferCsv, doSendFn, opts, log) {
   for (const it of senders) {
     try {
       const res = await doSendFn(it.sender, it.name);
-      return { ok: true, sender: it.name, res };
+      return normalizeResult(res, it.name);
     } catch (e) {
       lastErr = e;
       if (log && log.error) {
@@ -74,33 +99,52 @@ async function send(log, senderOrMeta, chatId, payload, opts) {
 
   // Pattern A: sender function or sender object passed directly
   if (typeof senderOrMeta === 'function' || (senderOrMeta && typeof senderOrMeta === 'object' && senderOrMeta !== null && !senderOrMeta.services)) {
-    const res = await invokeSender(senderOrMeta, chatId, payload, o);
-    if (log && log.info) {
-      const len = typeof payload === 'string' ? payload.length : 0;
-      log.info('sent', { chatId, len });
+    try {
+      const res = await invokeSender(senderOrMeta, chatId, payload, o);
+      const out = normalizeResult(res, 'direct');
+      if (log && log.info) {
+        const len = typeof payload === 'string' ? payload.length : 0;
+        log.info('sent', { chatId, len, ok: out.ok ? 1 : 0 });
+      }
+      return out;
+    } catch (e) {
+      const out = toErrorObject(e, 'direct');
+      if (log && log.error) {
+        const len = typeof payload === 'string' ? payload.length : 0;
+        log.error('send failed reason=' + out.reason + ' detail=' + out.detail + ' len=' + len);
+      }
+      return out;
     }
-    return res;
   }
 
   // Pattern B: meta passed (pick sender from prefer list)
   const meta = senderOrMeta;
   const prefer = o.sendPrefer || 'sendout,outsend,send,transport';
 
-  const r = await safeSend(
-    meta,
-    prefer,
-    async (sender) => {
-      return await invokeSender(sender, chatId, payload, o);
-    },
-    o,
-    log
-  );
+  try {
+    const r = await safeSend(
+      meta,
+      prefer,
+      async (sender) => {
+        return await invokeSender(sender, chatId, payload, o);
+      },
+      o,
+      log
+    );
 
-  if (log && log.info) {
-    const len = typeof payload === 'string' ? payload.length : 0;
-    log.info('sent', { chatId, sender: r.sender, len });
+    if (log && log.info) {
+      const len = typeof payload === 'string' ? payload.length : 0;
+      log.info('sent', { chatId, sender: r.sender, len, ok: r.ok ? 1 : 0 });
+    }
+    return r;
+  } catch (e) {
+    const out = toErrorObject(e, 'meta');
+    if (log && log.error) {
+      const len = typeof payload === 'string' ? payload.length : 0;
+      log.error('send failed reason=' + out.reason + ' detail=' + out.detail + ' len=' + len);
+    }
+    return out;
   }
-  return r;
 }
 
 module.exports = {
