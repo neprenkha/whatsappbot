@@ -30,6 +30,13 @@ function cfgBool(cfg, key, defVal) {
   return t === '1' || t === 'true' || t === 'yes' || t === 'on';
 }
 
+function splitCsv(v) {
+  return String(v || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function toChatId(v) {
   return String(v || '').trim();
 }
@@ -51,8 +58,6 @@ function isAvType(t) {
   return x === 'audio' || x === 'video' || x === 'ptt' || x === 'voice';
 }
 
-// Ticket id format spec from SharedTicketCoreV2: YYMMT + 7 digits.
-// Example: 2601T0000001
 const TICKET_ID_PATTERN = /\b\d{4}T\d{7}\b/;
 
 function parseTicketId(text) {
@@ -77,6 +82,12 @@ function errCode(err) {
   return '';
 }
 
+function messageOf(err) {
+  if (!err) return '';
+  if (typeof err === 'string') return err;
+  return String(err.message || err.code || err.reason || '');
+}
+
 function errDetail(err) {
   try {
     if (!err) return '';
@@ -96,25 +107,61 @@ function mediaSizeBytes(raw) {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+function isRetryableSendError(err) {
+  if (err && err.retryable === true) return true;
+  const m = messageOf(err).toLowerCase();
+  if (!m) return false;
+  return (
+    m.indexOf('promise was collected') >= 0 ||
+    m.indexOf('execution context was destroyed') >= 0 ||
+    m.indexOf('target closed') >= 0 ||
+    m.indexOf('session closed') >= 0 ||
+    m.indexOf('protocol error') >= 0 ||
+    m.indexOf('transport.send_failed') >= 0 ||
+    m.indexOf('timeout') >= 0 ||
+    m.indexOf('network') >= 0
+  );
+}
+
+function waitMsFrom(err, dflt) {
+  if (err && typeof err.waitMs === 'number' && err.waitMs > 0) return err.waitMs;
+  return dflt;
+}
+
+function pickSender(meta, preferCsv) {
+  const names = splitCsv(preferCsv || 'outsend,sendout,transport,send');
+  for (const name of names) {
+    const svc = meta.getService(name);
+    if (typeof svc === 'function') return { name, fn: svc };
+    if (svc && typeof svc.sendDirect === 'function') {
+      return { name, fn: async (chatId, payload, opts) => await svc.sendDirect(chatId, payload, opts || {}) };
+    }
+    if (svc && typeof svc.send === 'function') {
+      return { name, fn: async (chatId, payload, opts) => await svc.send(chatId, payload, opts || {}) };
+    }
+  }
+  return { name: '', fn: null };
+}
+
 async function forwardAvInline(meta, cfg, toGroupId, raw, ticketId) {
   const tId = String(ticketId || '');
   if (!toGroupId || !raw) {
     const msg = 'bug.forwardAv reason=bad_input ticketId=' + tId;
     meta.log('FallbackCV', msg);
-    return { ok: false, reason: 'bad_input' };
-  }
-
-  const outsend = meta.getService('outsend');
-  if (typeof outsend !== 'function') {
-    const msg = 'bug.forwardAv reason=missingOutsend ticketId=' + tId;
-    meta.log('FallbackCV', msg);
-    return { ok: false, reason: 'missingOutsend' };
+    return { ok: false, reason: 'bad_input', detail: 'toGroupId/raw missing' };
   }
 
   if (typeof raw.downloadMedia !== 'function') {
     const msg = 'bug.forwardAv reason=noDownloadMedia ticketId=' + tId;
     meta.log('FallbackCV', msg);
-    return { ok: false, reason: 'noDownloadMedia' };
+    return { ok: false, reason: 'noDownloadMedia', detail: 'raw.downloadMedia missing' };
+  }
+
+  const sender = pickSender(meta, cfgStr(cfg, 'sendPrefer', 'outsend,sendout,transport,send'));
+  if (typeof sender.fn !== 'function') {
+    const msg = 'bug.forwardAv reason=missingSender ticketId=' + tId;
+    meta.log('FallbackCV', msg);
+    return { ok: false, reason: 'missingSender', detail: 'no sender from sendPrefer' };
   }
 
   const t = rawType(raw);
@@ -127,10 +174,10 @@ async function forwardAvInline(meta, cfg, toGroupId, raw, ticketId) {
     if (typeof raw.forward === 'function') {
       try {
         await raw.forward(toGroupId);
-        return { ok: true, mode: 'raw.forward' };
+        return { ok: true, mode: 'raw.forward', svc: 'raw.forward' };
       } catch (e) {
         const detail = errDetail(e);
-        meta.log('FallbackCV', 'bug.forwardAv reason=rawForwardFail ticketId=' + tId + ' err=' + detail);
+        meta.log('FallbackCV', 'bug.forwardAv reason=rawForwardFail ticketId=' + tId + ' target=' + toGroupId + ' svc=raw.forward retryable=' + (isRetryableSendError(e) ? '1' : '0') + ' waitMs=' + String(waitMsFrom(e, 0)) + ' err=' + detail);
       }
     }
   }
@@ -141,36 +188,68 @@ async function forwardAvInline(meta, cfg, toGroupId, raw, ticketId) {
   } catch (e) {
     media = null;
     const detail = errDetail(e);
-    const msg = 'bug.forwardAv reason=downloadMediaFail ticketId=' + tId + ' err=' + detail;
+    const msg = 'bug.forwardAv reason=downloadMediaFail ticketId=' + tId + ' target=' + toGroupId + ' svc=' + sender.name + ' retryable=' + (isRetryableSendError(e) ? '1' : '0') + ' waitMs=' + String(waitMsFrom(e, 0)) + ' err=' + detail;
     meta.log('FallbackCV', msg);
   }
 
   if (media) {
-    const options = {};
+    const options = {
+      manualReply: cfgBool(cfg, 'forwardAvManualReply', true) ? 1 : 0,
+      allowOutsideWindow: cfgBool(cfg, 'forwardAvAllowOutsideWindow', true) ? 1 : 0,
+      bypassRateLimit: cfgBool(cfg, 'forwardAvBypassRateLimit', false) ? 1 : 0,
+    };
     if (t === 'ptt' || t === 'voice' || t === 'audio') options.sendAudioAsVoice = true;
-    try {
-      await outsend(toGroupId, media, options);
-      return { ok: true };
-    } catch (e) {
-      const detail = errDetail(e);
-      meta.log('FallbackCV', 'bug.forwardAv reason=outsendFail ticketId=' + tId + ' err=' + detail);
-      return { ok: false, reason: 'outsendFail', detail: detail };
+
+    const retryMax = Math.max(1, cfgInt(cfg, 'forwardAvRetryMax', 3));
+    const retryBaseMs = Math.max(200, cfgInt(cfg, 'forwardAvRetryBaseMs', 1200));
+    const retryMaxMs = Math.max(retryBaseMs, cfgInt(cfg, 'forwardAvRetryMaxMs', 6000));
+
+    for (let attempt = 1; attempt <= retryMax; attempt++) {
+      try {
+        const sendRes = await sender.fn(toGroupId, media, options);
+        if (sendRes && sendRes.ok === false) {
+          const reason = String(sendRes.reason || sendRes.code || 'send_failed');
+          const detail = String(sendRes.detail || sendRes.message || 'sender returned ok=false');
+          const retryable = sendRes.retryable === true ? 1 : 0;
+          const waitMs = typeof sendRes.waitMs === 'number' && sendRes.waitMs > 0 ? sendRes.waitMs : 0;
+          meta.log('FallbackCV', 'bug.forwardAv reason=' + reason + ' ticketId=' + tId + ' target=' + toGroupId + ' svc=' + sender.name + ' retryable=' + String(retryable) + ' waitMs=' + String(waitMs) + ' detail=' + detail + ' attempt=' + String(attempt));
+          if (!retryable || attempt >= retryMax) {
+            return { ok: false, reason, detail, svc: sender.name, retryable, waitMs };
+          }
+          const sleepMs = Math.min(retryMaxMs, waitMs > 0 ? waitMs : (retryBaseMs * Math.pow(2, attempt - 1)));
+          await new Promise((resolve) => setTimeout(resolve, sleepMs));
+          continue;
+        }
+        return { ok: true, svc: sender.name, attempt: attempt };
+      } catch (e) {
+        const retryable = isRetryableSendError(e);
+        const detail = errDetail(e);
+        const waitMs = waitMsFrom(e, Math.min(retryMaxMs, retryBaseMs * Math.pow(2, attempt - 1)));
+        const reason = errCode(e) || messageOf(e) || 'outsendFail';
+        meta.log('FallbackCV', 'bug.forwardAv reason=' + reason + ' ticketId=' + tId + ' target=' + toGroupId + ' svc=' + sender.name + ' retryable=' + (retryable ? '1' : '0') + ' waitMs=' + String(waitMs) + ' detail=' + detail + ' attempt=' + String(attempt));
+        if (!retryable || attempt >= retryMax) {
+          return { ok: false, reason, detail, svc: sender.name, retryable: retryable ? 1 : 0, waitMs };
+        }
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+      }
     }
   }
 
   if (typeof raw.forward === 'function') {
     try {
       await raw.forward(toGroupId);
-      return { ok: true, mode: 'raw.forward' };
+      return { ok: true, mode: 'raw.forward', svc: 'raw.forward' };
     } catch (e) {
       const detail = errDetail(e);
-      meta.log('FallbackCV', 'bug.forwardAv reason=rawForwardFail ticketId=' + tId + ' err=' + detail);
-      return { ok: false, reason: 'rawForwardFail', detail: detail };
+      const retryable = isRetryableSendError(e);
+      const waitMs = waitMsFrom(e, 0);
+      meta.log('FallbackCV', 'bug.forwardAv reason=rawForwardFail ticketId=' + tId + ' target=' + toGroupId + ' svc=raw.forward retryable=' + (retryable ? '1' : '0') + ' waitMs=' + String(waitMs) + ' detail=' + detail);
+      return { ok: false, reason: 'rawForwardFail', detail: detail, svc: 'raw.forward', retryable: retryable ? 1 : 0, waitMs };
     }
   }
 
-  meta.log('FallbackCV', 'bug.forwardAv reason=downloadMediaEmpty ticketId=' + tId);
-  return { ok: false, reason: 'downloadFail' };
+  meta.log('FallbackCV', 'bug.forwardAv reason=downloadMediaEmpty ticketId=' + tId + ' target=' + toGroupId + ' svc=' + sender.name + ' retryable=0 waitMs=0 detail=downloadMedia returned empty');
+  return { ok: false, reason: 'downloadFail', detail: 'downloadMedia returned empty', svc: sender.name, retryable: 0, waitMs: 0 };
 }
 
 module.exports = {
@@ -234,7 +313,7 @@ module.exports = {
         if (isAvType(t) && raw && raw.hasMedia) {
           const rr = await forwardAvInline(meta, cfg, routeGroupId, raw, ticketRes.ticketId);
           if (!rr || rr.ok !== true) {
-            meta.log(tag, 'bug.forward.av_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' reason=' + String(rr && rr.reason ? rr.reason : 'unknown') + ' detail=' + String(rr && rr.detail ? rr.detail : ''));
+            meta.log(tag, 'bug.forward.av_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' svc=' + String(rr && rr.svc ? rr.svc : '') + ' retryable=' + String(rr && rr.retryable ? rr.retryable : 0) + ' waitMs=' + String(rr && rr.waitMs ? rr.waitMs : 0) + ' reason=' + String(rr && rr.reason ? rr.reason : 'unknown') + ' detail=' + String(rr && rr.detail ? rr.detail : ''));
           }
           return;
         }
@@ -245,7 +324,7 @@ module.exports = {
             text: ctx.text || '',
           });
           if (!rr || rr.ok !== true) {
-            meta.log(tag, 'bug.forward.media_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' reason=' + String(rr && rr.reason ? rr.reason : 'unknown') + ' detail=' + String(rr && rr.detail ? rr.detail : ''));
+            meta.log(tag, 'bug.forward.media_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' svc=' + String(rr && rr.svc ? rr.svc : '') + ' retryable=' + String(rr && rr.retryable ? rr.retryable : 0) + ' waitMs=' + String(rr && rr.waitMs ? rr.waitMs : 0) + ' reason=' + String(rr && rr.reason ? rr.reason : 'unknown') + ' detail=' + String(rr && rr.detail ? rr.detail : ''));
           }
           return;
         }
@@ -258,7 +337,7 @@ module.exports = {
           meta.log(tag, 'bug.forward.text_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' reason=' + String(rr && rr.reason ? rr.reason : 'unknown'));
         }
       } catch (e) {
-        meta.log(tag, 'bug.forward.send_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' code=' + errCode(e) + ' reason=' + String(e && e.message ? e.message : e) + ' detail=' + errDetail(e));
+        meta.log(tag, 'bug.forward.send_failed ticketId=' + ticketRes.ticketId + ' target=' + routeGroupId + ' code=' + errCode(e) + ' reason=' + String(e && e.message ? e.message : e));
       }
     }
 

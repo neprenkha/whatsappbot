@@ -30,6 +30,13 @@ function toStr(v, defVal) {
   return s ? s : defVal;
 }
 
+function splitCsv(v) {
+  return String(v || '')
+    .split(',')
+    .map((x) => String(x || '').trim())
+    .filter(Boolean);
+}
+
 function ensureDir(dir) {
   try { fs.mkdirSync(dir, { recursive: true }); } catch {}
 }
@@ -150,6 +157,8 @@ module.exports.init = async function init(meta) {
   const enabled = toBool(meta.implConf.enabled, true);
 
   const enforceWindows = toBool(meta.implConf.enforceWindows, true);
+  const windowBypassGroupChats = toBool(meta.implConf.windowBypassGroupChats, false);
+  const windowBypassChatIds = new Set(splitCsv(meta.implConf.windowBypassChatIds || ''));
 
   const dailyMaxGlobal = Math.max(0, toInt(meta.implConf.dailyMaxGlobal, 0));
   const dailyMaxPerChat = Math.max(0, toInt(meta.implConf.dailyMaxPerChat, 0));
@@ -196,8 +205,10 @@ module.exports.init = async function init(meta) {
     ensureDir(dataDirAbs);
     const raw = safeReadText(stateFileAbs);
     const obj = safeJsonParse(raw, null);
-    if (obj && typeof obj === 'object') return obj;
-    return null;
+    if (!obj || typeof obj !== 'object') return null;
+    if (!obj.global || typeof obj.global !== 'object') obj.global = { sent: 0, burst: [] };
+    if (!obj.chats || typeof obj.chats !== 'object') obj.chats = {};
+    return obj;
   }
 
   function readWindows(confObj) {
@@ -267,8 +278,13 @@ module.exports.init = async function init(meta) {
     return state.chats[id];
   }
 
-  function checkWindow(minNow) {
+  function checkWindow(minNow, chatId) {
     if (!enforceWindows) return { ok: true };
+
+    const id = String(chatId || '').trim();
+    if (id && windowBypassChatIds.has(id)) return { ok: true };
+    if (windowBypassGroupChats && id.endsWith('@g.us')) return { ok: true };
+
     if (!windows.length) return { ok: true };
 
     for (const w of windows) {
@@ -345,7 +361,7 @@ module.exports.init = async function init(meta) {
       chat.lastSeenAtMs = n;
 
       // windows
-      const a = checkWindow(minNow);
+      const a = checkWindow(minNow, id);
       if (!a.ok) return a;
 
       // gap
@@ -414,6 +430,8 @@ module.exports.init = async function init(meta) {
         dateKey,
         minNow,
         windows: windows.map((w) => ({ ...w })),
+        windowBypassGroupChats,
+        windowBypassChatIds: Array.from(windowBypassChatIds),
         globalSent: Number(state.global.sent || 0),
         chats: Object.keys(state.chats || {}).length,
       };
@@ -429,6 +447,6 @@ module.exports.init = async function init(meta) {
   const { dateKey } = computeLocal();
   resetIfNewDay(dateKey);
 
-  log(`ready enabled=${enabled ? 1 : 0} windows=${windows.length} state=${stateFileAbs}`);
+  log(`ready enabled=${enabled ? 1 : 0} windows=${windows.length} bypassGroup=${windowBypassGroupChats ? 1 : 0} bypassChatIds=${windowBypassChatIds.size} state=${stateFileAbs}`);
   return { onEvent: async () => {}, onMessage: async () => {} };
 };
