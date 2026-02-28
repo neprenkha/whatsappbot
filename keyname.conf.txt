@@ -1,0 +1,375 @@
+ONEBOT CONF KEYS AUDIT (from pasted .conf only)
+Generated: 2026-01-11
+Scope:
+- OneData/bots/ONEBOT/config/modules/Core/*
+- OneData/bots/ONEBOT/config/modules/Core/Impl/*
+- OneData/bots/ONEBOT/config/modules/Core/Shared/*
+Note:
+- This list is based only on the .conf contents provided in chat.
+- Canonical/deprecated guidance follows templateconf.txt + templatemodule.txt (LOCKED).
+
+============================================================
+A) ALL UNIQUE .CONF KEYS (DEDUPED) - 110 KEYS
+============================================================
+accessService
+allowAddInDm
+allowInDm
+allowInGroups
+allowStickyReply
+baseSend
+batchMax
+botName
+bugLog
+burstMaxGlobal
+burstMaxPerChat
+burstMs
+burstWindowMs
+bypassChatIds
+captureUnhandled
+cmdGroup
+cmdHelp
+cmdPing
+cmdRestart
+cmdStatus
+commandService
+consoleEnabled
+consoleLevel
+consoleMsgPreviewChars
+consoleShowMsgMeta
+controllers
+dailyMaxGlobal
+dailyMaxPerChat
+dataDirRel
+debug
+debugEnabled
+debugLog
+debugToFile
+dedupeLog
+dedupeMax
+dedupeMs
+dedupeSec
+delayMs
+detailLog
+dir
+dropEmptySystem
+dropFromMe
+dropStatusBroadcast
+dueBatchMax
+enabled
+exitCode
+fallbackGroupChatId
+fallbackGroupId
+feedTag
+file
+fileEnabled
+fileLevel
+fileMode
+fileName
+filePrefix
+groupId
+hashForCommands
+hashForFromMe
+id
+idleMs
+ignoreEmpty
+implConfig
+implFile
+includeEvents
+includeMessages
+jobsFileName
+locale
+lockFileRel
+logDrops
+logEvents
+logMessages
+logsDir
+maxAttempts
+maxChatEntries
+maxJobs
+maxKeys
+maxQueue
+maxTextLen
+minGapMsPerChat
+minRoleRestart
+mode
+moduleLog
+msgBuffer
+msgBufferMax
+namespace
+persistDebounceMs
+prefix
+priority
+rateLimitService
+ratelimitService
+replyAudioAsVoice
+replyMediaDownloadTimeoutMs
+replyMediaGapMs
+replyMediaMaxTries
+replyMediaRetryBaseMs
+replyMediaRetryJitterMs
+replyMediaSendPrefer
+replyNoAccess
+replyStickyEnabled
+replyStickyMs
+replyVideoAsDocument
+requiredRole
+retryDelayMs
+rolesFileRel
+sendPrefer
+sendService
+service
+serviceName
+stateFileName
+stickyTtlSec
+store
+storeKey
+storeNs
+storeSpec
+stripExistingTimestamp
+subdir
+tapSendArgsMax
+tapSendEnabled
+tapSendServices
+targetGroupId
+ticketStore
+ticketStoreSpec
+ticketType
+tickMs
+timeLocale
+timeStyle
+timeZone
+tips
+tipsConfRel
+title
+trace
+traceEnabled
+traceLog
+traceToFile
+tz
+unknownControlGroupOnly
+unknownPassthroughDm
+unknownText
+window.1
+window.2
+workGroupId
+
+============================================================
+B) FUNCTION -> CANONICAL + DUPLICATES TABLE
+(Goal: group keys that represent the same function so you can choose 1 canonical)
+============================================================
+
+1) MODULE REGISTRATION (modules/Core/*.conf)
+Function: module registration metadata (Kernel loads modules)
+Canonical keys:
+- id
+- enabled
+- priority
+- file
+- config
+Duplicates: (none allowed)
+
+2) HUB POINTER (modules/Core/*Hub.conf)
+Function: choose implementation file + config for a module hub
+Canonical keys:
+- enabled
+- implFile
+- implConfig
+Duplicates:
+- implConf (deprecated; not in pasted keys but known drift risk)
+
+3) LOGGING SWITCHES (Impl/*CV.conf)
+Function: operational log (ready/state/major actions)
+Canonical: moduleLog
+Duplicates: (none)
+Function: warnings+errors
+Canonical: bugLog
+Duplicates: (none)
+Function: verbose debug (turn on only when debugging)
+Canonical: detailLog
+Duplicate1: debug
+Duplicate2: debugLog
+Duplicate3: debugEnabled
+Function: deep per-message trace
+Canonical: traceLog
+Duplicate1: trace
+Duplicate2: traceEnabled
+
+4) GROUP / CHAT TARGETS (routing)
+Function: control/inbox group id (Ops / main inbox)
+Canonical: controlGroupId   (NOTE: key not in the 110 list because it was not included in the final dedupe block earlier; it DOES exist in your configs and should be treated as canonical.)
+Duplicate1: fallbackGroupId
+Duplicate2: fallbackGroupChatId
+Duplicate3: groupId
+Duplicate4: targetGroupId
+Function: work group id (ONLY if truly separate concept)
+Canonical: workGroupId
+Duplicates: (none)
+
+5) SEND PIPELINE PREFERENCE / SERVICE NAMING
+Function: preferred send service order (CSV)
+Canonical: sendPrefer
+Duplicate1: sendService (discouraged for prefer lists; use only if meaning is truly "single service")
+Function: single service name (generic)
+Canonical: serviceName
+Duplicate1: service (deprecated)
+Function: OutboundGateway export service list (CSV)
+Canonical: services  (NOTE: key exists in your configs but was not included in the 110 block earlier; keep as canonical for OutboundGateway)
+Duplicates: (none)
+Function: OutboundGateway base send function/service
+Canonical: baseSend
+Duplicates: (none)
+Function: rate limit service name
+Canonical: ratelimitService
+Duplicate1: rateLimitService
+
+6) TICKET STORE (fallback tickets)
+Function: ticket store specification (where ticket state is saved)
+Canonical: ticketStoreSpec
+Duplicate1: storeSpec
+Duplicate2: ticketStore
+Function: ticket type label
+Canonical: ticketType
+Duplicates: (none)
+
+7) BURST / BUFFER WINDOW (album/collector)
+Function: burst window
+Canonical: burstMs
+Duplicates: (none)
+Function: message buffer max
+Canonical: msgBufferMax
+Duplicate1: msgBuffer (deprecated)
+Function: idle / quiet window (different concept)
+Canonical: idleMs
+Duplicates: (none)
+
+8) COMMON TIMERS
+Function: delay
+Canonical: delayMs
+Duplicates: (none)
+Function: tick
+Canonical: tickMs
+Duplicates: (none)
+Function: dedupe window (ms-based; outbound)
+Canonical: dedupeMs
+Duplicates: (none)
+Function: dedupe window (sec-based; inbound dedupe impl)
+Canonical: dedupeSec  (not a duplicate of dedupeMs; different module/unit)
+
+9) TIMEZONE
+Function: timezone name (single source of truth)
+Canonical: timeZone
+Duplicate1: tz (deprecated)
+Also related (not duplicates):
+- locale
+- timeStyle
+
+10) STORE / PERSISTENCE
+Function: filesystem directory (absolute/relative depends on module)
+Canonical: dir
+Duplicates: (none)
+Function: json namespace
+Canonical: namespace
+Duplicates: (none)
+Function: generic store spec (jsonstore:...)
+Canonical: store
+Duplicates: (none)
+WorkGroups store:
+- storeNs
+- storeKey
+Scheduler:
+- dataDirRel
+- jobsFileName
+RateLimit:
+- dataDirRel
+- stateFileName
+- persistDebounceMs
+
+11) INBOUND FILTER / DEDUPE
+InboundFilter keys:
+- dropStatusBroadcast
+- dropEmptySystem
+- dropFromMe
+InboundDedupe keys:
+- dedupeSec
+- maxKeys
+- logDrops
+- hashForFromMe
+- hashForCommands
+- debug (but prefer detailLog for standard logging)
+
+12) OUTBOUND QUEUE / LIMITS
+SendQueue:
+- serviceName
+- delayMs
+- maxQueue
+- batchMax
+- dedupeMs
+- dedupeMax
+- dedupeLog
+
+13) COMMANDS & UX
+Command:
+- prefix
+- allowInDm
+- allowInGroups
+- unknownText
+- unknownControlGroupOnly
+- unknownPassthroughDm
+Help:
+- cmdHelp
+Ping:
+- cmdPing
+SystemControl:
+- cmdRestart
+- cmdStatus
+- minRoleRestart
+- replyNoAccess
+WorkGroups:
+- cmdGroup
+BootAnnounce:
+- delayMs
+- botName
+- title
+- tips
+
+14) MEDIA REPLY (Fallback-specific)
+Function: reply media throttling
+- replyMediaGapMs
+- replyMediaDownloadTimeoutMs
+- replyMediaMaxTries
+- replyMediaRetryBaseMs
+- replyMediaRetryJitterMs
+Function: reply format
+- replyAudioAsVoice
+- replyVideoAsDocument
+Function: sticky reply
+- allowStickyReply
+- stickyTtlSec
+- replyStickyEnabled
+- replyStickyMs
+Function: per-path send prefer
+- replyMediaSendPrefer
+- forwardMediaSendPrefer
+
+15) LOG MODULE (LogCV.conf) extra keys (not duplicates)
+- consoleEnabled
+- fileEnabled
+- fileLevel
+- consoleLevel
+- mode
+- fileMode
+- filePrefix
+- fileName
+- logsDir
+- stripExistingTimestamp
+- timeLocale
+- logEvents
+- logMessages
+- captureUnhandled
+- tapSendEnabled
+- tapSendServices
+- tapSendArgsMax
+- traceToFile
+- debugToFile
+
+END OF FILE
