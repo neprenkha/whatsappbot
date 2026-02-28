@@ -20,9 +20,16 @@ function toStr(v, d) {
 
 function read(meta) {
   const c = (meta && meta.implConf) ? meta.implConf : {};
+
+  const configuredServiceName = toStr(c.serviceName, 'send');
+  const allowServiceOverride = toBool(c.allowServiceOverride, false);
+  const serviceName = allowServiceOverride ? configuredServiceName : 'send';
+
   return {
     enabled: toBool(c.enabled, true),
-    serviceName: toStr(c.serviceName, 'send'),
+    serviceName,
+    configuredServiceName,
+    allowServiceOverride,
     transportService: toStr(c.transportService, 'transport'),
     delayMs: Math.max(0, toInt(c.delayMs, 800)),
     maxQueue: Math.max(50, toInt(c.maxQueue, 2000)),

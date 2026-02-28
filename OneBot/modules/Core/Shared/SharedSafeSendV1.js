@@ -8,20 +8,29 @@ function toCsvList(csv) {
     .filter((s) => s.length > 0);
 }
 
-function normalizeResult(res, senderName) {
-  if (res && typeof res === 'object' && Object.prototype.hasOwnProperty.call(res, 'ok')) {
-    const out = Object.assign({}, res);
-    if (!out.sender && senderName) out.sender = senderName;
-    if (!out.reason && out.ok === false) out.reason = 'send_failed';
-    if (!out.detail && out.ok === false) out.detail = 'send returned ok=false';
-    return out;
+function normalizeSendResult(res, senderName) {
+  if (res === true) return { ok: true, sender: senderName || '', result: true };
+  if (res === false) return { ok: false, sender: senderName || '', reason: 'send_failed', detail: 'sender returned false' };
+
+  if (res && typeof res === 'object') {
+    if (Object.prototype.hasOwnProperty.call(res, 'ok')) {
+      const out = Object.assign({}, res);
+      if (!out.sender && senderName) out.sender = senderName;
+      if (out.ok === false) {
+        if (!out.reason) out.reason = 'send_failed';
+        if (!out.detail) out.detail = String(out.reason || 'send_failed');
+      }
+      return out;
+    }
+    return { ok: true, sender: senderName || '', result: res };
   }
+
   return { ok: true, sender: senderName || '', result: res };
 }
 
-function toErrorObject(err, senderName) {
+function toErrResult(err, senderName) {
   const reason = String((err && (err.code || err.message || err.reason)) || 'send_failed');
-  const detail = String((err && (err.stack || err.message || err.reason || err.code)) || 'send_failed_no_detail');
+  const detail = String((err && (err.stack || err.message || err.reason || err.code)) || 'send_failed_no_detail').split('\n')[0];
   return {
     ok: false,
     sender: senderName || '',
@@ -29,7 +38,6 @@ function toErrorObject(err, senderName) {
     detail,
     retryable: err && err.retryable === true ? 1 : 0,
     waitMs: err && typeof err.waitMs === 'number' ? err.waitMs : 0,
-    error: err || null,
   };
 }
 
@@ -79,7 +87,14 @@ async function safeSend(meta, preferCsv, doSendFn, opts, log) {
   for (const it of senders) {
     try {
       const res = await doSendFn(it.sender, it.name);
-      return normalizeResult(res, it.name);
+      const normalized = normalizeSendResult(res, it.name);
+      if (normalized.ok === true) return normalized;
+      lastErr = new Error(normalized.reason || 'send_failed');
+      lastErr.code = normalized.reason || 'send_failed';
+      lastErr.detail = normalized.detail || 'send failed';
+      if (log && log.error) {
+        log.error('send failed', { sender: it.name, err: String(normalized.reason || 'send_failed'), detail: String(normalized.detail || '') });
+      }
     } catch (e) {
       lastErr = e;
       if (log && log.error) {
@@ -101,17 +116,19 @@ async function send(log, senderOrMeta, chatId, payload, opts) {
   if (typeof senderOrMeta === 'function' || (senderOrMeta && typeof senderOrMeta === 'object' && senderOrMeta !== null && !senderOrMeta.services)) {
     try {
       const res = await invokeSender(senderOrMeta, chatId, payload, o);
-      const out = normalizeResult(res, 'direct');
+      const out = normalizeSendResult(res, 'direct');
       if (log && log.info) {
         const len = typeof payload === 'string' ? payload.length : 0;
         log.info('sent', { chatId, len, ok: out.ok ? 1 : 0 });
       }
+      if (out.ok === false && log && log.error) {
+        log.error('send failed reason=' + String(out.reason || 'send_failed') + ' detail=' + String(out.detail || ''));
+      }
       return out;
     } catch (e) {
-      const out = toErrorObject(e, 'direct');
+      const out = toErrResult(e, 'direct');
       if (log && log.error) {
-        const len = typeof payload === 'string' ? payload.length : 0;
-        log.error('send failed reason=' + out.reason + ' detail=' + out.detail + ' len=' + len);
+        log.error('send failed reason=' + out.reason + ' detail=' + out.detail);
       }
       return out;
     }
@@ -138,10 +155,9 @@ async function send(log, senderOrMeta, chatId, payload, opts) {
     }
     return r;
   } catch (e) {
-    const out = toErrorObject(e, 'meta');
+    const out = toErrResult(e, 'meta');
     if (log && log.error) {
-      const len = typeof payload === 'string' ? payload.length : 0;
-      log.error('send failed reason=' + out.reason + ' detail=' + out.detail + ' len=' + len);
+      log.error('send failed reason=' + out.reason + ' detail=' + out.detail);
     }
     return out;
   }

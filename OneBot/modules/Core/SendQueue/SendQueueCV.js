@@ -23,6 +23,10 @@ module.exports.init = async function init(meta) {
     return { onMessage: async () => {}, onEvent: async () => {} };
   }
 
+  if (!cfg.allowServiceOverride && cfg.configuredServiceName && cfg.configuredServiceName !== 'send') {
+    Config.log(meta, cfg, 'warn serviceName override ignored configured=' + cfg.configuredServiceName + ' effective=send');
+  }
+
   const store = Store.create(cfg.maxQueue);
   const tx = Transport.create(meta, cfg.transportService);
   const pump = Pump.create(meta, cfg, store, tx);
@@ -38,7 +42,7 @@ module.exports.init = async function init(meta) {
   Config.log(
     meta,
     cfg,
-    `ready service=${cfg.serviceName} delayMs=${cfg.delayMs} maxQueue=${cfg.maxQueue} batchMax=${cfg.batchMax} dedupeMs=${cfg.dedupeMs || 0}`
+    `ready service=${cfg.serviceName} delayMs=${cfg.delayMs} maxQueue=${cfg.maxQueue} batchMax=${cfg.batchMax} dedupeMs=${cfg.dedupeMs || 0} transportService=${cfg.transportService}`
   );
 
   return { onMessage: async () => {}, onEvent: async () => {} };

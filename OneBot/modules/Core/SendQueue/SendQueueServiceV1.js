@@ -15,10 +15,28 @@ function payloadFingerprint(payload) {
   if (typeof payload === 'string') return payload;
   if (payload === undefined || payload === null) return '';
   if (typeof payload === 'object') {
-    const t = payload.mimetype || payload.type || payload.filename || payload.fileName || payload.data || '';
+    const t = payload.mimetype || payload.type || payload.filename || payload.fileName || '';
     return '[media:' + String(t).slice(0, 120) + ']';
   }
   return String(payload);
+}
+
+function normalizePayload(payload) {
+  if (payload === undefined || payload === null) {
+    return { ok: false, reason: 'payload.invalid', detail: 'payload is null or undefined', value: null };
+  }
+
+  if (typeof payload === 'string') {
+    const body = payload.trim();
+    if (!body) return { ok: false, reason: 'payload.empty', detail: 'text payload is empty', value: null };
+    return { ok: true, value: body };
+  }
+
+  if (typeof payload === 'object') {
+    return { ok: true, value: payload };
+  }
+
+  return { ok: true, value: String(payload) };
 }
 
 function createSend(meta, cfg, store, pump, Normalize, transport) {
@@ -73,22 +91,21 @@ function createSend(meta, cfg, store, pump, Normalize, transport) {
       return { ok: false, reason: 'transport.missing', detail: 'sendqueue transport service unavailable' };
     }
 
-    if (typeof payload === 'string' && payload.trim().length === 0) {
-      return { ok: false, reason: 'payload.empty', detail: 'text payload is empty' };
+    const normalized = normalizePayload(payload);
+    if (!normalized.ok) {
+      return { ok: false, reason: normalized.reason, detail: normalized.detail };
     }
 
-    if (payload === undefined || payload === null) {
-      return { ok: false, reason: 'payload.invalid', detail: 'payload is null or undefined' };
-    }
+    const content = normalized.value;
 
-    if (shouldDrop(id, payload)) {
+    if (shouldDrop(id, content)) {
       if (dedupeLog) {
         try { meta.log(cfg.logPrefix || 'SendQueue', 'dedupe drop chatId=' + id); } catch (_) {}
       }
       return { ok: true, deduped: true };
     }
 
-    const item = { chatId: id, content: payload, options: options || {} };
+    const item = { chatId: id, content: content, options: options || {} };
 
     const r = store.enqueue(item);
     if (!r.ok) {
@@ -96,7 +113,7 @@ function createSend(meta, cfg, store, pump, Normalize, transport) {
       return { ok: false, reason: r.reason || 'queue.full', detail: 'sendqueue enqueue failed' };
     }
 
-    markQueued(id, payload);
+    markQueued(id, content);
     pump.kick();
     return { ok: true, queued: true, size: r.size };
   };
