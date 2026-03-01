@@ -1,0 +1,332 @@
+'use strict';
+
+const FallbackGroupRouterCV = require('./FallbackGroupRouterCV');
+const FallbackForwardTextCV = require('./FallbackForwardTextCV');
+const FallbackTicketCardCV = require('./FallbackTicketCardCV');
+const FallbackQuoteParseCV = require('./FallbackQuoteParseCV');
+const FallbackReplyRouterCV = require('./FallbackReplyRouterCV');
+const FallbackReplyTextCV = require('./FallbackReplyTextCV');
+
+function text(value) {
+  return String(value ?? '').trim();
+}
+
+function toBool(value) {
+  const s = text(value).toLowerCase();
+  return s === '1' || s === 'true' || s === 'yes' || s === 'on';
+}
+
+function toInt(value, fallback) {
+  const n = Number.parseInt(text(value), 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function parseStoreSpec(spec) {
+  const raw = text(spec);
+  const parts = raw.split(':');
+  if (parts.length < 2) return null;
+  const kind = text(parts[0]).toLowerCase();
+  const key = text(parts.slice(1).join(':'));
+  if (!kind || !key) return null;
+  return { kind, key };
+}
+
+function nowPeriodUTC() {
+  const d = new Date();
+  const yy = String(d.getUTCFullYear()).slice(-2);
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  return `${yy}${mm}`;
+}
+
+function buildCustomerLabel(ctx) {
+  return text(
+    (ctx && (ctx.pushName || ctx.senderName || ctx.authorName)) ||
+    (ctx && ctx.chatId) ||
+    ''
+  );
+}
+
+function messageTextFromCtx(ctx) {
+  return text(
+    (ctx && ctx.text) ||
+    (ctx && ctx.message && (ctx.message.body || ctx.message.caption)) ||
+    (ctx && ctx.raw && ctx.raw._data && (ctx.raw._data.body || ctx.raw._data.caption)) ||
+    ''
+  );
+}
+
+async function canAccess(access, ctx, roleName) {
+  const role = text(roleName);
+  if (!role || !access) return false;
+  if (typeof access.hasRole === 'function') return !!(await access.hasRole(ctx, role));
+  if (typeof access.isAllowed === 'function') return !!(await access.isAllowed(ctx, role));
+  if (typeof access.check === 'function') return !!(await access.check(ctx, role));
+  if (typeof access.meetsMinRole === 'function') return !!(await access.meetsMinRole(ctx, role));
+  return false;
+}
+
+module.exports = {
+  init: async (meta) => {
+    const tag = 'FallbackCV';
+    const cfg = meta && meta.implConf ? meta.implConf : {};
+
+    const required = [
+      'enabled',
+      'globalConfRel',
+      'ticketStoreSpec',
+      'ticketSeqKey',
+      'msgBufferMax',
+      'burstMs',
+      'ticketStatusOpen',
+      'ticketStatusClosed',
+      'ticketIdRegex',
+      'defaultGroupKey',
+      'forwardTextPrefixTemplate',
+      'forwardTextMaxLen',
+      'inboundAckTemplate',
+      'ticketCardTemplate',
+      'cmdReply',
+      'minRoleTicketReply',
+      'replyNoAccess',
+      'replyGroupOnly',
+      'replyNeedTicket',
+      'replyNeedText',
+      'replyTicketNotFound',
+      'replyTicketClosed',
+      'replyReplySent',
+      'moduleLog',
+      'bugLog',
+      'detailLog',
+      'traceLog',
+    ];
+
+    const missing = required.filter((k) => !text(cfg[k]));
+    const bugLog = toBool(cfg.bugLog);
+
+    if (missing.length) {
+      if (bugLog) meta.log(tag, `disabled missing_keys=${missing.join(',')}`);
+      return { onMessage: async () => {}, onEvent: async () => {} };
+    }
+
+    if (!toBool(cfg.enabled)) {
+      return { onMessage: async () => {}, onEvent: async () => {} };
+    }
+
+    if (text(cfg.inboundAckTemplate).includes('{TICKETID}')) {
+      if (bugLog) meta.log(tag, 'disabled inboundAckTemplate_must_not_include_ticketid');
+      return { onMessage: async () => {}, onEvent: async () => {} };
+    }
+
+    const globalConf = typeof meta.loadConfRel === 'function'
+      ? (meta.loadConfRel(text(cfg.globalConfRel)) || {})
+      : {};
+
+    const storeSpec = parseStoreSpec(cfg.ticketStoreSpec);
+    if (!storeSpec || storeSpec.kind !== 'jsonstore') {
+      if (bugLog) meta.log(tag, 'disabled invalid_ticketStoreSpec');
+      return { onMessage: async () => {}, onEvent: async () => {} };
+    }
+
+    const jsonstore = meta.getService('jsonstore');
+    const send = meta.getService('send');
+    const access = meta.getService('access');
+
+    if (!jsonstore || typeof jsonstore.open !== 'function') {
+      if (bugLog) meta.log(tag, 'disabled missing_jsonstore_service');
+      return { onMessage: async () => {}, onEvent: async () => {} };
+    }
+
+    if (typeof send !== 'function') {
+      if (bugLog) meta.log(tag, 'disabled missing_send_service');
+      return { onMessage: async () => {}, onEvent: async () => {} };
+    }
+
+    const store = jsonstore.open('core');
+    const ticketCard = await FallbackTicketCardCV.init(meta, cfg);
+
+    const burstMs = Math.max(1, toInt(cfg.burstMs, 1200));
+    const msgBufferMax = Math.max(1, toInt(cfg.msgBufferMax, 20));
+
+    const burstState = new Map();
+
+    async function loadTicketState() {
+      const raw = await store.get(storeSpec.key, { tickets: [] });
+      return Array.isArray(raw.tickets) ? raw.tickets : [];
+    }
+
+    async function saveTicketState(tickets) {
+      await store.set(storeSpec.key, { tickets });
+    }
+
+    async function nextTicketId() {
+      const period = nowPeriodUTC();
+      const seqRaw = await store.get(text(cfg.ticketSeqKey), { period: '', value: 0 });
+      const current = text(seqRaw.period) === period ? Number(seqRaw.value || 0) : 0;
+      const next = current + 1;
+      await store.set(text(cfg.ticketSeqKey), { period, value: next });
+      const seqDigits = 7;
+      return `${period}T${String(next).padStart(seqDigits, '0')}`;
+    }
+
+    function resolveTargetGroup(ctx) {
+      return FallbackGroupRouterCV.resolveTargetGroup(meta, cfg, globalConf, ctx);
+    }
+
+    function scheduleBurstFlush(chatId, ticketId) {
+      const key = `${chatId}::${ticketId}`;
+      const current = burstState.get(key);
+      if (!current) return;
+
+      if (current.timer) clearTimeout(current.timer);
+
+      current.timer = setTimeout(async () => {
+        try {
+          const entry = burstState.get(key);
+          if (!entry) return;
+          burstState.delete(key);
+
+          const groupId = resolveTargetGroup(entry.ctx);
+          if (!groupId) {
+            if (bugLog) meta.log(tag, `bug burst_no_group ticketId=${entry.ticketId} chatId=${entry.chatId}`);
+            return;
+          }
+
+          const cardText = await ticketCard.render({
+            ticketId: entry.ticketId,
+            customerChatId: entry.chatId,
+            customerName: entry.customerName,
+            status: entry.status,
+            time: new Date(entry.lastAt).toISOString(),
+            messageCount: entry.messages.length,
+            lastText: entry.messages[entry.messages.length - 1] || '',
+          });
+
+          const consolidated = FallbackForwardTextCV.renderBatch(meta, cfg, {
+            ticketId: entry.ticketId,
+            customerName: entry.customerName,
+            customerChatId: entry.chatId,
+            messages: entry.messages,
+          });
+
+          await send(groupId, cardText, { isAuto: 0 });
+          if (consolidated) {
+            await send(groupId, consolidated, { isAuto: 0 });
+          }
+        } catch (e) {
+          if (bugLog) meta.log(tag, `bug burst_flush err=${text(e && e.message ? e.message : e)}`);
+        }
+      }, burstMs);
+
+      burstState.set(key, current);
+    }
+
+    async function onDmMessage(ctx) {
+      if (!ctx || ctx.isGroup) return;
+
+      const chatId = text(ctx.chatId);
+      if (!chatId) return;
+
+      const body = messageTextFromCtx(ctx);
+      if (!body) return;
+
+      const tickets = await loadTicketState();
+
+      let ticket = tickets.find((x) => text(x.customerChatId) === chatId && text(x.status) !== text(cfg.ticketStatusClosed));
+      if (!ticket) {
+        const ticketId = await nextTicketId();
+        ticket = {
+          ticketId,
+          customerChatId: chatId,
+          status: text(cfg.ticketStatusOpen),
+          groupKey: text(cfg.defaultGroupKey),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        tickets.push(ticket);
+      } else {
+        ticket.updatedAt = new Date().toISOString();
+      }
+
+      await saveTicketState(tickets);
+
+      const burstKey = `${chatId}::${ticket.ticketId}`;
+      const current = burstState.get(burstKey) || {
+        ticketId: ticket.ticketId,
+        chatId,
+        customerName: buildCustomerLabel(ctx),
+        status: text(ticket.status),
+        messages: [],
+        lastAt: Date.now(),
+        ctx,
+        timer: null,
+      };
+
+      current.customerName = buildCustomerLabel(ctx);
+      current.status = text(ticket.status);
+      current.lastAt = Date.now();
+      current.ctx = ctx;
+      current.messages.push(body);
+      if (current.messages.length > msgBufferMax) {
+        current.messages = current.messages.slice(current.messages.length - msgBufferMax);
+      }
+
+      burstState.set(burstKey, current);
+      scheduleBurstFlush(chatId, ticket.ticketId);
+
+      await send(chatId, text(cfg.inboundAckTemplate), { isAuto: 0 });
+      if (typeof ctx.stopPropagation === 'function') ctx.stopPropagation();
+    }
+
+    const replyRouter = FallbackReplyRouterCV.create({
+      cfg,
+      parseQuote: FallbackQuoteParseCV.parse,
+      sendReplyText: async ({ ticketId, body, source }) => {
+        return FallbackReplyTextCV.sendToCustomer({
+          cfg,
+          meta,
+          store,
+          ticketStoreKey: storeSpec.key,
+          ticketId,
+          body,
+          source,
+        });
+      },
+      canReply: async (ctx) => canAccess(access, ctx, cfg.minRoleTicketReply),
+      sendStaffReply: async (ctx, message) => {
+        if (ctx && typeof ctx.reply === 'function') {
+          await ctx.reply(text(message));
+          return;
+        }
+        const chatId = text(ctx && ctx.chatId);
+        if (!chatId) return;
+        await send(chatId, text(message), { isAuto: 0, manualReply: 1, bypassRateLimit: 1 });
+      },
+      bugLog: bugLog,
+      log: (line) => meta.log(tag, line),
+    });
+
+    if (typeof meta.registerService === 'function') {
+      meta.registerService('fallback', {
+        sendTicketReplyFromStaff: async (ticketId, body, source) => {
+          return FallbackReplyTextCV.sendToCustomer({
+            cfg,
+            meta,
+            store,
+            ticketStoreKey: storeSpec.key,
+            ticketId,
+            body,
+            source,
+          });
+        },
+      });
+    }
+
+    return {
+      onMessage: async (ctx) => {
+        await onDmMessage(ctx);
+        await replyRouter.onGroupMessage(ctx);
+      },
+      onEvent: async () => {},
+    };
+  },
+};
