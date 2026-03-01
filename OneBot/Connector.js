@@ -11,6 +11,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const util = require('util');
 
 let Client, LocalAuth;
 try {
@@ -48,6 +49,41 @@ function nowIso() {
   return new Date().toISOString().replace('T', ' ').replace('Z', '');
 }
 
+
+function describeError(err) {
+  try {
+    if (err === undefined) return 'undefined';
+    if (err === null) return 'null';
+    if (typeof err === 'string') return err;
+    const msg = err && err.message ? String(err.message) : '';
+    const stack = err && err.stack ? String(err.stack).split('\n')[0] : '';
+    const inspected = util.inspect(err, { depth: 4, breakLength: 160, maxArrayLength: 20 });
+    return [msg, stack, inspected].filter(Boolean).join(' | ');
+  } catch (e) {
+    return String(err);
+  }
+}
+
+async function logChatSendDiagnostics(client, chatId) {
+  const id = String(chatId || '').trim();
+  if (!id) return;
+  try {
+    const chat = await client.getChatById(id);
+    if (!chat) {
+      console.warn('[connector] send.diagnostic chatId=' + id + ' loaded=0');
+      return;
+    }
+    const isGroup = chat.isGroup ? 1 : 0;
+    const isReadOnly = chat.isReadOnly === true ? 1 : 0;
+    const announce = (chat.groupMetadata && chat.groupMetadata.announce !== undefined) ? (chat.groupMetadata.announce ? 1 : 0) : -1;
+    console.log('[connector] send.diagnostic chatId=' + id + ' loaded=1 isGroup=' + isGroup + ' isReadOnly=' + isReadOnly + ' announce=' + announce);
+    if (isGroup && (isReadOnly === 1 || announce === 1)) {
+      console.warn('[connector] send.block_hint chatId=' + id + ' reason=group_read_only action=bot_must_be_admin_or_group_must_allow_participants');
+    }
+  } catch (e) {
+    console.warn('[connector] send.diagnostic chatId=' + id + ' loaded=0 err=' + describeError(e));
+  }
+}
 function traceInbound(eventName, result, msg, err) {
   if (!TRACE_INBOUND) return;
   try {
@@ -165,11 +201,14 @@ async function main() {
 
     const opts = sanitizeTransportOptions(options);
 
+    await logChatSendDiagnostics(client, outChatId);
+
     try {
       return await client.sendMessage(outChatId, outPayload, opts);
     } catch (e) {
-      const msg = String(e && e.message ? e.message : e || 'unknown_error');
-      const err = new Error('transport.send_failed: ' + msg);
+      const detail = describeError(e);
+      console.error('[connector] send.failed chatId=' + outChatId + ' err=' + detail);
+      const err = new Error('transport.send_failed: ' + detail);
       err.code = 'transport.send_failed';
       throw err;
     }
