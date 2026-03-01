@@ -1,0 +1,14 @@
+{
+  "default": {
+    "enabled": true,
+    "windows": ["00:00-23:59"],
+    "dailyMax": 0,
+    "minGapMs": 0
+  },
+  "broadcast": {
+    "enabled": true,
+    "windows": ["08:00-10:00"],
+    "dailyMax": 30,
+    "minGapMs": 3000
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "profiles": {
+    "default": {
+      "enabled": true,
+      "windows": [],
+      "dailyMax": 0,
+      "minGapMs": 0,
+      "scope": "global"
+    },
+    "broadcast": {
+      "enabled": true,
+      "windows": [
+        {
+          "start": "08:00",
+          "end": "10:00"
+        }
+      ],
+      "dailyMax": 30,
+      "minGapMs": 6000,
+      "scope": "global"
+    },
+    "followup": {
+      "enabled": true,
+      "windows": [
+        {
+          "start": "08:00",
+          "end": "22:00"
+        }
+      ],
+      "dailyMax": 200,
+      "minGapMs": 2500,
+      "scope": "chat"
+    }
+  }
+}
