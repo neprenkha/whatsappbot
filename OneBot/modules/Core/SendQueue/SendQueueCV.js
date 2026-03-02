@@ -1,165 +1,197 @@
 'use strict';
 
-// REWRITTEN: standalone CV implementation, no legacy imports.
-
-function toBool(v, d) {
-  if (v === undefined || v === null || v === '') return d;
-  const s = String(v).trim().toLowerCase();
-  if (s === '1' || s === 'true' || s === 'yes' || s === 'on') return true;
-  if (s === '0' || s === 'false' || s === 'no' || s === 'off') return false;
-  return d;
+function asBool(value, fallback) {
+  if (value === undefined || value === null || value === '') return !!fallback;
+  const text = String(value).trim().toLowerCase();
+  if (text === '1' || text === 'true' || text === 'yes' || text === 'on') return true;
+  if (text === '0' || text === 'false' || text === 'no' || text === 'off') return false;
+  return !!fallback;
 }
 
-function toInt(v, d) {
-  const n = parseInt(String(v === undefined || v === null ? '' : v), 10);
-  return Number.isFinite(n) ? n : d;
+function asInt(value, fallback) {
+  const parsed = parseInt(String(value), 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function toStr(v, d) {
-  const s = String(v === undefined || v === null ? '' : v).trim();
-  return s || d;
+function asText(value, fallback) {
+  const text = String(value === undefined || value === null ? '' : value).trim();
+  return text || fallback;
 }
 
-function loadGlobalConf(meta, cfg, bugLog) {
-  const rel = toStr(cfg.globalConfRel, '');
-  if (!rel) {
-    if (bugLog) meta.log('SendQueueCV', 'global_conf_missing_key globalConfRel');
-    return {};
-  }
+function readConf(conf, key, fallback) {
+  if (!conf) return fallback;
+  if (typeof conf.get === 'function') return conf.get(key, fallback);
+  if (Object.prototype.hasOwnProperty.call(conf, key)) return conf[key];
+  return fallback;
+}
+
+function safePayloadText(payload) {
+  if (typeof payload === 'string') return payload.slice(0, 200);
   try {
-    const loaded = meta.loadConfRel(rel);
-    if (loaded && loaded.conf && typeof loaded.conf === 'object') return loaded.conf;
-    return {};
-  } catch (e) {
-    if (bugLog) meta.log('SendQueueCV', 'global_conf_load_failed err=' + String(e && e.message ? e.message : e));
-    return {};
+    return JSON.stringify(payload === undefined ? '' : payload).slice(0, 400);
+  } catch (err) {
+    return String(payload === undefined ? '' : payload).slice(0, 400);
   }
 }
 
-function normalizeChatId(v) {
-  return String(v || '').trim();
+function optionsKey(options) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const stable = {
+    isAuto: opts.isAuto,
+    manualReply: opts.manualReply,
+    bypassRateLimit: opts.bypassRateLimit,
+    allowOutsideWindow: opts.allowOutsideWindow,
+    bypassWindow: opts.bypassWindow,
+    weight: opts.weight,
+  };
+  return JSON.stringify(stable);
 }
 
-function normalizeOptions(v) {
-  if (!v || typeof v !== 'object') return {};
-  return Object.assign({}, v);
+function makeDedupeKey(chatId, payload, options) {
+  const cid = String(chatId || '').trim();
+  return cid + '|' + safePayloadText(payload) + '|' + optionsKey(options);
 }
 
-module.exports.init = async function init(meta) {
-  const cfg = meta && meta.implConf ? meta.implConf : {};
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  const enabled = toBool(cfg.enabled, true);
-  const moduleLog = toBool(cfg.moduleLog, true);
-  const bugLog = toBool(cfg.bugLog, true);
-  const detailLog = toBool(cfg.detailLog, false);
-  const traceLog = toBool(cfg.traceLog, false);
+function errText(err) {
+  if (!err) return '';
+  if (typeof err === 'string') return err;
+  return String(err.code || err.reason || err.message || '');
+}
 
-  if (!enabled) {
-    if (moduleLog) meta.log('SendQueueCV', 'disabled');
-    return { onMessage: async () => {}, onEvent: async () => {} };
-  }
+module.exports = {
+  init: async (meta) => {
+    const conf = meta.implConf || {};
+    const log = typeof meta.log === 'function' ? meta.log : () => {};
+    const tag = 'SendQueueCV';
 
-  const globalConf = loadGlobalConf(meta, cfg, bugLog);
-
-  const serviceName = toStr(cfg.serviceName, 'send');
-  const outboxServiceName = toStr(cfg.outboxServiceName, 'outbox');
-  const maxQueue = Math.max(1, toInt(cfg.maxQueue, 2000));
-  const dedupeMs = Math.max(0, toInt(cfg.dedupeMs, 6000));
-  const dedupeMax = Math.max(100, toInt(cfg.dedupeMax, 8000));
-  const sendPrefer = toStr(globalConf.sendPrefer, 'sendout,outsend');
-
-  const outbox = meta.getService(outboxServiceName);
-  if (!outbox || typeof outbox.send !== 'function') {
-    if (bugLog) meta.log('SendQueueCV', 'missing_outbox_service name=' + outboxServiceName);
-    return { onMessage: async () => {}, onEvent: async () => {} };
-  }
-
-  const queue = [];
-  const dedupeMap = new Map();
-  let flushing = false;
-
-  function dedupeKey(chatId, payload, options) {
-    const p = typeof payload === 'string' ? payload : JSON.stringify(payload || {});
-    const o = JSON.stringify(options || {});
-    return chatId + '|' + p + '|' + o;
-  }
-
-  function cleanDedupe(now) {
-    for (const entry of dedupeMap.entries()) {
-      const k = entry[0];
-      const exp = entry[1];
-      if (exp <= now) dedupeMap.delete(k);
+    const enabled = asBool(readConf(conf, 'enabled', 1), true);
+    if (!enabled) {
+      log(tag, 'disabled enabled=0');
+      return { onMessage: async () => {}, onEvent: async () => {} };
     }
-    if (dedupeMap.size > dedupeMax) dedupeMap.clear();
-  }
 
-  async function flushQueue() {
-    if (flushing) return;
-    flushing = true;
-    try {
-      while (queue.length > 0) {
-        const head = queue[0];
-        await outbox.send(head.chatId, head.payload, head.options);
-        queue.shift();
+    const serviceName = asText(readConf(conf, 'serviceName', 'send'), 'send');
+    const outboxService = asText(readConf(conf, 'outboxService', 'outbox'), 'outbox');
+    const delayMs = Math.max(0, asInt(readConf(conf, 'delayMs', 800), 800));
+    const retryDelayMs = Math.max(0, asInt(readConf(conf, 'retryDelayMs', delayMs), delayMs));
+    const tickMs = Math.max(100, asInt(readConf(conf, 'tickMs', delayMs || 800), delayMs || 800));
+    const maxQueue = Math.max(1, asInt(readConf(conf, 'maxQueue', 2000), 2000));
+    const batchMax = Math.max(1, asInt(readConf(conf, 'batchMax', 30), 30));
+    const dedupeMs = Math.max(0, asInt(readConf(conf, 'dedupeMs', 6000), 6000));
+    const dedupeMax = Math.max(0, asInt(readConf(conf, 'dedupeMax', 8000), 8000));
+    const dedupeLog = asBool(readConf(conf, 'dedupeLog', 1), true);
+
+    const queue = [];
+    const recentMap = new Map();
+    let pumping = false;
+
+    function pruneDedupe(nowMs) {
+      if (dedupeMs <= 0 || recentMap.size === 0) return;
+      const cutoff = nowMs - (dedupeMs * 2);
+      for (const [key, ts] of recentMap.entries()) {
+        if (ts < cutoff) recentMap.delete(key);
       }
-    } finally {
-      flushing = false;
-    }
-  }
-
-  async function send(chatId, payload, options) {
-    const id = normalizeChatId(chatId);
-    if (!id) throw new Error('sendqueue.invalid_chatId');
-
-    const opts = normalizeOptions(options);
-
-    if (opts.isAuto === undefined) opts.isAuto = 0;
-    if (opts.manualReply === undefined) opts.manualReply = 0;
-    if (opts.bypassRateLimit === undefined) opts.bypassRateLimit = 0;
-
-    const now = Date.now();
-    cleanDedupe(now);
-
-    if (dedupeMs > 0) {
-      const key = dedupeKey(id, payload, opts);
-      const exp = Number(dedupeMap.get(key) || 0);
-      if (exp > now) {
-        if (traceLog) meta.log('SendQueueCV', 'dedupe_drop chatId=' + id);
-        return { ok: true, dedupe: 1 };
+      if (dedupeMax > 0 && recentMap.size > dedupeMax) {
+        const removeCount = recentMap.size - dedupeMax;
+        let removed = 0;
+        for (const key of recentMap.keys()) {
+          recentMap.delete(key);
+          removed += 1;
+          if (removed >= removeCount) break;
+        }
       }
-      dedupeMap.set(key, now + dedupeMs);
     }
 
-    if (queue.length >= maxQueue) {
-      throw new Error('sendqueue.full');
+    function isDuplicate(chatId, payload, options) {
+      if (dedupeMs <= 0) return false;
+      const nowMs = Date.now();
+      pruneDedupe(nowMs);
+      const key = makeDedupeKey(chatId, payload, options);
+      const prev = recentMap.get(key);
+      if (prev && nowMs - prev < dedupeMs) return true;
+      recentMap.set(key, nowMs);
+      return false;
     }
 
-    queue.push({
-      chatId: id,
-      payload: payload,
-      options: opts,
-      createdAtMs: now
-    });
+    async function pump() {
+      if (pumping) return;
+      pumping = true;
+      try {
+        while (queue.length > 0) {
+          const outbox = meta.getService(outboxService);
+          if (!outbox || typeof outbox.send !== 'function') break;
 
-    try {
-      await flushQueue();
-    } catch (e) {
-      if (bugLog) meta.log('SendQueueCV', 'flush_failed err=' + String(e && e.message ? e.message : e));
-      throw e;
+          let accepted = 0;
+          while (queue.length > 0 && accepted < batchMax) {
+            const nowMs = Date.now();
+            const job = queue[0];
+            if (!job) break;
+
+            const nextTryAtMs = Number.isFinite(Number(job.nextTryAtMs)) ? Number(job.nextTryAtMs) : 0;
+            if (nextTryAtMs > nowMs) break;
+
+            try {
+              await outbox.send(job.chatId, job.payload, job.options || {});
+              queue.shift();
+              accepted += 1;
+            } catch (err) {
+              job.nextTryAtMs = nowMs + retryDelayMs;
+              job.lastError = errText(err);
+              break;
+            }
+          }
+
+          if (queue.length > 0) await wait(delayMs);
+        }
+      } finally {
+        pumping = false;
+      }
     }
 
-    if (detailLog || traceLog) {
-      meta.log('SendQueueCV', 'queued chatId=' + id + ' queueSize=' + String(queue.length) + ' isAuto=' + (toBool(opts.isAuto, false) ? '1' : '0') + ' manualReply=' + (toBool(opts.manualReply, false) ? '1' : '0') + ' bypassRateLimit=' + (toBool(opts.bypassRateLimit, false) ? '1' : '0'));
+    const timer = setInterval(() => {
+      pump().catch(() => {});
+    }, tickMs);
+
+    async function send(chatId, payload, options) {
+      const cid = String(chatId || '').trim();
+      const opts = options && typeof options === 'object' ? options : {};
+      if (!cid) return false;
+
+      if (isDuplicate(cid, payload, opts)) {
+        if (dedupeLog) log(tag, 'drop.duplicate chatId=' + cid + ' dedupeMs=' + dedupeMs);
+        return true;
+      }
+
+      if (queue.length >= maxQueue) {
+        log(tag, 'reject.queue_full chatId=' + cid + ' maxQueue=' + maxQueue);
+        return false;
+      }
+
+      queue.push({
+        chatId: cid,
+        payload,
+        options: opts,
+        nextTryAtMs: 0,
+        lastError: '',
+      });
+
+      pump().catch(() => {});
+      return true;
     }
 
-    return { ok: true, queued: 1, sendPrefer: sendPrefer };
-  }
+    meta.registerService(serviceName, send);
+    log(tag, 'ready enabled=1 serviceName=' + serviceName + ' outboxService=' + outboxService + ' delayMs=' + delayMs + ' retryDelayMs=' + retryDelayMs + ' tickMs=' + tickMs + ' maxQueue=' + maxQueue + ' batchMax=' + batchMax + ' dedupeMs=' + dedupeMs);
 
-  meta.registerService(serviceName, send);
-
-  if (moduleLog) {
-    meta.log('SendQueueCV', 'ready service=' + serviceName + ' outboxService=' + outboxServiceName + ' maxQueue=' + String(maxQueue) + ' dedupeMs=' + String(dedupeMs));
-  }
-
-  return { onMessage: async () => {}, onEvent: async () => {} };
+    return {
+      onMessage: async () => {},
+      onEvent: async () => {},
+      shutdown: async () => {
+        clearInterval(timer);
+      },
+    };
+  },
 };

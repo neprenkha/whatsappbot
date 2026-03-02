@@ -1,162 +1,103 @@
 'use strict';
 
-// REWRITTEN: standalone CV implementation with config-driven filters.
-
-function toBool(v, d) {
-  if (v === undefined || v === null || v === '') return d;
+function toBool(v, dflt) {
+  if (v === undefined || v === null || v === '') return !!dflt;
   const s = String(v).trim().toLowerCase();
-  if (s === '1' || s === 'true' || s === 'yes' || s === 'on') return true;
-  if (s === '0' || s === 'false' || s === 'no' || s === 'off') return false;
-  return d;
+  if (s === '1' || s === 'true' || s === 'yes' || s === 'on' || s === 'enabled' || s === 'enable') return true;
+  if (s === '0' || s === 'false' || s === 'no' || s === 'off' || s === 'disabled' || s === 'disable') return false;
+  return !!dflt;
 }
 
-function toStr(v, d) {
-  const s = String(v === undefined || v === null ? '' : v).trim();
-  return s || d;
+function toText(v) {
+  return String(v === undefined || v === null ? '' : v);
 }
 
-function toList(v, d) {
-  const raw = toStr(v, '');
-  if (!raw) return Array.isArray(d) ? d.slice() : [];
-  const out = [];
-  const parts = raw.split(',');
-  for (let i = 0; i < parts.length; i += 1) {
-    const item = String(parts[i] || '').trim();
-    if (item) out.push(item);
-  }
-  return out;
+function isEmptyText(ctx) {
+  return toText(ctx && ctx.text).trim() === '';
 }
 
-function loadGlobalConf(meta, cfg, bugLog) {
-  const rel = toStr(cfg.globalConfRel, '');
-  if (!rel) {
-    if (bugLog) meta.log('InboundFilterCV', 'global_conf_missing_key globalConfRel');
-    return {};
-  }
-  try {
-    const loaded = meta.loadConfRel(rel);
-    return loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
-  } catch (e) {
-    if (bugLog) meta.log('InboundFilterCV', 'global_conf_load_failed err=' + String(e && e.message ? e.message : e));
-    return {};
-  }
+function isSystemType(t) {
+  const type = toText(t).toLowerCase();
+  return type === 'protocol' ||
+    type === 'e2e_notification' ||
+    type === 'notification_template' ||
+    type === 'notification' ||
+    type === 'ciphertext';
 }
 
-function safeStop(ctx) {
-  if (ctx && typeof ctx.stopPropagation === 'function') ctx.stopPropagation();
+function getChatId(ctx) {
+  return toText(ctx && ctx.chatId);
 }
 
-module.exports.init = async function init(meta) {
-  const cfg = meta && meta.implConf ? meta.implConf : {};
+function getRawFrom(ctx) {
+  return toText(ctx && ctx.raw && ctx.raw.from);
+}
 
-  const enabled = toBool(cfg.enabled, true);
-  const moduleLog = toBool(cfg.moduleLog, true);
-  const bugLog = toBool(cfg.bugLog, true);
-  const detailLog = toBool(cfg.detailLog, false);
-  const traceLog = toBool(cfg.traceLog, false);
+function shouldStop(ctx) {
+  return !!(ctx && typeof ctx.stopPropagation === 'function');
+}
 
-  if (!enabled) {
-    if (moduleLog) meta.log('InboundFilterCV', 'disabled');
-    return { onMessage: async () => {}, onEvent: async () => {} };
-  }
+module.exports = {
+  init: async (meta) => {
+    const cfg = meta.implConf || {};
+    const log = typeof meta.log === 'function' ? meta.log : () => {};
+    const tag = 'InboundFilterCV';
 
-  const globalConf = loadGlobalConf(meta, cfg, bugLog);
-  void globalConf;
+    const enabled = toBool(cfg.enabled, true);
+    const dropStatusBroadcast = toBool(cfg.dropStatusBroadcast, false);
+    const dropEmptySystem = toBool(cfg.dropEmptySystem, true);
+    const dropFromMe = toBool(cfg.dropFromMe, false);
 
-  const dropStatusBroadcast = toBool(cfg.dropStatusBroadcast, true);
-  const statusBroadcastIds = toList(cfg.statusBroadcastIds, ['status@broadcast']);
-  const dropFromMe = toBool(cfg.dropFromMe, false);
-  const dropEmptySystem = toBool(cfg.dropEmptySystem, true);
-  const dropSystemTypes = toList(cfg.dropSystemTypes, [
-    'protocol',
-    'e2e_notification',
-    'notification_template',
-    'notification',
-    'ciphertext'
-  ]);
-  const dropNotificationWhenEmpty = toBool(cfg.dropNotificationWhenEmpty, true);
-  const dropStatusWhenEmpty = toBool(cfg.dropStatusWhenEmpty, true);
-
-  const statusIdMap = new Map();
-  for (let i = 0; i < statusBroadcastIds.length; i += 1) {
-    const id = String(statusBroadcastIds[i] || '').trim();
-    if (id) statusIdMap.set(id, 1);
-  }
-
-  const systemTypeMap = new Map();
-  for (let j = 0; j < dropSystemTypes.length; j += 1) {
-    const t = String(dropSystemTypes[j] || '').trim().toLowerCase();
-    if (t) systemTypeMap.set(t, 1);
-  }
-
-  function isEmptyText(ctx) {
-    const txt = ctx && typeof ctx.text === 'string' ? ctx.text.trim() : '';
-    return txt.length === 0;
-  }
-
-  function dropWithLog(reason, chatId, extra) {
-    if (detailLog || traceLog) {
-      meta.log('InboundFilterCV', 'drop reason=' + reason + ' chatId=' + chatId + (extra ? ' ' + extra : ''));
+    if (!enabled) {
+      log(tag, 'disabled enabled=0');
+      return { onMessage: async () => {}, onEvent: async () => {} };
     }
-  }
 
-  if (moduleLog) {
-    meta.log(
-      'InboundFilterCV',
-      'ready dropStatusBroadcast=' + (dropStatusBroadcast ? '1' : '0') +
-        ' dropFromMe=' + (dropFromMe ? '1' : '0') +
-        ' dropEmptySystem=' + (dropEmptySystem ? '1' : '0')
+    log(
+      tag,
+      'ready enabled=1 dropStatusBroadcast=' + (dropStatusBroadcast ? '1' : '0') +
+      ' dropEmptySystem=' + (dropEmptySystem ? '1' : '0') +
+      ' dropFromMe=' + (dropFromMe ? '1' : '0')
     );
-  }
 
-  async function onMessage(ctx) {
-    try {
+    async function onMessage(ctx) {
       if (!ctx) return;
 
-      const chatId = toStr(ctx.chatId, '');
-      const rawFrom = toStr(ctx && ctx.raw ? ctx.raw.from : '', '');
+      const chatId = getChatId(ctx);
+      const rawFrom = getRawFrom(ctx);
 
-      if (dropStatusBroadcast && (statusIdMap.has(chatId) || statusIdMap.has(rawFrom))) {
-        dropWithLog('status_broadcast', chatId || rawFrom, 'rawFrom=' + rawFrom);
-        safeStop(ctx);
-        return;
+      if (dropStatusBroadcast) {
+        if (chatId === 'status@broadcast' || rawFrom === 'status@broadcast') {
+          if (shouldStop(ctx)) ctx.stopPropagation();
+          return;
+        }
       }
 
-      if (dropFromMe && ctx.raw && ctx.raw.fromMe === true) {
-        dropWithLog('from_me', chatId, '');
-        safeStop(ctx);
-        return;
+      if (dropFromMe) {
+        if (ctx.raw && ctx.raw.fromMe === true) {
+          if (shouldStop(ctx)) ctx.stopPropagation();
+          return;
+        }
       }
 
-      if (dropEmptySystem && isEmptyText(ctx)) {
-        const rawType = toStr(ctx.raw && ctx.raw.type, '').toLowerCase();
-        if (systemTypeMap.has(rawType)) {
-          dropWithLog('system_type', chatId, 'type=' + rawType);
-          safeStop(ctx);
+      if (dropEmptySystem) {
+        const rawType = ctx.raw && ctx.raw.type;
+        if (isSystemType(rawType) && isEmptyText(ctx)) {
+          if (shouldStop(ctx)) ctx.stopPropagation();
           return;
         }
 
-        const isNotification = !!(ctx.raw && ctx.raw._data && ctx.raw._data.isNotification === true);
         const isStatus = !!(ctx.raw && ctx.raw.isStatus === true);
-
-        if (dropNotificationWhenEmpty && isNotification) {
-          dropWithLog('notification_empty', chatId, '');
-          safeStop(ctx);
-          return;
-        }
-
-        if (dropStatusWhenEmpty && isStatus) {
-          dropWithLog('status_empty', chatId, '');
-          safeStop(ctx);
+        const isNotification = !!(ctx.raw && ctx.raw._data && ctx.raw._data.isNotification === true);
+        if ((isStatus || isNotification) && isEmptyText(ctx)) {
+          if (shouldStop(ctx)) ctx.stopPropagation();
         }
       }
-    } catch (e) {
-      if (bugLog) meta.log('InboundFilterCV', 'onMessage_error err=' + String(e && e.message ? e.message : e));
     }
-  }
 
-  return {
-    onMessage,
-    onEvent: async () => {}
-  };
+    return {
+      onMessage,
+      onEvent: async () => {},
+    };
+  },
 };
