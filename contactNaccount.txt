@@ -1,0 +1,148 @@
+ONEBOT_CONTACT_ACCOUNT_CONTEXT_SPEC.txt
+ASCII ONLY. PUT THIS IN REPO (docs/ or root) AS A WORKING SPEC.
+
+GOAL
+- Bot recognizes the same customer entity even when different PICs message.
+- Support general business types (construction, homestay, retail, office).
+- Keep documents professional: customer-facing name stays real; internal codes are for reference, routing, filing.
+
+TERMS (CANONICAL CONCEPTS)
+1) ACCOUNT (Entity)
+- Internal stable code: ACC0001, ACC0002, ...
+- Represents a company/family/customer entity (e.g. "Kubang Pasu Development").
+- Many PICs can belong to one Account.
+
+2) PIC (Person / Contact)
+- A person that messages the bot (phone/chatId).
+- Linked to exactly one Account (can be re-linked by staff if mis-assigned).
+
+3) CONTEXT (General layer)
+- Internal stable code: CTX0001, CTX0002, ...
+- Represents a specific case for an Account:
+  - renovation job, fabrication order, booking, order, support case, inquiry, delivery, etc.
+- One Account can have many Contexts.
+
+4) TICKET
+- TicketId stays stable during the ticket lifecycle.
+- Ticket links to:
+  - accountCode (ACC)
+  - picId (PIC)
+  - contextCode (CTX) (optional but recommended)
+  - workgroupKey (ops/sales/finance/hr/etc)
+- TicketId is NEVER exposed to customer.
+
+DATA MODEL (JsonStore)
+Store namespaces and keys are config-driven (no hardcode in JS).
+
+A) accounts
+- accountsByCode[ACC] = {
+    code, displayName, type, tags, notes,
+    defaultWorkgroupKey,
+    createdAt, createdBy
+  }
+
+B) pics
+- picsById[picId] = {
+    picId, displayName, phone, chatId,
+    accountCode,
+    tags, notes,
+    createdAt, createdBy
+  }
+
+C) contexts
+- contextsByCode[CTX] = {
+    code, accountCode,
+    label, type, tags, notes,
+    createdAt, createdBy,
+    status (open/closed)
+  }
+
+D) indexes (fast lookup)
+- picIdByChatId[chatId] = picId
+- picIdByPhone[phone] = picId
+- picIdsByAccountCode[ACC] = [picId...]
+- contextCodesByAccountCode[ACC] = [CTX...]
+
+E) ticket links (owned by Fallback/Ticket store)
+- ticket.accountCode, ticket.picId, ticket.contextCode
+
+RESOLUTION LOGIC (How bot recognizes who is who)
+1) On inbound DM:
+- Normalize chatId/phone.
+- Look up picIdByChatId or picIdByPhone.
+- If found:
+  - resolve pic -> accountCode
+  - attach to ticket/inbox card
+- If not found:
+  - mark as Unassigned (no accountCode)
+  - staff must assign later via group command.
+
+2) Multi-PIC recognition:
+- Any PIC linked to the same ACC is treated as the same Account entity.
+- Staff sees consistent ACC in inbox, regardless of which PIC is messaging.
+
+PROFESSIONAL DOCUMENT NAMING (Quotation/Invoice)
+- Customer-facing "To" / Name: use real displayName (company/person), not ACC/CTX.
+- Internal codes go into a reference line only:
+  Ref: ACC0051 / CTX0003
+- This keeps quotations/invoices clean while still searchable.
+
+FILING / MEDIA SAVING (General)
+Do NOT file under root account only when multiple contexts exist.
+Use Account + Context folders:
+
+Accounts/ACC0051/
+  Contexts/CTX0003 - <label>/
+    WorkPhotos/
+    Documents/
+    Quotes/
+    Invoices/
+    Data/
+
+If Context is missing:
+- Save into Accounts/ACC0051/Inbox/ temporarily, and prompt staff to assign/create CTX later.
+
+GROUP COMMANDS (Operations, no manual file edits)
+All command words and messages are config-driven (no hardcode in JS).
+Prefer quote-reply on an inbox card / ticket card.
+
+ACCOUNT
+- acc new <displayName> [type]
+- acc link (quote customer message) <ACC>
+- acc show <ACC>
+- acc list
+- acc setname <ACC> <displayName>
+
+PIC
+- pic setname (quote customer message) <name>
+- pic link (quote customer message) <ACC>
+- pic list <ACC>
+
+CONTEXT
+- ctx new <ACC> <label>
+- ctx link (quote ticket card) <CTX>
+- ctx list <ACC>
+- ctx close <CTX>
+
+SAVE MEDIA (quote reply on media or ticket)
+- save (auto uses ticket.ACC and ticket.CTX if present)
+- save ctx=<CTX> cat=<WorkPhotos|Documents|Data> (optional override)
+Rules:
+- If ACC missing -> deny and ask staff to assign ACC first.
+- If CTX missing -> prompt to create/select CTX (to avoid filing drift).
+
+INTEGRATION POINTS (Which module owns what)
+- AccessRoles: who can manage accounts/contexts (owner/admin/manager), who can save media (manager/sales/staff).
+- WorkGroups: routing (ops/sales/finance/hr) by key, not by hardcoded groupId.
+- Fallback: tickets + inbox card + quote reply parsing + send replies to customer.
+- Library/Catalog: content lookup for staff; sending to customer goes through Fallback sendTicketReplyFromStaff.
+- ContactBook/ClientBook (recommended as its own module): owns accounts/pics/contexts store + commands.
+  (Avoid mixing this logic into Fallback to prevent drift.)
+
+NON-NEGOTIABLES
+- Never expose TicketId to customers.
+- No hardcoded IDs/text/command words in JS.
+- Canonical keynames only.
+- Keep all operational changes via group commands (wizard-lite).
+
+END OF SPEC
