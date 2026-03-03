@@ -12,12 +12,61 @@ function splitArgs(raw) {
   return text(raw).split(/\s+/).filter(Boolean);
 }
 
-function parseCommand(ctx, cfg) {
-  const body = text(
+function messageTextFromCtx(ctx) {
+  return text(
     (ctx && ctx.text) ||
     (ctx && ctx.message && (ctx.message.body || ctx.message.caption)) ||
+    (ctx && ctx.raw && ctx.raw._data && (ctx.raw._data.body || ctx.raw._data.caption)) ||
     ''
   );
+}
+
+function commandPrefix(cmdReply) {
+  const raw = text(cmdReply);
+  const m = raw.match(/^[^a-z0-9]+/i);
+  return m && m[0] ? m[0] : '';
+}
+
+function parseQuick(ctx, cfg, quoteParsed) {
+  const body = messageTextFromCtx(ctx);
+  if (!body) return null;
+
+  const parts = splitArgs(body);
+  if (!parts.length) return null;
+
+  const prefix = commandPrefix(cfg.cmdReply);
+  if (!prefix) return null;
+
+  const first = text(parts[0]);
+  const quickSendRe = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([123])$`, 'i');
+  const quickTeachRe = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([123])=(.*)$`, 'i');
+
+  const teachMatch = first.match(quickTeachRe);
+  if (teachMatch) {
+    return {
+      kind: 'quick_teach',
+      slot: text(teachMatch[1]),
+      body: text(teachMatch[2]),
+    };
+  }
+
+  const sendMatch = first.match(quickSendRe);
+  if (sendMatch) {
+    const explicitTicket = text(parts[1] || '');
+    const fromQuote = quoteParsed && quoteParsed.ticketId ? text(quoteParsed.ticketId) : '';
+    return {
+      kind: 'quick_send',
+      slot: text(sendMatch[1]),
+      ticketId: explicitTicket || fromQuote,
+      source: explicitTicket ? 'command' : 'quote',
+    };
+  }
+
+  return null;
+}
+
+function parseCommand(ctx, cfg) {
+  const body = messageTextFromCtx(ctx);
   if (!body) return null;
 
   const parts = splitArgs(body);
@@ -36,6 +85,15 @@ function parseCommand(ctx, cfg) {
   };
 }
 
+function mediaKindFromCtx(ctx) {
+  const msg = ctx && ctx.message ? ctx.message : null;
+  if (!msg) return '';
+  if (!msg.hasMedia) return '';
+  const type = keyText(msg.type || (msg._data && msg._data.type) || '');
+  if (type === 'image' || type === 'document') return type;
+  return '';
+}
+
 function create(deps) {
   const cfg = deps.cfg;
 
@@ -47,6 +105,56 @@ function create(deps) {
     }
 
     const quoteParsed = deps.parseQuote(ctx, cfg);
+    const quickParsed = parseQuick(ctx, cfg, quoteParsed);
+    if (quickParsed && quickParsed.kind === 'quick_teach') {
+      const teachResult = await deps.onQuickTeach({
+        slot: quickParsed.slot,
+        body: quickParsed.body,
+        ctx,
+      });
+
+      if (teachResult && teachResult.code === 'need_text') {
+        if (text(cfg.replyNeedText)) await deps.sendStaffReply(ctx, cfg.replyNeedText);
+        return;
+      }
+      if (teachResult && teachResult.ok) {
+        if (text(cfg.replyReplySent)) await deps.sendStaffReply(ctx, cfg.replyReplySent);
+        if (typeof ctx.stopPropagation === 'function') ctx.stopPropagation();
+      }
+      return;
+    }
+
+    if (quickParsed && quickParsed.kind === 'quick_send') {
+      const quickResult = await deps.onQuickSend({
+        slot: quickParsed.slot,
+        ticketId: quickParsed.ticketId,
+        source: quickParsed.source,
+        ctx,
+      });
+
+      if (quickResult && quickResult.code === 'need_ticket') {
+        if (text(cfg.replyNeedTicket)) await deps.sendStaffReply(ctx, cfg.replyNeedTicket);
+        return;
+      }
+      if (quickResult && quickResult.code === 'need_text') {
+        if (text(cfg.replyNeedText)) await deps.sendStaffReply(ctx, cfg.replyNeedText);
+        return;
+      }
+      if (quickResult && quickResult.code === 'ticket_not_found') {
+        if (text(cfg.replyTicketNotFound)) await deps.sendStaffReply(ctx, cfg.replyTicketNotFound);
+        return;
+      }
+      if (quickResult && quickResult.code === 'ticket_closed') {
+        if (text(cfg.replyTicketClosed)) await deps.sendStaffReply(ctx, cfg.replyTicketClosed);
+        return;
+      }
+      if (quickResult && quickResult.ok) {
+        if (text(cfg.replyReplySent)) await deps.sendStaffReply(ctx, cfg.replyReplySent);
+        if (typeof ctx.stopPropagation === 'function') ctx.stopPropagation();
+      }
+      return;
+    }
+
     const commandParsed = parseCommand(ctx, cfg);
 
     let payload = null;
@@ -56,24 +164,40 @@ function create(deps) {
 
     const ticketId = text(payload.ticketId);
     const body = text(payload.body);
+    const captionText = messageTextFromCtx(ctx);
+    const mediaKind = mediaKindFromCtx(ctx);
 
     if (!ticketId) {
       await deps.sendStaffReply(ctx, cfg.replyNeedTicket);
       return;
     }
 
-    if (!body) {
-      await deps.sendStaffReply(ctx, cfg.replyNeedText);
-      return;
+    let result;
+    const isMediaReply = !!mediaKind;
+    if (isMediaReply) {
+      result = await deps.sendReplyMedia({
+        ticketId,
+        staffMsg: ctx.message,
+        captionText,
+        source: payload.source,
+        options: { isAuto: 0, manualReply: 1, bypassRateLimit: 1 },
+      });
+    } else {
+      if (!body) {
+        await deps.sendStaffReply(ctx, cfg.replyNeedText);
+        return;
+      }
+      result = await deps.sendReplyText({
+        ticketId,
+        body,
+        source: payload.source,
+      });
     }
 
-    const result = await deps.sendReplyText({
-      ticketId,
-      body,
-      source: payload.source,
-    });
-
     if (!result || !result.ok) {
+      if (isMediaReply && result && (result.code === 'media_download_failed' || result.code === 'send_missing' || result.code === 'send_error')) {
+        return;
+      }
       if (result && result.code === 'ticket_not_found') {
         await deps.sendStaffReply(ctx, cfg.replyTicketNotFound);
         return;

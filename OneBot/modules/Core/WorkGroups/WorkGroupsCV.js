@@ -65,13 +65,20 @@ module.exports = {
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    let globalConf = {};
+    let loaded = {};
     if (typeof meta.loadConfRel === 'function') {
-      globalConf = meta.loadConfRel(text(cfg.globalConfRel)) || {};
+      loaded = meta.loadConfRel(text(cfg.globalConfRel)) || {};
     }
+    const globalConf = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : (loaded || {});
 
     const globalControlGroupId = text(globalConf.controlGroupId);
     const globalPrefix = text(globalConf.prefix);
+    const serviceName = String(globalConf.sendPrefer || '')
+      .split(',')
+      .map((x) => text(x))
+      .filter(Boolean)[0] || '';
+    const send = serviceName ? meta.getService(serviceName) : null;
+
     if (!globalControlGroupId) {
       if (bugLogEnabled) {
         meta.log(logTag, 'global config invalid missing=controlGroupId');
@@ -107,8 +114,7 @@ module.exports = {
         return;
       }
 
-      const send = meta.getService('send');
-      if (send && ctx && ctx.chatId) {
+      if (typeof send === 'function' && ctx && ctx.chatId) {
         await send(ctx.chatId, message, { isAuto: 0 });
       }
     }
@@ -152,6 +158,25 @@ module.exports = {
         NAME: text(item.name),
         CHATID: text(item.chatId),
       }));
+    }
+
+    async function resolveWorkgroup(key) {
+      const probe = keyText(key);
+      if (!probe) return '';
+      const state = await loadState();
+      const found = state.groups.find((item) => keyText(item && item.name) === probe);
+      if (!found) return '';
+      const chatId = text(found.chatId);
+      if (!chatId) return '';
+      return { name: text(found.name), chatId, groupChatId: chatId };
+    }
+
+    if (typeof meta.registerService === 'function') {
+      meta.registerService('workgroups', {
+        resolve: async (key) => {
+          return await resolveWorkgroup(key);
+        },
+      });
     }
 
     const cmdWorkGroup = keyText(cfg.cmdWorkGroup);

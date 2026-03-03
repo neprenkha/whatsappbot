@@ -26,6 +26,9 @@ module.exports = {
           TIME: text(data.time),
           COUNT: String(data.messageCount || 0),
           LASTTEXT: text(data.lastText),
+          QR1: text(data.qr1),
+          QR2: text(data.qr2),
+          QR3: text(data.qr3),
         });
       },
     };

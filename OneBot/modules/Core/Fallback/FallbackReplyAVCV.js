@@ -1,0 +1,146 @@
+'use strict';
+
+function text(value) {
+  return String(value ?? '').trim();
+}
+
+function toInt(value, fallback) {
+  const n = Number.parseInt(text(value), 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
+
+function parseTicketId(raw, ticketIdRegex) {
+  const source = text(raw);
+  if (!source) return '';
+  const re = new RegExp(text(ticketIdRegex), 'i');
+  const m = source.match(re);
+  return m && m[0] ? text(m[0]) : '';
+}
+
+function stripTicketId(sourceText, ticketIdRegex) {
+  const re = new RegExp(text(ticketIdRegex), 'ig');
+  return text(sourceText).replace(re, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function avTypeOf(staffMsg) {
+  return text(staffMsg && (staffMsg.type || (staffMsg._data && staffMsg._data.type) || '')).toLowerCase();
+}
+
+function resolveSendService(meta, cfg) {
+  const preferred = text(cfg.replyMediaSendPrefer)
+    .split(',')
+    .map((x) => text(x))
+    .filter(Boolean);
+
+  let names = preferred;
+  if (!names.length && typeof meta.loadConfRel === 'function' && text(cfg.globalConfRel)) {
+    const loaded = meta.loadConfRel(text(cfg.globalConfRel)) || {};
+    const globalConf = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
+    names = String(globalConf.sendPrefer || '')
+      .split(',')
+      .map((x) => text(x))
+      .filter(Boolean);
+  }
+
+  for (const name of names) {
+    const svc = meta.getService(name);
+    if (typeof svc === 'function') return svc;
+  }
+  return null;
+}
+
+async function withTimeout(promise, timeoutMs) {
+  const ms = Math.max(1, toInt(timeoutMs, 1));
+  let timer = null;
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('media_download_timeout')), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function sendToCustomer(input) {
+  const cfg = input.cfg;
+  const meta = input.meta;
+  const store = input.store;
+  const ticketStoreKey = input.ticketStoreKey;
+  const ticketIdRaw = input.ticketId;
+  const staffMsg = input.staffMsg;
+  const captionText = text(input.captionText);
+  const baseOptions = input.options && typeof input.options === 'object' ? Object.assign({}, input.options) : {};
+
+  const ticketId = parseTicketId(ticketIdRaw, cfg.ticketIdRegex);
+  if (!ticketId) return { ok: 0, code: 'need_ticket' };
+
+  if (!staffMsg || staffMsg.hasMedia !== true || typeof staffMsg.downloadMedia !== 'function') {
+    return { ok: 0, code: 'media_download_failed' };
+  }
+
+  const kind = avTypeOf(staffMsg);
+  if (kind !== 'audio' && kind !== 'video' && kind !== 'ptt') {
+    return { ok: 0, code: 'media_download_failed' };
+  }
+
+  const state = await store.get(ticketStoreKey, { tickets: [] });
+  const tickets = Array.isArray(state.tickets) ? state.tickets : [];
+  const ticket = tickets.find((x) => text(x.ticketId) === ticketId);
+
+  if (!ticket) return { ok: 0, code: 'ticket_not_found' };
+  if (text(ticket.status) === text(cfg.ticketStatusClosed)) return { ok: 0, code: 'ticket_closed' };
+
+  const customerChatId = text(ticket.customerChatId);
+  if (!customerChatId) return { ok: 0, code: 'ticket_not_found' };
+
+  const sendFn = resolveSendService(meta, cfg);
+  if (typeof sendFn !== 'function') return { ok: 0, code: 'send_missing' };
+
+  let mediaObj;
+  try {
+    mediaObj = await withTimeout(staffMsg.downloadMedia(), toInt(cfg.replyMediaDownloadTimeoutMs, 1));
+  } catch (e) {
+    return { ok: 0, code: 'media_download_failed', error: text(e && e.message ? e.message : e) };
+  }
+
+  if (!mediaObj) return { ok: 0, code: 'media_download_failed' };
+
+  const caption = stripTicketId(captionText, cfg.ticketIdRegex);
+
+  const outOptions = Object.assign({}, baseOptions, {
+    isAuto: 0,
+    manualReply: 1,
+    bypassRateLimit: 1,
+  });
+  if (caption) outOptions.caption = caption;
+
+  const maxTries = Math.max(1, toInt(cfg.replyMediaMaxTries, 1));
+  const retryBaseMs = Math.max(0, toInt(cfg.replyMediaRetryBaseMs, 0));
+  const retryJitterMs = Math.max(0, toInt(cfg.replyMediaRetryJitterMs, 0));
+  const gapMs = Math.max(0, toInt(cfg.replyMediaGapMs, 0));
+
+  for (let attempt = 1; attempt <= maxTries; attempt += 1) {
+    try {
+      await sendFn(customerChatId, mediaObj, outOptions);
+      if (gapMs > 0) await sleep(gapMs);
+      return { ok: 1, code: 'sent', targetChatId: customerChatId };
+    } catch (e) {
+      if (attempt >= maxTries) return { ok: 0, code: 'send_error', error: text(e && e.message ? e.message : e) };
+      const jitter = retryJitterMs > 0 ? Math.floor(Math.random() * (retryJitterMs + 1)) : 0;
+      await sleep(retryBaseMs + jitter);
+    }
+  }
+
+  return { ok: 0, code: 'send_error' };
+}
+
+module.exports = {
+  sendToCustomer,
+};

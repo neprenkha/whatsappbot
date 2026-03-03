@@ -6,6 +6,7 @@ const FallbackTicketCardCV = require('./FallbackTicketCardCV');
 const FallbackQuoteParseCV = require('./FallbackQuoteParseCV');
 const FallbackReplyRouterCV = require('./FallbackReplyRouterCV');
 const FallbackReplyTextCV = require('./FallbackReplyTextCV');
+const FallbackReplyMediaCV = require('./FallbackReplyMediaCV');
 
 function text(value) {
   return String(value ?? '').trim();
@@ -21,7 +22,7 @@ function toInt(value, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function parseStoreSpec(spec) {
+function parseTicketRef(spec) {
   const raw = text(spec);
   const parts = raw.split(':');
   if (parts.length < 2) return null;
@@ -94,6 +95,14 @@ module.exports = {
       'replyTicketNotFound',
       'replyTicketClosed',
       'replyReplySent',
+      'replyMediaSendPrefer',
+      'replyMediaMaxTries',
+      'replyMediaRetryBaseMs',
+      'replyMediaRetryJitterMs',
+      'replyMediaGapMs',
+      'replyMediaDownloadTimeoutMs',
+      'replyAudioAsVoice',
+      'replyVideoAsDocument',
       'moduleLog',
       'bugLog',
       'detailLog',
@@ -117,18 +126,25 @@ module.exports = {
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    const globalConf = typeof meta.loadConfRel === 'function'
+    const loadedGlobal = typeof meta.loadConfRel === 'function'
       ? (meta.loadConfRel(text(cfg.globalConfRel)) || {})
       : {};
+    const globalConf = loadedGlobal && loadedGlobal.conf && typeof loadedGlobal.conf === 'object'
+      ? loadedGlobal.conf
+      : (loadedGlobal && typeof loadedGlobal === 'object' ? loadedGlobal : {});
 
-    const storeSpec = parseStoreSpec(cfg.ticketStoreSpec);
-    if (!storeSpec || storeSpec.kind !== 'jsonstore') {
+    const ticketRef = parseTicketRef(cfg.ticketStoreSpec);
+    if (!ticketRef || ticketRef.kind !== 'jsonstore') {
       if (bugLog) meta.log(tag, 'disabled invalid_ticketStoreSpec');
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
     const jsonstore = meta.getService('jsonstore');
-    const send = meta.getService('send');
+    const serviceName = String(globalConf.sendPrefer || '')
+      .split(',')
+      .map((x) => text(x))
+      .filter(Boolean)[0] || '';
+    const send = serviceName ? meta.getService(serviceName) : null;
     const access = meta.getService('access');
 
     if (!jsonstore || typeof jsonstore.open !== 'function') {
@@ -136,7 +152,7 @@ module.exports = {
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    if (typeof send !== 'function') {
+    if (!serviceName || typeof send !== 'function') {
       if (bugLog) meta.log(tag, 'disabled missing_send_service');
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
@@ -150,12 +166,12 @@ module.exports = {
     const burstState = new Map();
 
     async function loadTicketState() {
-      const raw = await store.get(storeSpec.key, { tickets: [] });
+      const raw = await store.get(ticketRef.key, { tickets: [] });
       return Array.isArray(raw.tickets) ? raw.tickets : [];
     }
 
     async function saveTicketState(tickets) {
-      await store.set(storeSpec.key, { tickets });
+      await store.set(ticketRef.key, { tickets });
     }
 
     async function nextTicketId() {
@@ -185,11 +201,17 @@ module.exports = {
           if (!entry) return;
           burstState.delete(key);
 
-          const groupId = resolveTargetGroup(entry.ctx);
-          if (!groupId) {
+          const targetChat = resolveTargetGroup(entry.ctx);
+          if (!targetChat) {
             if (bugLog) meta.log(tag, `bug burst_no_group ticketId=${entry.ticketId} chatId=${entry.chatId}`);
             return;
           }
+
+          const ticketRows = await loadTicketState();
+          const ticketRow = ticketRows.find((x) => text(x.ticketId) === text(entry.ticketId));
+          const quickReplies = ticketRow && ticketRow.quickReplies && typeof ticketRow.quickReplies === 'object'
+            ? ticketRow.quickReplies
+            : {};
 
           const cardText = await ticketCard.render({
             ticketId: entry.ticketId,
@@ -199,6 +221,9 @@ module.exports = {
             time: new Date(entry.lastAt).toISOString(),
             messageCount: entry.messages.length,
             lastText: entry.messages[entry.messages.length - 1] || '',
+            qr1: text(quickReplies['1']),
+            qr2: text(quickReplies['2']),
+            qr3: text(quickReplies['3']),
           });
 
           const consolidated = FallbackForwardTextCV.renderBatch(meta, cfg, {
@@ -208,9 +233,9 @@ module.exports = {
             messages: entry.messages,
           });
 
-          await send(groupId, cardText, { isAuto: 0 });
+          await send(targetChat, cardText, { isAuto: 0 });
           if (consolidated) {
-            await send(groupId, consolidated, { isAuto: 0 });
+            await send(targetChat, consolidated, { isAuto: 0 });
           }
         } catch (e) {
           if (bugLog) meta.log(tag, `bug burst_flush err=${text(e && e.message ? e.message : e)}`);
@@ -285,10 +310,23 @@ module.exports = {
           cfg,
           meta,
           store,
-          ticketStoreKey: storeSpec.key,
+          ticketStoreKey: ticketRef.key,
           ticketId,
           body,
           source,
+        });
+      },
+      sendReplyMedia: async ({ ticketId, staffMsg, captionText, source, options }) => {
+        return FallbackReplyMediaCV.sendToCustomer({
+          cfg,
+          meta,
+          store,
+          ticketStoreKey: ticketRef.key,
+          ticketId,
+          staffMsg,
+          captionText,
+          source,
+          options,
         });
       },
       canReply: async (ctx) => canAccess(access, ctx, cfg.minRoleTicketReply),
@@ -312,7 +350,7 @@ module.exports = {
             cfg,
             meta,
             store,
-            ticketStoreKey: storeSpec.key,
+            ticketStoreKey: ticketRef.key,
             ticketId,
             body,
             source,
