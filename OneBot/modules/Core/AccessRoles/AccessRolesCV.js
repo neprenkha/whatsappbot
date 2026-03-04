@@ -188,6 +188,11 @@ module.exports.init = async function init(meta) {
     ]));
   }
 
+  function principalFromAny(x) {
+    if (x && typeof x === 'object') return principalFromCtx(x);
+    return normalizePrincipal(x);
+  }
+
   function targetFromQuote(ctx) {
     const q = ctx && ctx.raw && (ctx.raw.quotedMsg || ctx.raw.quotedMessage || ctx.raw.quoted || null);
     return normalizePrincipal(firstNonEmpty([
@@ -203,18 +208,22 @@ module.exports.init = async function init(meta) {
     return normalizePrincipal(arg);
   }
 
-  function getRole(userId) {
-    const k = normalizePrincipal(userId);
+  function getRole(any) {
+    const k = principalFromAny(any);
     if (!k) return defaultRole;
     return normalizeRole(assignments[k], defaultRole);
   }
 
-  function hasAtLeast(userId, minRole) {
-    return roleRank(getRole(userId)) >= roleRank(normalizeRole(minRole, defaultRole));
+  function hasAtLeast(any, minRole) {
+    return roleRank(getRole(any)) >= roleRank(normalizeRole(minRole, defaultRole));
   }
 
-  function hasRole(userId, reqRole) {
-    return getRole(userId) === normalizeRole(reqRole, defaultRole);
+  function isExactRole(any, role) {
+    return getRole(any) === normalizeRole(role, defaultRole);
+  }
+
+  function hasRole(any, reqRole) {
+    return hasAtLeast(any, reqRole);
   }
 
   async function reply(ctx, text) {
@@ -315,6 +324,16 @@ module.exports.init = async function init(meta) {
     getRole: getRole,
     hasAtLeast: hasAtLeast,
     hasRole: hasRole,
+    isExactRole: isExactRole,
+    meetsMinRole: function meetsMinRole(ctx, minRole) {
+      return hasAtLeast(ctx, minRole);
+    },
+    isAllowed: function isAllowed(ctx, minRole) {
+      return hasAtLeast(ctx, minRole);
+    },
+    check: function check(ctx, minRole) {
+      return hasAtLeast(ctx, minRole);
+    },
     list: function list() {
       const out = {};
       const keys = Object.keys(assignments);
