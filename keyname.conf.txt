@@ -371,5 +371,6 @@ Function: per-path send prefer
 - tapSendArgsMax
 - traceToFile
 - debugToFile
+- rateLimitLogDebounceMs
 
 END OF FILE
