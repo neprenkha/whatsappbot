@@ -7,6 +7,8 @@ const FallbackQuoteParseCV = require('./FallbackQuoteParseCV');
 const FallbackReplyRouterCV = require('./FallbackReplyRouterCV');
 const FallbackReplyTextCV = require('./FallbackReplyTextCV');
 const FallbackReplyMediaCV = require('./FallbackReplyMediaCV');
+const FallbackReplyAVCV = require('./FallbackReplyAVCV');
+
 
 function text(value) {
   return String(value ?? '').trim();
@@ -318,6 +320,19 @@ module.exports = {
       },
       sendReplyMedia: async ({ ticketId, staffMsg, captionText, source, options }) => {
         return FallbackReplyMediaCV.sendToCustomer({
+          cfg,
+          meta,
+          store,
+          ticketStoreKey: ticketRef.key,
+          ticketId,
+          staffMsg,
+          captionText,
+          source,
+          options,
+        });
+      },
+      sendReplyAV: async ({ ticketId, staffMsg, captionText, source, options }) => {
+        return FallbackReplyAVCV.sendToCustomer({
           cfg,
           meta,
           store,
