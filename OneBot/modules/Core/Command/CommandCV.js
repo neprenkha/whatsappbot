@@ -59,7 +59,7 @@ module.exports.init = async function init(meta) {
 
   const globalConf = loadGlobalConf(meta, cfg, bugLog);
 
-  const prefix = toStr(cfg.prefix, toStr(globalConf.prefix, ''));
+  const prefix = toStr(cfg.prefix, '');
   const allowInDm = toBool(cfg.allowInDm, true);
   const allowInGroups = toBool(cfg.allowInGroups, true);
   const unknownText = toStr(cfg.unknownText, '');
