@@ -165,16 +165,11 @@ module.exports.init = async function init(meta) {
     if (bugLog) meta.log('AccessRolesCV', 'load_assignments_failed err=' + String(e && e.message ? e.message : e));
   }
 
-  if (ownerSeedList.length) {
-    for (let i = 0; i < ownerSeedList.length; i += 1) {
-      assignments[ownerSeedList[i]] = 'owner';
-    }
-  }
-
-  function hasOwner() {
+  function hasPrivilegedRole() {
     const keys = Object.keys(assignments);
     for (let i = 0; i < keys.length; i += 1) {
-      if (normalizeRole(assignments[keys[i]], defaultRole) === 'owner') return true;
+      const role = normalizeRole(assignments[keys[i]], defaultRole);
+      if (role === 'owner' || role === 'admin') return true;
     }
     return false;
   }
@@ -231,9 +226,23 @@ module.exports.init = async function init(meta) {
     return String(ctx && ctx.chatId || '').trim() === controlGroupId;
   }
 
+  async function tryBootstrapOwner(actor) {
+    const actorKey = normalizePrincipal(actor);
+    if (!bootstrapFirstOwner) return;
+    if (!actorKey) return;
+    if (hasPrivilegedRole()) return;
+
+    if (ownerSeedList.length > 0) {
+      const seeded = ownerSeedList.indexOf(actorKey) >= 0;
+      if (!seeded) return;
+    }
+
+    assignments[actorKey] = 'owner';
+    await saveAssignments();
+  }
+
   async function runRoleCommand(ctx) {
     const actor = principalFromCtx(ctx);
-    const actorRole = getRole(actor);
 
     if (!inControlGroup(ctx)) {
       await reply(ctx, msgNoAccess);
@@ -244,11 +253,17 @@ module.exports.init = async function init(meta) {
     const action = toStr(args.shift(), actionMe).toLowerCase();
 
     if (action === actionMe) {
-      await reply(ctx, msgMe.replace('{role}', actorRole));
+      await tryBootstrapOwner(actor);
+      const actorRole = getRole(actor);
+      const message = msgMe
+        .replace('{role}', actorRole)
+        .replace('{idKey}', actor || '');
+      await reply(ctx, message);
       return;
     }
 
-    const canManage = hasAtLeast(actor, 'owner') || (bootstrapFirstOwner && !hasOwner());
+    await tryBootstrapOwner(actor);
+    const canManage = hasAtLeast(actor, 'owner');
     if (!canManage) {
       await reply(ctx, msgNoAccess);
       return;
