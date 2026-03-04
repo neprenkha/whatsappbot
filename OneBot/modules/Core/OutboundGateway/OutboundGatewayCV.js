@@ -78,7 +78,7 @@ module.exports.init = async function init(meta) {
 
   const baseSend = toStr(cfg.baseSend, 'transport');
   const ratelimitService = toStr(cfg.ratelimitService, 'ratelimit');
-  const exportServices = splitCsv(toStr(cfg.exportServices, toStr(globalConf.sendPrefer, 'sendout,outsend')));
+  const services = splitCsv(toStr(cfg.services, toStr(globalConf.sendPrefer, 'sendout,outsend')));
   const bypassChatIds = new Set(splitCsv(toStr(cfg.bypassChatIds, toStr(globalConf.controlGroupId, ''))));
   const rateLimitLogDebounceMs = Math.max(0, toInt(cfg.rateLimitLogDebounceMs, 30000));
 
@@ -157,8 +157,8 @@ module.exports.init = async function init(meta) {
   }
 
   const published = [];
-  for (let i = 0; i < exportServices.length; i += 1) {
-    const n = exportServices[i];
+  for (let i = 0; i < services.length; i += 1) {
+    const n = services[i];
     if (!n) continue;
     meta.registerService(n, sendWrapped);
     published.push(n);
