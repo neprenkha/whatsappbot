@@ -218,16 +218,16 @@ module.exports.init = async function init(meta) {
     return roleRank(getRole(any)) >= roleRank(normalizeRole(minRole, defaultRole));
   }
 
-  function isExactRole(any, role) {
-    return getRole(any) === normalizeRole(role, defaultRole);
-  }
-
   function hasRole(any, reqRole) {
     return hasAtLeast(any, reqRole);
   }
 
-  async function reply(ctx, text) {
-    if (ctx && typeof ctx.reply === 'function' && text) await ctx.reply(text);
+  function isExactRole(any, role) {
+    return getRole(any) === normalizeRole(role, defaultRole);
+  }
+
+  async function reply(ctx, textValue) {
+    if (ctx && typeof ctx.reply === 'function' && textValue) await ctx.reply(textValue);
   }
 
   function inControlGroup(ctx) {
