@@ -9,8 +9,13 @@ function asBool(value, fallback) {
 }
 
 function asInt(value, fallback) {
-  const parsed = parseInt(String(value), 10);
+  const parsed = parseInt(String(value === undefined || value === null ? '' : value), 10);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function asText(value, fallback) {
+  const text = String(value === undefined || value === null ? '' : value).trim();
+  return text || fallback;
 }
 
 function asList(value) {
@@ -27,19 +32,6 @@ function readConf(conf, key, fallback) {
   return fallback;
 }
 
-function parseStoreRef(spec) {
-  const raw = String(spec || '').trim();
-  if (!raw.toLowerCase().startsWith('jsonstore:')) return null;
-  const tail = raw.slice('jsonstore:'.length);
-  const pieces = tail.split('/').map((part) => part.trim()).filter(Boolean);
-  if (pieces.length < 2) return null;
-  const namespace = pieces[0];
-  const file = pieces.slice(1).join('/');
-  const key = file.replace(/\.json$/i, '');
-  if (!namespace || !key) return null;
-  return { namespace, key };
-}
-
 function getErrText(err) {
   if (!err) return '';
   if (typeof err === 'string') return err;
@@ -49,17 +41,16 @@ function getErrText(err) {
 function normalizeItem(raw) {
   const item = raw && typeof raw === 'object' ? Object.assign({}, raw) : {};
 
-  if (item.attempts === undefined && item.retries !== undefined) {
-    item.attempts = item.retries;
-  }
-  if (item.nextTryAtMs === undefined && item.nextAt !== undefined) {
-    item.nextTryAtMs = item.nextAt;
-  }
+  if (item.attempts === undefined && item.retries !== undefined) item.attempts = item.retries;
+  if (item.nextTryAtMs === undefined && item.nextAt !== undefined) item.nextTryAtMs = item.nextAt;
 
   item.attempts = Number.isFinite(Number(item.attempts)) ? Number(item.attempts) : 0;
   item.nextTryAtMs = Number.isFinite(Number(item.nextTryAtMs)) ? Number(item.nextTryAtMs) : 0;
+  item.id = Number.isFinite(Number(item.id)) ? Number(item.id) : 0;
 
-  if (!Object.prototype.hasOwnProperty.call(item, 'options')) item.options = {};
+  if (!Object.prototype.hasOwnProperty.call(item, 'options') || !item.options || typeof item.options !== 'object') {
+    item.options = {};
+  }
   if (!Object.prototype.hasOwnProperty.call(item, 'lastError')) item.lastError = '';
   if (!Object.prototype.hasOwnProperty.call(item, 'createdAtMs')) {
     item.createdAtMs = Number.isFinite(Number(item.createdAtMs)) ? Number(item.createdAtMs) : Date.now();
@@ -70,29 +61,37 @@ function normalizeItem(raw) {
 
 module.exports = {
   init: async (meta) => {
-    const conf = meta.implConf || {};
-    const log = typeof meta.log === 'function' ? meta.log : () => {};
+    const conf = meta && meta.implConf ? meta.implConf : {};
+    const log = meta && typeof meta.log === 'function' ? meta.log : () => {};
     const tag = 'OutboxCV';
 
     const enabled = asBool(readConf(conf, 'enabled', 1), true);
+    const moduleLog = asBool(readConf(conf, 'moduleLog', 1), true);
+    const bugLog = asBool(readConf(conf, 'bugLog', 1), true);
+    const detailLog = asBool(readConf(conf, 'detailLog', 0), false);
+    const traceLog = asBool(readConf(conf, 'traceLog', 0), false);
+
     if (!enabled) {
-      log(tag, 'disabled enabled=0');
+      if (moduleLog) log(tag, 'disabled enabled=0');
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
     const loaded = typeof meta.loadConfRel === 'function'
-      ? (meta.loadConfRel(String(readConf(conf, 'globalConfRel', '') || '')) || {})
+      ? (meta.loadConfRel(asText(readConf(conf, 'globalConfRel', ''), '')) || {})
       : {};
-    const globalConf = loaded.conf || {};
+    const globalConf = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
 
-    const serviceName = String(readConf(conf, 'serviceName', 'outbox') || 'outbox').trim() || 'outbox';
-    const storeRef = parseStoreRef(readConf(conf, 'store', ''));
+    const serviceName = asText(readConf(conf, 'serviceName', 'outbox'), 'outbox');
+    const namespace = asText(readConf(conf, 'namespace', 'Outbox'), 'Outbox');
+    const storeKey = asText(readConf(conf, 'storeKey', 'state'), 'state');
     const tickMs = Math.max(100, asInt(readConf(conf, 'tickMs', 2000), 2000));
     const batchMax = Math.max(1, asInt(readConf(conf, 'batchMax', 5), 5));
     const maxAttempts = Math.max(0, asInt(readConf(conf, 'maxAttempts', 5), 5));
     const retryDelayMs = Math.max(0, asInt(readConf(conf, 'retryDelayMs', 5000), 5000));
     const deadMax = Math.max(1, asInt(readConf(conf, 'deadMax', 500), 500));
-    const sendPrefer = asList(readConf(globalConf, 'sendPrefer', ''));
+
+    const sendPreferText = asText(readConf(conf, 'sendPrefer', ''), asText(readConf(globalConf, 'sendPrefer', ''), ''));
+    const sendPrefer = asList(sendPreferText);
 
     const jsonstore = meta.getService('jsonstore');
     let queue = [];
@@ -103,20 +102,22 @@ module.exports = {
     let ready = false;
 
     function resolveSender() {
-      for (const name of sendPrefer) {
+      for (let i = 0; i < sendPrefer.length; i += 1) {
+        const name = sendPrefer[i];
         const svc = meta.getService(name);
         if (typeof svc === 'function') return svc;
+        if (svc && typeof svc.send === 'function') return async (chatId, payload, options) => await svc.send(chatId, payload, options || {});
       }
       return null;
     }
 
     async function loadState() {
-      if (!storeRef || !jsonstore || typeof jsonstore.open !== 'function') {
+      if (!jsonstore || typeof jsonstore.open !== 'function') {
         ready = true;
         return;
       }
-      const store = jsonstore.open(storeRef.namespace);
-      const state = await store.get(storeRef.key);
+      const store = jsonstore.open(namespace);
+      const state = await store.get(storeKey);
 
       const loadedQueue = state && Array.isArray(state.queue)
         ? state.queue
@@ -131,9 +132,9 @@ module.exports = {
     }
 
     async function saveState() {
-      if (!storeRef || !jsonstore || typeof jsonstore.open !== 'function') return;
-      const store = jsonstore.open(storeRef.namespace);
-      await store.set(storeRef.key, { queue, dead, lastId });
+      if (!jsonstore || typeof jsonstore.open !== 'function') return;
+      const store = jsonstore.open(namespace);
+      await store.set(storeKey, { queue, dead, lastId });
     }
 
     function pushDead(item, lastError) {
@@ -148,11 +149,15 @@ module.exports = {
     }
 
     async function enqueue(chatId, payload, options) {
+      const baseOptions = options && typeof options === 'object' ? Object.assign({}, options) : {};
+      if (!Object.prototype.hasOwnProperty.call(baseOptions, 'isAuto')) baseOptions.isAuto = 1;
+      if (!Object.prototype.hasOwnProperty.call(baseOptions, 'manualReply')) baseOptions.manualReply = 0;
+
       const item = normalizeItem({
         id: ++lastId,
         chatId,
         payload,
-        options: options || {},
+        options: baseOptions,
         attempts: 0,
         nextTryAtMs: 0,
         createdAtMs: Date.now(),
@@ -168,7 +173,10 @@ module.exports = {
       running = true;
       try {
         const sender = resolveSender();
-        if (typeof sender !== 'function') return;
+        if (typeof sender !== 'function') {
+          if (bugLog) log(tag, 'sender_missing sendPrefer=' + sendPrefer.join(','));
+          return;
+        }
 
         let sentCount = 0;
         while (queue.length > 0 && sentCount < batchMax) {
@@ -209,7 +217,10 @@ module.exports = {
           }
         }
 
-        if (sentCount > 0) await saveState();
+        if (sentCount > 0) {
+          await saveState();
+          if (traceLog || detailLog) log(tag, 'flush sent=' + sentCount + ' remain=' + queue.length);
+        }
       } finally {
         running = false;
       }
@@ -237,11 +248,13 @@ module.exports = {
     try {
       await loadState();
       startLoop();
-      log(tag, 'ready enabled=1 serviceName=' + serviceName + ' tickMs=' + tickMs + ' batchMax=' + batchMax);
+      if (moduleLog) {
+        log(tag, 'ready enabled=1 serviceName=' + serviceName + ' sendPrefer=' + sendPrefer.join(',') + ' tickMs=' + tickMs + ' batchMax=' + batchMax);
+      }
     } catch (err) {
       ready = true;
       startLoop();
-      log(tag, 'ready.degraded enabled=1 serviceName=' + serviceName + ' err=' + getErrText(err));
+      if (bugLog) log(tag, 'ready.degraded enabled=1 serviceName=' + serviceName + ' err=' + getErrText(err));
     }
 
     return { onMessage: async () => {}, onEvent: async () => {} };
