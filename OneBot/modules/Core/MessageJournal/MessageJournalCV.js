@@ -3,198 +3,192 @@
 const fs = require('fs');
 const path = require('path');
 
-// REWRITTEN: standalone CV implementation with file-based journaling.
-
-function toBool(v, d) {
-  if (v === undefined || v === null || v === '') return d;
-  const s = String(v).trim().toLowerCase();
-  if (s === '1' || s === 'true' || s === 'yes' || s === 'on') return true;
-  if (s === '0' || s === 'false' || s === 'no' || s === 'off') return false;
-  return d;
+function toBool(value, fallback) {
+  if (value === undefined || value === null || value === '') return !!fallback;
+  const text = String(value).trim().toLowerCase();
+  if (text === '1' || text === 'true' || text === 'yes' || text === 'on') return true;
+  if (text === '0' || text === 'false' || text === 'no' || text === 'off') return false;
+  return !!fallback;
 }
 
-function toInt(v, d) {
-  const n = parseInt(String(v === undefined || v === null ? '' : v), 10);
-  return Number.isFinite(n) ? n : d;
+function toText(value) {
+  return String(value === undefined || value === null ? '' : value).trim();
 }
 
-function toStr(v, d) {
-  const s = String(v === undefined || v === null ? '' : v).trim();
-  return s || d;
-}
-
-function loadGlobalConf(meta, cfg, bugLog) {
-  const rel = toStr(cfg.globalConfRel, '');
-  if (!rel) {
-    if (bugLog) meta.log('MessageJournalCV', 'global_conf_missing_key globalConfRel');
-    return {};
+function toNowMs(timezone) {
+  if (timezone && typeof timezone.now === 'function') {
+    const n = Number(timezone.now());
+    if (Number.isFinite(n)) return n;
   }
-  try {
-    const loaded = meta.loadConfRel(rel);
-    return loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
-  } catch (e) {
-    if (bugLog) meta.log('MessageJournalCV', 'global_conf_load_failed err=' + String(e && e.message ? e.message : e));
-    return {};
-  }
+  return Date.now();
 }
 
-function safeJson(v) {
-  try {
-    return JSON.stringify(v);
-  } catch (e) {
-    return '{"_error":"json_stringify_failed"}';
-  }
-}
-
-function clip(v, maxLen) {
-  const s = String(v === undefined || v === null ? '' : v);
-  if (maxLen <= 0) return '';
-  if (s.length <= maxLen) return s;
-  return s.slice(0, maxLen - 3) + '...';
+function toDateKey(epochMs) {
+  return new Date(epochMs).toISOString().slice(0, 10);
 }
 
 function ensureDir(dirPath) {
   if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
 }
 
-function resolveTimeService(meta) {
-  return meta.getService('timezone');
+function getRaw(ctx) {
+  return ctx && ctx.raw && typeof ctx.raw === 'object' ? ctx.raw : {};
 }
 
-function nowTs(meta) {
-  const svc = resolveTimeService(meta);
-  if (svc && typeof svc.now === 'function') {
-    const n = svc.now();
-    if (Number.isFinite(n)) return n;
+function getMsgId(ctx) {
+  const raw = getRaw(ctx);
+  const idObj = raw.id && typeof raw.id === 'object' ? raw.id : null;
+  const v1 = toText(ctx && ctx.msgId);
+  if (v1) return v1;
+  if (idObj) {
+    const v2 = toText(idObj._serialized);
+    if (v2) return v2;
+    const v3 = toText(idObj.id);
+    if (v3) return v3;
   }
-  return Date.now();
+  const v4 = toText(raw.id);
+  if (v4) return v4;
+  return toText(ctx && ctx.id);
 }
 
-function nowIso(meta, ts) {
-  const svc = resolveTimeService(meta);
-  if (svc && typeof svc.isoNow === 'function' && ts === undefined) {
-    const iso = svc.isoNow();
-    if (iso) return String(iso);
-  }
-  return new Date(Number(ts)).toISOString();
+function getType(ctx) {
+  const raw = getRaw(ctx);
+  const v1 = toText(ctx && ctx.type).toLowerCase();
+  if (v1) return v1;
+  const v2 = toText(raw.type).toLowerCase();
+  if (v2) return v2;
+  return toText(ctx && ctx.event).toLowerCase();
 }
 
-module.exports.init = async function init(meta) {
-  const cfg = meta && meta.implConf ? meta.implConf : {};
+function getChatId(ctx) {
+  const raw = getRaw(ctx);
+  const v1 = toText(ctx && ctx.chatId);
+  if (v1) return v1;
+  const v2 = toText(raw.from);
+  if (v2) return v2;
+  return toText(raw.to);
+}
 
-  const enabled = toBool(cfg.enabled, true);
-  const moduleLog = toBool(cfg.moduleLog, true);
-  const bugLog = toBool(cfg.bugLog, true);
-  const detailLog = toBool(cfg.detailLog, false);
-  const traceLog = toBool(cfg.traceLog, false);
+function getFromMe(ctx) {
+  const raw = getRaw(ctx);
+  if (raw.fromMe === true) return '1';
+  if (raw.fromMe === false) return '0';
+  if (ctx && ctx.fromMe === true) return '1';
+  if (ctx && ctx.fromMe === false) return '0';
+  return '';
+}
 
-  if (!enabled) {
-    if (moduleLog) meta.log('MessageJournalCV', 'disabled');
-    return { onMessage: async () => {}, onEvent: async () => {} };
-  }
+function getTicketId(ctx) {
+  const raw = getRaw(ctx);
+  const v1 = toText(ctx && ctx.ticketId);
+  if (v1) return v1;
+  return toText(raw.ticketId);
+}
 
-  const globalConf = loadGlobalConf(meta, cfg, bugLog);
-  void globalConf;
+function resolveDirFromEvent(ctx) {
+  const v1 = toText(ctx && ctx.dir).toLowerCase();
+  if (v1 === 'in' || v1 === 'out') return v1;
+  const v2 = toText(ctx && ctx.direction).toLowerCase();
+  if (v2 === 'in' || v2 === 'out') return v2;
+  const name = toText(ctx && ctx.event).toLowerCase();
+  if (name.indexOf('out') >= 0) return 'out';
+  if (name.indexOf('in') >= 0) return 'in';
+  return '';
+}
 
-  const dataDirRel = toStr(cfg.dataDirRel, 'MessageJournal');
-  const includeMessages = toBool(cfg.includeMessages, true);
-  const includeEvents = toBool(cfg.includeEvents, true);
-  const maxTextLen = Math.max(1, toInt(cfg.maxTextLen, 600));
+module.exports = {
+  init: async (meta) => {
+    const cfg = meta && meta.implConf ? meta.implConf : {};
+    const log = meta && typeof meta.log === 'function' ? meta.log : () => {};
+    const tag = 'MessageJournalCV';
 
-  const baseRoot = toStr(meta.dataRootBot, '');
-  if (!baseRoot) {
-    throw new Error('messagejournal.dataRootBot_missing');
-  }
+    const enabled = toBool(cfg.enabled, true);
+    const moduleLog = toBool(cfg.moduleLog, true);
+    const bugLog = toBool(cfg.bugLog, true);
+    const detailLog = toBool(cfg.detailLog, false);
+    const traceLog = toBool(cfg.traceLog, false);
 
-  const dataDir = path.join(baseRoot, dataDirRel);
-  ensureDir(dataDir);
-
-  let writeChain = Promise.resolve();
-
-  function dateKeyFromTs(ts) {
-    const d = new Date(ts);
-    const y = String(d.getUTCFullYear());
-    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(d.getUTCDate()).padStart(2, '0');
-    return y + '-' + m + '-' + day;
-  }
-
-  function appendRecord(record) {
-    const line = safeJson(record) + '\n';
-    const fp = path.join(dataDir, record.dateKey + '.jsonl');
-    writeChain = writeChain.then(function runWrite() {
-      return fs.promises.appendFile(fp, line, 'utf8');
-    }).catch(function onWriteErr(e) {
-      if (bugLog) meta.log('MessageJournalCV', 'append_failed err=' + String(e && e.message ? e.message : e));
-    });
-    return writeChain;
-  }
-
-  function senderFrom(ctx) {
-    const s = ctx && ctx.sender ? ctx.sender : {};
-    return {
-      id: toStr(s.id, ''),
-      phone: toStr(s.phone, ''),
-      lid: toStr(s.lid, ''),
-      name: toStr(s.name, '')
-    };
-  }
-
-  async function onMessage(ctx) {
-    if (!includeMessages) return;
-
-    const ts = nowTs(meta);
-    const rec = {
-      v: 1,
-      kind: 'message',
-      ts: ts,
-      iso: nowIso(meta, ts),
-      dateKey: dateKeyFromTs(ts),
-      chatId: toStr(ctx && ctx.chatId, ''),
-      isGroup: !!(ctx && ctx.isGroup),
-      sender: senderFrom(ctx),
-      text: clip(ctx && ctx.text, maxTextLen)
-    };
-
-    await appendRecord(rec);
-
-    if (traceLog) {
-      meta.log('MessageJournalCV', 'write_message chatId=' + rec.chatId);
+    if (!enabled) {
+      if (moduleLog) log(tag, 'disabled enabled=0');
+      return { onMessage: async () => {}, onEvent: async () => {} };
     }
-  }
 
-  async function onEvent(ctx) {
-    if (!includeEvents) return;
+    const dataDirRel = toText(cfg.dataDirRel) || 'MessageJournal';
+    const filePrefix = toText(cfg.filePrefix) || 'journal';
+    const includeMessages = toBool(cfg.includeMessages, true);
+    const includeEvents = toBool(cfg.includeEvents, true);
 
-    const ts = nowTs(meta);
-    const rec = {
-      v: 1,
-      kind: 'event',
-      ts: ts,
-      iso: nowIso(meta, ts),
-      dateKey: dateKeyFromTs(ts),
-      event: toStr(ctx && ctx.event, 'unknown')
-    };
-
-    await appendRecord(rec);
-
-    if (traceLog) {
-      meta.log('MessageJournalCV', 'write_event name=' + rec.event);
+    const baseRoot = toText(meta && meta.dataRootBot);
+    if (!baseRoot) {
+      if (bugLog) log(tag, 'disabled missing_dataRootBot');
+      return { onMessage: async () => {}, onEvent: async () => {} };
     }
-  }
 
-  if (moduleLog || detailLog) {
-    meta.log(
-      'MessageJournalCV',
-      'ready dataDir=' + dataDir +
-        ' includeMessages=' + (includeMessages ? '1' : '0') +
-        ' includeEvents=' + (includeEvents ? '1' : '0') +
-        ' maxTextLen=' + String(maxTextLen)
-    );
-  }
+    const dataDir = path.join(baseRoot, dataDirRel);
+    ensureDir(dataDir);
 
-  return {
-    onMessage,
-    onEvent
-  };
+    const timezone = meta && typeof meta.getService === 'function' ? meta.getService('timezone') : null;
+    let writeChain = Promise.resolve();
+
+    function appendLine(record) {
+      const nowMs = toNowMs(timezone);
+      const dateKey = toDateKey(nowMs);
+      const fileName = filePrefix + '-' + dateKey + '.jsonl';
+      const filePath = path.join(dataDir, fileName);
+      const line = JSON.stringify(record) + '\n';
+      writeChain = writeChain.then(async () => {
+        await fs.promises.appendFile(filePath, line, 'utf8');
+      }).catch((err) => {
+        if (bugLog) log(tag, 'append_failed err=' + String(err && err.message ? err.message : err));
+      });
+      return writeChain;
+    }
+
+    async function writeJournal(dir, ctx) {
+      const nowMs = toNowMs(timezone);
+      const rec = {
+        ts: nowMs,
+        dir: dir,
+        chatId: getChatId(ctx),
+        msgId: getMsgId(ctx),
+        type: getType(ctx),
+      };
+
+      const fromMe = getFromMe(ctx);
+      if (fromMe !== '') rec.fromMe = fromMe;
+
+      const ticketId = getTicketId(ctx);
+      if (ticketId) rec.ticketId = ticketId;
+
+      await appendLine(rec);
+
+      if (traceLog) {
+        log(tag, 'write dir=' + dir + ' chatId=' + rec.chatId + ' type=' + rec.type);
+      }
+    }
+
+    async function onMessage(ctx) {
+      if (!includeMessages) return;
+      await writeJournal('in', ctx);
+      if (detailLog) {
+        log(tag, 'in chatId=' + getChatId(ctx) + ' type=' + getType(ctx));
+      }
+    }
+
+    async function onEvent(ctx) {
+      if (!includeEvents) return;
+      const dir = resolveDirFromEvent(ctx);
+      if (!dir) return;
+      await writeJournal(dir, ctx);
+      if (detailLog) {
+        log(tag, dir + ' chatId=' + getChatId(ctx) + ' type=' + getType(ctx));
+      }
+    }
+
+    if (moduleLog) {
+      log(tag, 'ready enabled=1 dataDirRel=' + dataDirRel + ' filePrefix=' + filePrefix + ' includeMessages=' + (includeMessages ? '1' : '0') + ' includeEvents=' + (includeEvents ? '1' : '0'));
+    }
+
+    return { onMessage, onEvent };
+  },
 };
