@@ -41,6 +41,13 @@ function nowPeriodUTC() {
   return `${yy}${mm}`;
 }
 
+function parseEpochMs(value, fallbackMs) {
+  const raw = text(value);
+  if (!raw) return fallbackMs;
+  const n = Date.parse(raw);
+  return Number.isFinite(n) ? n : fallbackMs;
+}
+
 function buildCustomerLabel(ctx) {
   return text(
     (ctx && (ctx.pushName || ctx.senderName || ctx.authorName)) ||
@@ -164,8 +171,13 @@ module.exports = {
 
     const burstMs = Math.max(1, toInt(cfg.burstMs, 1200));
     const msgBufferMax = Math.max(1, toInt(cfg.msgBufferMax, 20));
+    const tickMs = Math.max(1000, toInt(cfg.tickMs, burstMs));
+    const batchMax = Math.max(1, toInt(cfg.batchMax, msgBufferMax));
+    const maxAttempts = Math.max(1, toInt(cfg.maxAttempts, 1));
+    const retryDelayMs = Math.max(0, toInt(cfg.retryDelayMs, tickMs));
 
     const burstState = new Map();
+    const reminderState = new Map();
 
     async function loadTicketState() {
       const raw = await store.get(ticketRef.key, { tickets: [] });
@@ -304,6 +316,106 @@ module.exports = {
       if (typeof ctx.stopPropagation === 'function') ctx.stopPropagation();
     }
 
+
+    async function runReminderCycle() {
+      try {
+        const tickets = await loadTicketState();
+        const openDmTickets = tickets.filter((x) => {
+          const statusOpen = text(x && x.status) === text(cfg.ticketStatusOpen);
+          const chatId = text(x && x.customerChatId);
+          const isDm = !!chatId && chatId.indexOf('@g.us') < 0;
+          return statusOpen && isDm;
+        });
+
+        openDmTickets.sort((a, b) => {
+          const ta = parseEpochMs(a && (a.updatedAt || a.createdAt), 0);
+          const tb = parseEpochMs(b && (b.updatedAt || b.createdAt), 0);
+          return ta - tb;
+        });
+
+        const cycleSent = new Set();
+        let sentCount = 0;
+
+        for (let i = 0; i < openDmTickets.length; i += 1) {
+          if (sentCount >= batchMax) break;
+
+          const ticket = openDmTickets[i] || {};
+          const ticketId = text(ticket.ticketId);
+          if (!ticketId || cycleSent.has(ticketId)) continue;
+
+          const lastInboundAtMs = parseEpochMs(ticket.updatedAt || ticket.createdAt, 0);
+          const current = reminderState.get(ticketId) || {
+            attempt: 0,
+            nextAtMs: lastInboundAtMs + tickMs,
+            lastInboundAtMs,
+          };
+
+          if (lastInboundAtMs > Number(current.lastInboundAtMs || 0)) {
+            current.attempt = 0;
+            current.nextAtMs = lastInboundAtMs + tickMs;
+            current.lastInboundAtMs = lastInboundAtMs;
+          }
+
+          if (Date.now() < Number(current.nextAtMs || 0)) {
+            reminderState.set(ticketId, current);
+            continue;
+          }
+
+          const targetChat = resolveTargetGroup({
+            chatId: text(ticket.customerChatId),
+            isGroup: false,
+          });
+          if (!targetChat) {
+            if (bugLog) meta.log(tag, `bug remind_no_group ticketId=${ticketId}`);
+            continue;
+          }
+
+          const quickReplies = ticket && ticket.quickReplies && typeof ticket.quickReplies === 'object'
+            ? ticket.quickReplies
+            : {};
+
+          const cardText = await ticketCard.render({
+            ticketId: ticketId,
+            customerChatId: text(ticket.customerChatId),
+            customerName: text(ticket.customerName || ticket.customerChatId),
+            status: text(ticket.status),
+            time: new Date(lastInboundAtMs || Date.now()).toISOString(),
+            messageCount: 0,
+            lastText: '',
+            qr1: text(quickReplies['1']),
+            qr2: text(quickReplies['2']),
+            qr3: text(quickReplies['3']),
+          });
+
+          await send(targetChat, cardText, {
+            isAuto: 1,
+            manualReply: 0,
+            lastInboundAtMs,
+          });
+
+          cycleSent.add(ticketId);
+          sentCount += 1;
+
+          if (current.attempt + 1 >= maxAttempts) {
+            current.attempt = maxAttempts;
+            current.nextAtMs = Number.MAX_SAFE_INTEGER;
+          } else {
+            current.attempt += 1;
+            current.nextAtMs = Date.now() + retryDelayMs;
+          }
+
+          current.lastInboundAtMs = lastInboundAtMs;
+          reminderState.set(ticketId, current);
+        }
+      } catch (e) {
+        if (bugLog) meta.log(tag, `bug reminder_cycle err=${text(e && e.message ? e.message : e)}`);
+      }
+    }
+
+    const reminderTimer = setInterval(() => {
+      runReminderCycle().catch(() => {});
+    }, tickMs);
+
     const replyRouter = FallbackReplyRouterCV.create({
       cfg,
       parseQuote: FallbackQuoteParseCV.parse,
@@ -380,6 +492,9 @@ module.exports = {
         await replyRouter.onGroupMessage(ctx);
       },
       onEvent: async () => {},
+      shutdown: async () => {
+        clearInterval(reminderTimer);
+      },
     };
   },
 };
