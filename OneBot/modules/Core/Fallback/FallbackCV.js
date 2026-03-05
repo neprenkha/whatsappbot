@@ -9,7 +9,6 @@ const FallbackReplyTextCV = require('./FallbackReplyTextCV');
 const FallbackReplyMediaCV = require('./FallbackReplyMediaCV');
 const FallbackReplyAVCV = require('./FallbackReplyAVCV');
 
-
 function text(value) {
   return String(value ?? '').trim();
 }
@@ -40,7 +39,6 @@ function nowPeriodUTC() {
   const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
   return `${yy}${mm}`;
 }
-
 
 function buildCustomerLabel(ctx) {
   return text(
