@@ -17,6 +17,11 @@ function stripTicketId(textBody, ticketIdRegex) {
   return text(textBody).replace(re, ' ').replace(/\s+/g, ' ').trim();
 }
 
+function bugEnabled(value) {
+  const v = text(value).toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on';
+}
+
 async function sendToCustomer(input) {
   const cfg = input.cfg;
   const meta = input.meta;
@@ -78,6 +83,21 @@ async function sendToCustomer(input) {
     });
   } catch (e) {
     return { ok: 0, code: 'send_error', error: text(e && e.message ? e.message : e) };
+  }
+
+  try {
+    const state2 = await store.get(ticketStoreKey, { tickets: [] });
+    const tickets2 = Array.isArray(state2.tickets) ? state2.tickets : [];
+    const ticket2 = tickets2.find((x) => text(x.ticketId) === ticketId);
+    if (ticket2) {
+      ticket2.lastStaffReplyAt = Date.now();
+      ticket2.awaitingStaff = 0;
+      await store.set(ticketStoreKey, { tickets: tickets2 });
+    }
+  } catch (e) {
+    if (bugEnabled(cfg.bugLog) && meta && typeof meta.log === 'function') {
+      meta.log('FallbackReplyTextCV', 'bug ticket_update_failed err=' + text(e && e.message ? e.message : e));
+    }
   }
 
   return { ok: 1, code: 'sent', targetChatId: customerChatId };
