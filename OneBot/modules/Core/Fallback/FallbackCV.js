@@ -175,6 +175,19 @@ module.exports = {
       await store.set(ticketRef.key, { tickets });
     }
 
+    async function loadBindMap() {
+      const key = text(cfg.bindMapStoreKey);
+      if (!key) return {};
+      const raw = await store.get(key, {});
+      return raw && typeof raw === 'object' ? raw : {};
+    }
+
+    async function saveBindMap(map) {
+      const key = text(cfg.bindMapStoreKey);
+      if (!key) return;
+      await store.set(key, map && typeof map === 'object' ? map : {});
+    }
+
     async function nextTicketId() {
       const period = nowPeriodUTC();
       const seqRaw = await store.get(text(cfg.ticketSeqKey), { period: '', value: 0 });
@@ -185,8 +198,22 @@ module.exports = {
       return `${period}T${String(next).padStart(seqDigits, '0')}`;
     }
 
-    function resolveTargetGroup(ctx) {
-      return FallbackGroupRouterCV.resolveTargetGroup(meta, cfg, globalConf, ctx);
+    async function resolveWorkgroupChatId(workgroupKey, ctx) {
+      const key = text(workgroupKey);
+      if (!key) return '';
+      const workgroups = meta.getService('workgroups');
+      if (workgroups && typeof workgroups.resolve === 'function') {
+        const r = await workgroups.resolve(key, ctx);
+        return text((r && (r.groupChatId || r.chatId || r.id)) || r);
+      }
+      return '';
+    }
+
+    async function resolveTargetGroup(workgroupKey, ctx) {
+      const fromWorkgroups = await resolveWorkgroupChatId(workgroupKey, ctx);
+      if (fromWorkgroups) return fromWorkgroups;
+      const fallback = FallbackGroupRouterCV.resolveTargetGroup(meta, cfg, globalConf, ctx);
+      return text(fallback);
     }
 
     function scheduleBurstFlush(chatId, ticketId) {
@@ -202,14 +229,14 @@ module.exports = {
           if (!entry) return;
           burstState.delete(key);
 
-          const targetChat = resolveTargetGroup(entry.ctx);
+          const ticketRows = await loadTicketState();
+          const ticketRow = ticketRows.find((x) => text(x.ticketId) === text(entry.ticketId));
+          const intendedKey = text(entry.groupKey) || text(ticketRow && ticketRow.groupKey) || text(cfg.defaultGroupKey);
+          const targetChat = await resolveTargetGroup(intendedKey, entry.ctx);
           if (!targetChat) {
             if (bugLog) meta.log(tag, `bug burst_no_group ticketId=${entry.ticketId} chatId=${entry.chatId}`);
             return;
           }
-
-          const ticketRows = await loadTicketState();
-          const ticketRow = ticketRows.find((x) => text(x.ticketId) === text(entry.ticketId));
           const quickReplies = ticketRow && ticketRow.quickReplies && typeof ticketRow.quickReplies === 'object'
             ? ticketRow.quickReplies
             : {};
@@ -258,6 +285,7 @@ module.exports = {
       const tickets = await loadTicketState();
 
       let ticket = tickets.find((x) => text(x.customerChatId) === chatId && text(x.status) !== text(cfg.ticketStatusClosed));
+      let groupKey = '';
       if (!ticket) {
         const inboundAt = Date.now();
         const ticketId = await nextTicketId();
@@ -272,11 +300,21 @@ module.exports = {
           awaitingStaff: 1,
         };
         tickets.push(ticket);
+        groupKey = text(ticket.groupKey || cfg.defaultGroupKey);
       } else {
         const inboundAt = Date.now();
         ticket.updatedAt = new Date().toISOString();
         ticket.lastInboundAt = inboundAt;
         ticket.awaitingStaff = 1;
+        groupKey = text(ticket.groupKey || cfg.defaultGroupKey);
+        if (!text(ticket.groupKey)) {
+          ticket.groupKey = groupKey;
+        }
+      }
+
+      if (!groupKey) {
+        groupKey = text(cfg.defaultGroupKey);
+        if (ticket) ticket.groupKey = groupKey;
       }
 
       await saveTicketState(tickets);
@@ -290,6 +328,7 @@ module.exports = {
         messages: [],
         lastAt: Date.now(),
         ctx,
+        groupKey,
         timer: null,
       };
 
@@ -297,6 +336,7 @@ module.exports = {
       current.status = text(ticket.status);
       current.lastAt = Date.now();
       current.ctx = ctx;
+      current.groupKey = groupKey;
       current.messages.push(body);
       if (current.messages.length > msgBufferMax) {
         current.messages = current.messages.slice(current.messages.length - msgBufferMax);
@@ -348,6 +388,58 @@ module.exports = {
           source,
           options,
         });
+      },
+      onBindTag: async ({ tag: bindTag, workgroupKey }) => {
+        const normalizedTag = text(bindTag);
+        const normalizedGroupKey = text(workgroupKey);
+        if (!normalizedTag || !normalizedGroupKey) return { ok: 0, code: 'need_text' };
+        if (!text(cfg.bindMapStoreKey)) {
+          if (bugLog) meta.log(tag, 'bug bind_tag_missing_bindMapStoreKey');
+          return { ok: 0, code: 'need_text' };
+        }
+        try {
+          const bindMap = await loadBindMap();
+          bindMap[normalizedTag] = normalizedGroupKey;
+          await saveBindMap(bindMap);
+          return { ok: 1 };
+        } catch (e) {
+          if (bugLog) meta.log(tag, `bug bind_tag_failed err=${text(e && e.message ? e.message : e)}`);
+          return { ok: 0, code: 'need_text' };
+        }
+      },
+      onMoveTicket: async ({ ticketId, targetKey, workgroupKey, ctx }) => {
+        const resolvedTicketId = text(ticketId);
+        const resolvedGroupKey = text(workgroupKey || targetKey);
+
+        if (!ctx || !ctx.isGroup) return { ok: 0, code: 'group_only' };
+        if (!resolvedTicketId) return { ok: 0, code: 'need_ticket' };
+        if (!resolvedGroupKey) return { ok: 0, code: 'need_text' };
+
+        try {
+          const workgroups = meta.getService('workgroups');
+          if (workgroups && typeof workgroups.resolve === 'function') {
+            const check = await workgroups.resolve(resolvedGroupKey, ctx);
+            if (!check) {
+              if (bugLog) meta.log(tag, `bug move_ticket_group_not_resolved key=${resolvedGroupKey}`);
+              return { ok: 0, code: 'need_text' };
+            }
+          } else if (bugLog) {
+            meta.log(tag, 'bug move_ticket_missing_workgroups_service');
+          }
+
+          const tickets = await loadTicketState();
+          const ticket = tickets.find((x) => text(x.ticketId) === resolvedTicketId);
+          if (!ticket) return { ok: 0, code: 'ticket_not_found' };
+          if (text(ticket.status) === text(cfg.ticketStatusClosed)) return { ok: 0, code: 'ticket_closed' };
+
+          ticket.groupKey = resolvedGroupKey;
+          ticket.updatedAt = new Date(Date.now()).toISOString();
+          await saveTicketState(tickets);
+          return { ok: 1 };
+        } catch (e) {
+          if (bugLog) meta.log(tag, `bug move_ticket_failed err=${text(e && e.message ? e.message : e)}`);
+          return { ok: 0, code: 'need_text' };
+        }
       },
       canReply: async (ctx) => canAccess(access, ctx, cfg.minRoleTicketReply),
       sendStaffReply: async (ctx, message) => {
