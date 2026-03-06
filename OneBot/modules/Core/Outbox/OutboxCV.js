@@ -101,7 +101,9 @@ module.exports = {
 
     function openStore() {
       if (!jsonstore || typeof jsonstore.open !== 'function') return null;
-      return jsonstore.open(namespace);
+      const ns = asText(readConf(conf, 'namespace', namespace), '');
+      if (!ns) return null;
+      return jsonstore.open(ns);
     }
 
     function resolveSender() {
