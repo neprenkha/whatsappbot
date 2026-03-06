@@ -309,6 +309,7 @@ SendQueue:
 - dedupeMs
 - dedupeMax
 - dedupeLog
+- deadMax
 
 13) COMMANDS & UX
 Command:
