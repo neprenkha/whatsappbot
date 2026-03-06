@@ -110,7 +110,12 @@ module.exports = {
       'traceLog',
     ];
 
-    const missing = required.filter((k) => !text(cfg[k]));
+    const missing = required.filter((k) => {
+      const v = cfg[k];
+      if (v === undefined || v === null) return true;
+      if (typeof v === 'string' && v.trim() === '') return true;
+      return false;
+    });
     const bugLog = toBool(cfg.bugLog);
 
     if (missing.length) {
@@ -141,11 +146,11 @@ module.exports = {
     }
 
     const jsonstore = meta.getService('jsonstore');
-    const serviceName = String(globalConf.sendPrefer || '')
+    const preferredSendService = String(globalConf.sendPrefer || '')
       .split(',')
       .map((x) => text(x))
       .filter(Boolean)[0] || '';
-    const send = serviceName ? meta.getService(serviceName) : null;
+    const sendSvc = meta.getService('send') || (preferredSendService ? meta.getService(preferredSendService) : null);
     const access = meta.getService('access');
 
     if (!jsonstore || typeof jsonstore.open !== 'function') {
@@ -153,7 +158,14 @@ module.exports = {
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    if (!serviceName || typeof send !== 'function') {
+    let sendFn = null;
+    if (typeof sendSvc === 'function') {
+      sendFn = async (chatId, payload, options) => await sendSvc(chatId, payload, options || {});
+    } else if (sendSvc && typeof sendSvc.send === 'function') {
+      sendFn = async (chatId, payload, options) => await sendSvc.send(chatId, payload, options || {});
+    }
+
+    if (!sendFn) {
       if (bugLog) meta.log(tag, 'disabled missing_send_service');
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
@@ -261,9 +273,9 @@ module.exports = {
             messages: entry.messages,
           });
 
-          await send(targetChat, cardText, { isAuto: 0 });
+          await sendFn(targetChat, cardText, { isAuto: 1, manualReply: 0, lastInboundAtMs: Number(entry.lastAt || (ticketRow && ticketRow.lastInboundAt) || 0) });
           if (consolidated) {
-            await send(targetChat, consolidated, { isAuto: 0 });
+            await sendFn(targetChat, consolidated, { isAuto: 1, manualReply: 0, lastInboundAtMs: Number(entry.lastAt || (ticketRow && ticketRow.lastInboundAt) || 0) });
           }
         } catch (e) {
           if (bugLog) meta.log(tag, `bug burst_flush err=${text(e && e.message ? e.message : e)}`);
@@ -345,7 +357,7 @@ module.exports = {
       burstState.set(burstKey, current);
       scheduleBurstFlush(chatId, ticket.ticketId);
 
-      await send(chatId, text(cfg.inboundAckTemplate), { isAuto: 0 });
+      await sendFn(chatId, text(cfg.inboundAckTemplate), { isAuto: 1, manualReply: 0 });
       if (typeof ctx.stopPropagation === 'function') ctx.stopPropagation();
     }
 
@@ -449,7 +461,7 @@ module.exports = {
         }
         const chatId = text(ctx && ctx.chatId);
         if (!chatId) return;
-        await send(chatId, text(message), { isAuto: 0, manualReply: 1, bypassRateLimit: 1 });
+        await sendFn(chatId, text(message), { isAuto: 0, manualReply: 1, bypassRateLimit: 1 });
       },
       bugLog: bugLog,
       log: (line) => meta.log(tag, line),
