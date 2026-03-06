@@ -310,7 +310,6 @@ SendQueue:
 - dedupeMs
 - dedupeMax
 - dedupeLog
-- deadMax
 
 13) COMMANDS & UX
 Command:
@@ -381,3 +380,4 @@ Function: per-path send prefer
 
 
 END OF FILE
+
