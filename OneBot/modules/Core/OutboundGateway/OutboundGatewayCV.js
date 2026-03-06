@@ -121,13 +121,7 @@ module.exports.init = async function init(meta) {
     const bypassRateLimit = toBool(opts.bypassRateLimit, false) || explicitBypass;
 
     if (ratelimit && typeof ratelimit.check === 'function' && !bypassRateLimit) {
-      const checked = ratelimit.check({
-        chatId: outChatId,
-        weight: opts.weight,
-        isAuto: opts.isAuto,
-        manualReply: opts.manualReply,
-        bypassRateLimit: opts.bypassRateLimit,
-      }) || { ok: true, reason: 'ok', waitMs: 0 };
+      const checked = ratelimit.check(outChatId, payload, opts) || { ok: true, reason: 'ok', waitMs: 0 };
 
       if (!checked.ok) {
         if (moduleLog && shouldLogBlock(outChatId)) {
@@ -140,13 +134,7 @@ module.exports.init = async function init(meta) {
     const res = await sendBase(outChatId, payload, opts);
 
     if (ratelimit && typeof ratelimit.commit === 'function' && !bypassRateLimit) {
-      ratelimit.commit({
-        chatId: outChatId,
-        weight: opts.weight,
-        isAuto: opts.isAuto,
-        manualReply: opts.manualReply,
-        bypassRateLimit: opts.bypassRateLimit,
-      });
+      ratelimit.commit(outChatId, payload, opts);
     }
 
     if (traceLog || detailLog) {
