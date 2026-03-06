@@ -306,6 +306,7 @@ SendQueue:
 - delayMs
 - maxQueue
 - batchMax
+- deadMax
 - dedupeMs
 - dedupeMax
 - dedupeLog
@@ -376,6 +377,7 @@ Function: per-path send prefer
 - tapSendArgsMax
 - traceToFile
 - debugToFile
+
 
 
 END OF FILE
