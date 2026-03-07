@@ -1,4 +1,45 @@
-ONEBOT CONF KEYS AUDIT (from pasted .conf only)
+KEYNAME LIBRARY WARNING (MANDATORY)
+`keyname.conf.txt` is NOT an active WhatsApp Bot runtime config.
+It is NOT a live module conf.
+It is NOT something to edit by default during normal module work.
+
+It is a REFERENCE / LIBRARY file that documents canonical keynames to be reused first.
+
+Correct usage order for keyname decisions:
+1) First, fresh-scan the CURRENT repo and search ALL existing `.conf` files for keys that already serve the same function.
+2) If a same-function key already exists in repo configs, REUSE that key.
+3) If no same-function repo key fits, then check `keyname.conf.txt` as the canonical keyname library/reference.
+4) Only if the concept is still missing from both:
+   - current repo `.conf` usage
+   - and `keyname.conf.txt`
+   then suggest a truly new keyname.
+
+Important same-function rule:
+- Do NOT create or use multiple names for the same function across modules.
+- Example principle:
+  if one canonical key already covers the meaning of "enable/on/active", reuse that one key only.
+  Do NOT let one module use `on` while another uses `enabled` for the same purpose.
+
+Hard rules:
+- Do NOT treat `keyname.conf.txt` as an active bot conf.
+- Do NOT assume every key in `keyname.conf.txt` is automatically used by runtime.
+- Do NOT edit `keyname.conf.txt` unless the task explicitly asks for keyname-library update.
+- Do NOT invent new keynames before scanning the full repo for same-function reuse.
+- If a new keyname is truly needed, output only:
+  - NEW_KEY
+  - PURPOSE
+  - WHY_EXISTING_KEYS_CANNOT_FIT
+  - TARGET_SECTION_IN_keyname.conf.txt
+  - INSERT_AFTER
+
+Required behavior before any new module/config build:
+- Scan current repo `.conf` files first
+- Prefer repo same-function reuse first
+- Use `keyname.conf.txt` as library/reference second
+- Propose new keynames last
+
+No repo scan = no valid keyname decision.
+
 Generated: 2026-01-11
 Scope:
 - OneData/bots/ONEBOT/config/modules/Core/*
@@ -310,6 +351,7 @@ SendQueue:
 - dedupeMs
 - dedupeMax
 - dedupeLog
+- deadMax
 
 13) COMMANDS & UX
 Command:
@@ -378,6 +420,4 @@ Function: per-path send prefer
 - debugToFile
 
 
-
 END OF FILE
-
