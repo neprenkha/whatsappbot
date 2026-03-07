@@ -144,13 +144,21 @@ function create(deps) {
 
   async function onGroupMessage(ctx) {
     if (!ctx || !ctx.isGroup) return;
+
+    const quoteParsed = deps.parseQuote(ctx, cfg);
+    const bindParsed = parseBind(ctx, cfg);
+    const moveParsed = parseMove(ctx, cfg, quoteParsed);
+    const quickParsed = parseQuick(ctx, cfg, quoteParsed);
+    const commandParsed = parseCommand(ctx, cfg);
+
+    const hasTicket = quoteParsed && text(quoteParsed.ticketId);
+    const attempted = !!(hasTicket || bindParsed || moveParsed || quickParsed || commandParsed);
+    if (!attempted) return;
+
     if (!(await deps.canReply(ctx))) {
       await deps.sendStaffReply(ctx, cfg.replyNoAccess);
       return;
     }
-
-    const quoteParsed = deps.parseQuote(ctx, cfg);
-    const bindParsed = parseBind(ctx, cfg);
     if (bindParsed && typeof deps.onBindTag === 'function') {
       const bindResult = await deps.onBindTag({
         tag: bindParsed.tag,
@@ -168,7 +176,6 @@ function create(deps) {
       return;
     }
 
-    const moveParsed = parseMove(ctx, cfg, quoteParsed);
     if (moveParsed && typeof deps.onMoveTicket === 'function') {
       const moveResult = await deps.onMoveTicket({
         ticketId: moveParsed.ticketId,
@@ -202,7 +209,6 @@ function create(deps) {
       return;
     }
 
-    const quickParsed = parseQuick(ctx, cfg, quoteParsed);
     if (quickParsed && quickParsed.kind === 'quick_teach' && typeof deps.onQuickTeach === 'function') {
       const teachResult = await deps.onQuickTeach({
         slot: quickParsed.slot,
@@ -271,8 +277,6 @@ function create(deps) {
       }
       return;
     }
-
-    const commandParsed = parseCommand(ctx, cfg);
 
     let payload = null;
     if (quoteParsed && text(quoteParsed.ticketId)) payload = quoteParsed;
