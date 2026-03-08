@@ -1,91 +1,33 @@
 'use strict';
 
-function text(value) {
-  return String(value == null ? '' : value).trim();
+function text(v) { return String(v == null ? '' : v).trim(); }
+function keyText(v) { return text(v).toLowerCase(); }
+function toBool(v, d) {
+  const s = keyText(v);
+  if (!s) return !!d;
+  if (s === '1' || s === 'true' || s === 'yes' || s === 'on') return true;
+  if (s === '0' || s === 'false' || s === 'no' || s === 'off') return false;
+  return !!d;
 }
-
-function keyText(value) {
-  return text(value).toLowerCase();
-}
-
-function toBool(value, fallbackValue) {
-  const raw = keyText(value);
-  if (!raw) return !!fallbackValue;
-  if (raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on') return true;
-  if (raw === '0' || raw === 'false' || raw === 'no' || raw === 'off') return false;
-  return !!fallbackValue;
-}
-
-function toInt(value, fallbackValue) {
-  const n = Number.parseInt(text(value), 10);
-  return Number.isFinite(n) ? n : fallbackValue;
-}
-
-function fill(template, vars) {
-  let out = String(template || '');
-  Object.keys(vars).forEach((name) => {
-    out = out.split('{' + name + '}').join(String(vars[name] == null ? '' : vars[name]));
-  });
+function toInt(v, d) { const n = Number.parseInt(text(v), 10); return Number.isFinite(n) ? n : d; }
+function fill(tpl, vars) {
+  let out = String(tpl || '');
+  Object.keys(vars || {}).forEach((k) => { out = out.split('{' + k + '}').join(String(vars[k] == null ? '' : vars[k])); });
   return out;
 }
-
-function normalizePrincipal(value) {
-  const raw = text(value);
+function normalizePrincipal(v) {
+  const raw = text(v);
   if (!raw) return '';
   if (raw.indexOf('lid:') === 0) return raw;
   if (raw.indexOf('@') > 0) return raw;
   const digits = raw.replace(/[^0-9]/g, '');
-  if (digits) return 'lid:' + digits;
-  return raw;
+  return digits ? ('lid:' + digits) : raw;
 }
-
-function normalizePhone(value) {
-  return text(value).replace(/[^0-9]/g, '');
+function normalizePhone(v) { return text(v).replace(/[^0-9]/g, ''); }
+function actorIdFromCtx(ctx) {
+  const s = ctx && ctx.sender ? ctx.sender : {};
+  return normalizePrincipal(text(s.id) || text(s.phone) || text(s.lid) || text(ctx && ctx.author) || text(ctx && ctx.from));
 }
-
-function actorFromCtx(ctx) {
-  const sender = ctx && ctx.sender ? ctx.sender : {};
-  return normalizePrincipal(
-    text(sender.id) ||
-    text(sender.phone) ||
-    text(sender.lid) ||
-    text(ctx && ctx.author) ||
-    text(ctx && ctx.from)
-  );
-}
-
-function toList(value) {
-  return Array.isArray(value) ? value.filter(Boolean) : [];
-}
-
-function ensureListMap(map, key) {
-  const normalized = text(key);
-  if (!normalized) return [];
-  if (!Array.isArray(map[normalized])) map[normalized] = [];
-  return map[normalized];
-}
-
-function ensureStateShape(raw) {
-  const base = raw && typeof raw === 'object' ? raw : {};
-  const next = {
-    accountsByCode: base.accountsByCode && typeof base.accountsByCode === 'object' ? base.accountsByCode : {},
-    picsById: base.picsById && typeof base.picsById === 'object' ? base.picsById : {},
-    contextsByCode: base.contextsByCode && typeof base.contextsByCode === 'object' ? base.contextsByCode : {},
-    picIdByChatId: base.picIdByChatId && typeof base.picIdByChatId === 'object' ? base.picIdByChatId : {},
-    picIdByPhone: base.picIdByPhone && typeof base.picIdByPhone === 'object' ? base.picIdByPhone : {},
-    picIdsByAccountCode: base.picIdsByAccountCode && typeof base.picIdsByAccountCode === 'object' ? base.picIdsByAccountCode : {},
-    contextCodesByAccountCode: base.contextCodesByAccountCode && typeof base.contextCodesByAccountCode === 'object' ? base.contextCodesByAccountCode : {},
-    ticketContextByTicketId: base.ticketContextByTicketId && typeof base.ticketContextByTicketId === 'object' ? base.ticketContextByTicketId : {},
-    seqAcc: Number(base.seqAcc || 0),
-    seqPic: Number(base.seqPic || 0),
-    seqCtx: Number(base.seqCtx || 0),
-  };
-  if (!Number.isFinite(next.seqAcc) || next.seqAcc < 0) next.seqAcc = 0;
-  if (!Number.isFinite(next.seqPic) || next.seqPic < 0) next.seqPic = 0;
-  if (!Number.isFinite(next.seqCtx) || next.seqCtx < 0) next.seqCtx = 0;
-  return next;
-}
-
 function getQuotedMessage(ctx) {
   const raw = ctx && ctx.raw ? ctx.raw : {};
   if (raw.quotedMsg && typeof raw.quotedMsg === 'object') return raw.quotedMsg;
@@ -95,196 +37,159 @@ function getQuotedMessage(ctx) {
   if (data.quotedMsg && typeof data.quotedMsg === 'object') return data.quotedMsg;
   return {};
 }
-
 function getQuotedText(ctx) {
   const direct = text(ctx && ctx.quotedText);
   if (direct) return direct;
-  const quoted = getQuotedMessage(ctx);
-  return text(quoted.body) || text(quoted.caption);
+  const q = getQuotedMessage(ctx);
+  return text(q.body) || text(q.caption);
 }
-
 function getQuotedPrincipal(ctx) {
-  const quoted = getQuotedMessage(ctx);
-  return normalizePrincipal(
-    text(quoted.author) ||
-    text(quoted.from) ||
-    text(quoted.participant) ||
-    text(quoted.id && quoted.id.participant) ||
-    text(quoted.id && quoted.id.remote)
-  );
+  const q = getQuotedMessage(ctx);
+  return normalizePrincipal(text(q.author) || text(q.from) || text(q.participant) || text(q.id && q.id.participant) || text(q.id && q.id.remote));
 }
-
 function getQuotedPhone(ctx) {
-  const quoted = getQuotedMessage(ctx);
-  return normalizePhone(text(quoted.phone) || text(quoted.author) || text(quoted.from));
+  const q = getQuotedMessage(ctx);
+  return normalizePhone(text(q.phone) || text(q.author) || text(q.from));
 }
-
 function extractTicketId(sourceText, ticketIdRegex) {
   const body = text(sourceText);
   if (!body || !text(ticketIdRegex)) return '';
   try {
-    const re = new RegExp(text(ticketIdRegex), 'i');
-    const match = body.match(re);
-    return match && match[0] ? text(match[0]) : '';
-  } catch (_) {
-    return '';
-  }
+    const m = body.match(new RegExp(text(ticketIdRegex), 'i'));
+    return m && m[0] ? text(m[0]) : '';
+  } catch (_) { return ''; }
+}
+function roleRank(role) {
+  const r = keyText(role);
+  if (r === 'owner') return 6;
+  if (r === 'admin') return 5;
+  if (r === 'manager') return 4;
+  if (r === 'sales') return 3;
+  if (r === 'staff') return 2;
+  if (r === 'viewer') return 1;
+  return 0;
+}
+async function hasRoleAtLeast(access, ctx, minRole) {
+  const required = keyText(minRole);
+  if (!required) return true;
+  if (!access) return false;
+  const actorId = actorIdFromCtx(ctx);
+  if (!actorId) return false;
+  if (typeof access.hasAtLeast === 'function') return !!(await access.hasAtLeast(actorId, required));
+  if (typeof access.getRole === 'function') return roleRank(await access.getRole(actorId)) >= roleRank(required);
+  if (typeof access.hasRole === 'function') return !!(await access.hasRole(actorId, required));
+  if (typeof access.meetsMinRole === 'function') return !!(await access.meetsMinRole(actorId, required));
+  return false;
+}
+function ensureListMap(map, key) { const k = text(key); if (!k) return []; if (!Array.isArray(map[k])) map[k] = []; return map[k]; }
+function ensureStateShape(raw) {
+  const b = raw && typeof raw === 'object' ? raw : {};
+  const s = {
+    accountsByCode: b.accountsByCode && typeof b.accountsByCode === 'object' ? b.accountsByCode : {},
+    picsById: b.picsById && typeof b.picsById === 'object' ? b.picsById : {},
+    contextsByCode: b.contextsByCode && typeof b.contextsByCode === 'object' ? b.contextsByCode : {},
+    picIdByChatId: b.picIdByChatId && typeof b.picIdByChatId === 'object' ? b.picIdByChatId : {},
+    picIdByPhone: b.picIdByPhone && typeof b.picIdByPhone === 'object' ? b.picIdByPhone : {},
+    picIdsByAccountCode: b.picIdsByAccountCode && typeof b.picIdsByAccountCode === 'object' ? b.picIdsByAccountCode : {},
+    contextCodesByAccountCode: b.contextCodesByAccountCode && typeof b.contextCodesByAccountCode === 'object' ? b.contextCodesByAccountCode : {},
+    ticketContextByTicketId: b.ticketContextByTicketId && typeof b.ticketContextByTicketId === 'object' ? b.ticketContextByTicketId : {},
+    seqAcc: Number(b.seqAcc || 0), seqPic: Number(b.seqPic || 0), seqCtx: Number(b.seqCtx || 0),
+  };
+  if (!Number.isFinite(s.seqAcc) || s.seqAcc < 0) s.seqAcc = 0;
+  if (!Number.isFinite(s.seqPic) || s.seqPic < 0) s.seqPic = 0;
+  if (!Number.isFinite(s.seqCtx) || s.seqCtx < 0) s.seqCtx = 0;
+  return s;
 }
 
 module.exports = {
   init: async (meta) => {
-    const tag = 'ContactBookCV';
     const cfg = meta && meta.implConf ? meta.implConf : {};
-
-    if (!toBool(cfg.enabled, true)) {
-      return { onMessage: async () => {}, onEvent: async () => {} };
-    }
+    if (!toBool(cfg.enabled, true)) return { onMessage: async () => {}, onEvent: async () => {} };
 
     const moduleLog = toBool(cfg.moduleLog, true);
     const bugLog = toBool(cfg.bugLog, true);
-    const detailLog = toBool(cfg.detailLog, false);
-    const traceLog = toBool(cfg.traceLog, false);
 
     const required = [
-      'globalConfRel',
-      'storeKey',
-      'accountCodePrefix',
-      'picCodePrefix',
-      'contextCodePrefix',
-      'codeDigits',
-      'cmdAccount',
-      'cmdPic',
-      'cmdContext',
-      'actionNew',
-      'actionLink',
-      'actionShow',
-      'actionList',
-      'minRoleManage',
-      'replyNoAccess',
-      'replyGroupOnly',
-      'replyControlGroupOnly',
-      'replyNeedAction',
-      'replyUnknownAction',
-      'replyNeedAccount',
-      'replyNeedContext',
-      'replyNeedDisplayName',
-      'replyNeedLabel',
-      'replyNeedQuote',
-      'replyNeedTicket',
-      'replyAccountCreated',
-      'replyAccountLinked',
-      'replyAccountNotFound',
-      'replyAccountShow',
-      'replyAccountListHeader',
-      'replyAccountListItem',
-      'replyPicLinked',
-      'replyPicListHeader',
-      'replyPicListItem',
-      'replyContextCreated',
-      'replyContextLinked',
-      'replyContextListHeader',
-      'replyContextListItem',
-      'replyListEmpty',
+      'globalConfRel', 'storeNs', 'storeKey', 'ticketIdRegex',
+      'accountCodePrefix', 'picCodePrefix', 'contextCodePrefix', 'codeDigits',
+      'cmdAccount', 'cmdPic', 'cmdContext',
+      'actionNew', 'actionLink', 'actionShow', 'actionList', 'minRoleManage',
+      'replyNoAccess', 'replyGroupOnly', 'replyNeedAction', 'replyUnknownAction',
+      'replyNeedAccount', 'replyNeedContext', 'replyNeedDisplayName', 'replyNeedLabel', 'replyNeedQuote', 'replyNeedTicket',
+      'replyAccountCreated', 'replyAccountLinked', 'replyAccountNotFound', 'replyAccountShow', 'replyAccountListHeader', 'replyAccountListItem',
+      'replyPicLinked', 'replyPicListHeader', 'replyPicListItem',
+      'replyContextCreated', 'replyContextLinked', 'replyContextListHeader', 'replyContextListItem', 'replyListEmpty',
     ];
-
-    const missing = required.filter((key) => !text(cfg[key]));
+    const missing = required.filter((k) => !text(cfg[k]));
     if (missing.length) {
-      if (bugLog) meta.log(tag, 'disabled missing=' + missing.join(','));
+      if (bugLog && meta && typeof meta.log === 'function') meta.log('ContactBookCV', 'safe_disabled missing=' + missing.join(','));
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
     const command = meta.getService('command');
     const access = meta.getService('access');
     const jsonstore = meta.getService('jsonstore');
+    if (!command || typeof command.register !== 'function') return { onMessage: async () => {}, onEvent: async () => {} };
+    if (!jsonstore || typeof jsonstore.open !== 'function') return { onMessage: async () => {}, onEvent: async () => {} };
 
-    if (!command || typeof command.register !== 'function') {
-      if (bugLog) meta.log(tag, 'disabled missing_command_service');
-      return { onMessage: async () => {}, onEvent: async () => {} };
-    }
-    if (!jsonstore || typeof jsonstore.open !== 'function') {
-      if (bugLog) meta.log(tag, 'disabled missing_jsonstore_service');
-      return { onMessage: async () => {}, onEvent: async () => {} };
-    }
-
-    let globalLoaded = {};
-    if (typeof meta.loadConfRel === 'function') {
-      globalLoaded = meta.loadConfRel(text(cfg.globalConfRel)) || {};
-    }
-    const globalConf = globalLoaded && globalLoaded.conf && typeof globalLoaded.conf === 'object'
-      ? globalConf
-      : (globalLoaded && typeof globalLoaded === 'object' ? globalLoaded : {});
-
+    const loaded = typeof meta.loadConfRel === 'function' ? (meta.loadConfRel(text(cfg.globalConfRel)) || {}) : {};
+    const globalConf = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
     const controlGroupId = text(globalConf.controlGroupId);
-    if (!controlGroupId) {
-      if (bugLog) meta.log(tag, 'disabled missing_controlGroupId');
-      return { onMessage: async () => {}, onEvent: async () => {} };
-    }
-
-    const ticketIdRegex = text(cfg.ticketIdRegex);
+    if (!controlGroupId) return { onMessage: async () => {}, onEvent: async () => {} };
 
     const store = jsonstore.open(text(cfg.storeNs));
-    const codeDigits = Math.max(1, toInt(cfg.codeDigits, 4));
+    const digits = Math.max(1, toInt(cfg.codeDigits, 4));
 
     async function sendReply(ctx, message) {
       const out = text(message);
       if (!out) return;
-      if (ctx && typeof ctx.reply === 'function') {
-        await ctx.reply(out);
-        return;
-      }
-      const chatId = text(ctx && ctx.chatId);
-      if (!chatId) return;
-      const preferred = text(globalConf.sendPrefer).split(',').map((x) => text(x)).filter(Boolean)[0] || '';
-      const send = preferred ? meta.getService(preferred) : meta.getService('send');
-      if (typeof send === 'function') {
-        await send(chatId, out, { isAuto: 0, manualReply: 1, bypassRateLimit: 1 });
-      } else if (send && typeof send.send === 'function') {
-        await send.send(chatId, out, { isAuto: 0, manualReply: 1, bypassRateLimit: 1 });
-      }
+      if (ctx && typeof ctx.reply === 'function') await ctx.reply(out);
     }
 
-    async function canManage(ctx) {
-      const minRole = text(cfg.minRoleManage);
-      if (!minRole) return true;
-      if (!access) return false;
-      if (typeof access.hasAtLeast === 'function') return !!(await access.hasAtLeast(ctx, minRole));
-      if (typeof access.hasRole === 'function') return !!(await access.hasRole(ctx, minRole));
-      if (typeof access.isAllowed === 'function') return !!(await access.isAllowed(ctx, minRole));
-      if (typeof access.check === 'function') return !!(await access.check(ctx, minRole));
-      if (typeof access.meetsMinRole === 'function') return !!(await access.meetsMinRole(ctx, minRole));
-      return false;
+    async function loadState() { return ensureStateShape(await store.get(text(cfg.storeKey), {})); }
+    async function saveState(state) { await store.set(text(cfg.storeKey), ensureStateShape(state)); }
+    function nextCode(prefix, seq) { return text(prefix) + String(seq).padStart(digits, '0'); }
+    function extractArgs(ctx) { return ctx && ctx.command && Array.isArray(ctx.command.args) ? ctx.command.args.map((v) => text(v)) : []; }
+
+    async function ensureAllowed(ctx) {
+      if (!ctx || !ctx.isGroup) { await sendReply(ctx, cfg.replyGroupOnly); return false; }
+      if (text(ctx.chatId) !== controlGroupId) { await sendReply(ctx, cfg.replyGroupOnly); return false; }
+      if (!(await hasRoleAtLeast(access, ctx, cfg.minRoleManage))) { await sendReply(ctx, cfg.replyNoAccess); return false; }
+      return true;
     }
 
-    async function loadState() {
-      const raw = await store.get(text(cfg.storeKey), {});
-      return ensureStateShape(raw);
-    }
+    function upsertPic(state, accountCode, ctx) {
+      const principal = getQuotedPrincipal(ctx);
+      const phone = getQuotedPhone(ctx);
+      const chatId = text(ctx && ctx.quotedFrom) || text(ctx && ctx.quotedChatId) || principal;
+      if (!principal && !phone && !chatId) return { ok: false };
 
-    async function saveState(state) {
-      await store.set(text(cfg.storeKey), state);
-    }
+      const byChat = chatId ? text(state.picIdByChatId[chatId]) : '';
+      const byPhone = phone ? text(state.picIdByPhone[phone]) : '';
+      let picId = byChat || byPhone;
+      if (!picId) { state.seqPic += 1; picId = nextCode(cfg.picCodePrefix, state.seqPic); }
 
-    function nextAccountCode(state) {
-      state.seqAcc += 1;
-      return text(cfg.accountCodePrefix) + String(state.seqAcc).padStart(codeDigits, '0');
-    }
-
-    function nextPicCode(state) {
-      state.seqPic += 1;
-      return text(cfg.picCodePrefix) + String(state.seqPic).padStart(codeDigits, '0');
-    }
-
-    function nextContextCode(state) {
-      state.seqCtx += 1;
-      return text(cfg.contextCodePrefix) + String(state.seqCtx).padStart(codeDigits, '0');
+      const prev = state.picsById[picId] && typeof state.picsById[picId] === 'object' ? state.picsById[picId] : {};
+      const row = {
+        picId,
+        accountCode: text(accountCode),
+        displayName: text(prev.displayName || (ctx && ctx.sender && ctx.sender.name) || ''),
+        principal: principal || text(prev.principal),
+        phone: phone || text(prev.phone),
+        chatId: chatId || text(prev.chatId),
+        updatedAt: new Date().toISOString(),
+      };
+      state.picsById[picId] = row;
+      if (row.chatId) state.picIdByChatId[row.chatId] = picId;
+      if (row.phone) state.picIdByPhone[row.phone] = picId;
+      const ids = ensureListMap(state.picIdsByAccountCode, accountCode);
+      if (!ids.includes(picId)) ids.push(picId);
+      return { ok: true, picId, row };
     }
 
     async function onAccount(ctx) {
-      if (!ctx || !ctx.isGroup) return sendReply(ctx, cfg.replyGroupOnly);
-      if (text(ctx.chatId) !== controlGroupId) return sendReply(ctx, cfg.replyControlGroupOnly);
-      if (!(await canManage(ctx))) return sendReply(ctx, cfg.replyNoAccess);
-
-      const args = ctx && ctx.command && Array.isArray(ctx.command.args) ? ctx.command.args.map((x) => text(x)) : [];
+      if (!(await ensureAllowed(ctx))) return;
+      const args = extractArgs(ctx);
       const action = keyText(args[0]);
       if (!action) return sendReply(ctx, cfg.replyNeedAction);
 
@@ -292,183 +197,110 @@ module.exports = {
         const displayName = text(args[1]);
         const accountType = text(args[2]);
         if (!displayName) return sendReply(ctx, cfg.replyNeedDisplayName);
-
         const state = await loadState();
-        const accountCode = nextAccountCode(state);
+        state.seqAcc += 1;
+        const accountCode = nextCode(cfg.accountCodePrefix, state.seqAcc);
         state.accountsByCode[accountCode] = {
-          code: accountCode,
-          displayName: displayName,
-          type: accountType,
+          accountCode,
+          displayName,
+          accountType,
+          createdBy: actorIdFromCtx(ctx),
           createdAt: new Date().toISOString(),
-          createdBy: actorFromCtx(ctx),
+          updatedAt: new Date().toISOString(),
         };
         ensureListMap(state.picIdsByAccountCode, accountCode);
         ensureListMap(state.contextCodesByAccountCode, accountCode);
         await saveState(state);
-
         return sendReply(ctx, fill(cfg.replyAccountCreated, { ACCOUNT_CODE: accountCode }));
       }
 
       if (action === keyText(cfg.actionLink)) {
         const accountCode = text(args[1]);
         if (!accountCode) return sendReply(ctx, cfg.replyNeedAccount);
-
-        const quotedPrincipal = getQuotedPrincipal(ctx);
-        if (!quotedPrincipal) return sendReply(ctx, cfg.replyNeedQuote);
-
         const state = await loadState();
         if (!state.accountsByCode[accountCode]) return sendReply(ctx, cfg.replyAccountNotFound);
-
-        let picCode = '';
-        const picCodes = Object.keys(state.picsById);
-        for (let i = 0; i < picCodes.length; i += 1) {
-          const p = state.picsById[picCodes[i]];
-          if (text(p.chatId) === quotedPrincipal) {
-            picCode = picCodes[i];
-            break;
-          }
-        }
-
-        if (!picCode) {
-          picCode = nextPicCode(state);
-          state.picsById[picCode] = {
-            picId: picCode,
-            displayName: text(getQuotedMessage(ctx).name),
-            phone: getQuotedPhone(ctx),
-            chatId: quotedPrincipal,
-            accountCode: accountCode,
-            createdAt: new Date().toISOString(),
-            createdBy: actorFromCtx(ctx),
-          };
-        } else {
-          state.picsById[picCode].accountCode = accountCode;
-        }
-
-        state.picIdByChatId[quotedPrincipal] = picCode;
-        const phone = normalizePhone(state.picsById[picCode].phone);
-        if (phone) state.picIdByPhone[phone] = picCode;
-        const picList = ensureListMap(state.picIdsByAccountCode, accountCode);
-        if (picList.indexOf(picCode) < 0) picList.push(picCode);
-
+        const linked = upsertPic(state, accountCode, ctx);
+        if (!linked.ok) return sendReply(ctx, cfg.replyNeedQuote);
         await saveState(state);
-        return sendReply(ctx, fill(cfg.replyAccountLinked, { ACCOUNT_CODE: accountCode }));
+        return sendReply(ctx, fill(cfg.replyAccountLinked, { ACCOUNT_CODE: accountCode, PIC_CODE: linked.picId }));
       }
 
       if (action === keyText(cfg.actionShow)) {
         const accountCode = text(args[1]);
         if (!accountCode) return sendReply(ctx, cfg.replyNeedAccount);
-
         const state = await loadState();
         const account = state.accountsByCode[accountCode];
         if (!account) return sendReply(ctx, cfg.replyAccountNotFound);
-
-        const picCount = toList(state.picIdsByAccountCode[accountCode]).length;
-        const contextCount = toList(state.contextCodesByAccountCode[accountCode]).length;
         return sendReply(ctx, fill(cfg.replyAccountShow, {
           ACCOUNT_CODE: accountCode,
           DISPLAY_NAME: text(account.displayName),
-          ACCOUNT_TYPE: text(account.type),
-          PIC_COUNT: String(picCount),
-          CONTEXT_COUNT: String(contextCount),
+          ACCOUNT_TYPE: text(account.accountType),
+          PIC_COUNT: ensureListMap(state.picIdsByAccountCode, accountCode).length,
+          CONTEXT_COUNT: ensureListMap(state.contextCodesByAccountCode, accountCode).length,
         }));
       }
 
       if (action === keyText(cfg.actionList)) {
         const state = await loadState();
-        const accountCodes = Object.keys(state.accountsByCode).sort();
-        if (!accountCodes.length) return sendReply(ctx, cfg.replyListEmpty);
-
-        const lines = accountCodes.map((accountCode) => {
-          const account = state.accountsByCode[accountCode] || {};
+        const codes = Object.keys(state.accountsByCode).sort();
+        if (!codes.length) return sendReply(ctx, cfg.replyListEmpty);
+        const rows = codes.map((code) => {
+          const row = state.accountsByCode[code] || {};
           return fill(cfg.replyAccountListItem, {
-            ACCOUNT_CODE: accountCode,
-            DISPLAY_NAME: text(account.displayName),
-            ACCOUNT_TYPE: text(account.type),
+            ACCOUNT_CODE: code,
+            DISPLAY_NAME: text(row.displayName),
+            ACCOUNT_TYPE: text(row.accountType),
           });
         });
-
-        return sendReply(ctx, text(cfg.replyAccountListHeader) + '\n' + lines.join('\n'));
+        return sendReply(ctx, cfg.replyAccountListHeader + '\n' + rows.join('\n'));
       }
 
       return sendReply(ctx, cfg.replyUnknownAction);
     }
 
     async function onPic(ctx) {
-      if (!ctx || !ctx.isGroup) return sendReply(ctx, cfg.replyGroupOnly);
-      if (text(ctx.chatId) !== controlGroupId) return sendReply(ctx, cfg.replyControlGroupOnly);
-      if (!(await canManage(ctx))) return sendReply(ctx, cfg.replyNoAccess);
-
-      const args = ctx && ctx.command && Array.isArray(ctx.command.args) ? ctx.command.args.map((x) => text(x)) : [];
+      if (!(await ensureAllowed(ctx))) return;
+      const args = extractArgs(ctx);
       const action = keyText(args[0]);
       if (!action) return sendReply(ctx, cfg.replyNeedAction);
 
       if (action === keyText(cfg.actionLink)) {
         const accountCode = text(args[1]);
         if (!accountCode) return sendReply(ctx, cfg.replyNeedAccount);
-
-        const quotedPrincipal = getQuotedPrincipal(ctx);
-        if (!quotedPrincipal) return sendReply(ctx, cfg.replyNeedQuote);
-
         const state = await loadState();
         if (!state.accountsByCode[accountCode]) return sendReply(ctx, cfg.replyAccountNotFound);
-
-        let picCode = state.picIdByChatId[quotedPrincipal] || '';
-        if (!picCode) {
-          picCode = nextPicCode(state);
-          state.picsById[picCode] = {
-            picId: picCode,
-            displayName: text(getQuotedMessage(ctx).name),
-            phone: getQuotedPhone(ctx),
-            chatId: quotedPrincipal,
-            accountCode: accountCode,
-            createdAt: new Date().toISOString(),
-            createdBy: actorFromCtx(ctx),
-          };
-        } else {
-          state.picsById[picCode].accountCode = accountCode;
-        }
-
-        state.picIdByChatId[quotedPrincipal] = picCode;
-        const phone = normalizePhone(state.picsById[picCode].phone);
-        if (phone) state.picIdByPhone[phone] = picCode;
-        const picList = ensureListMap(state.picIdsByAccountCode, accountCode);
-        if (picList.indexOf(picCode) < 0) picList.push(picCode);
-
+        const linked = upsertPic(state, accountCode, ctx);
+        if (!linked.ok) return sendReply(ctx, cfg.replyNeedQuote);
         await saveState(state);
-        return sendReply(ctx, fill(cfg.replyPicLinked, { PIC_CODE: picCode, ACCOUNT_CODE: accountCode }));
+        return sendReply(ctx, fill(cfg.replyPicLinked, {
+          ACCOUNT_CODE: accountCode,
+          PIC_CODE: linked.picId,
+          DISPLAY_NAME: text(linked.row.displayName),
+          PHONE: text(linked.row.phone),
+          CHAT_ID: text(linked.row.chatId),
+        }));
       }
 
       if (action === keyText(cfg.actionList)) {
         const accountCode = text(args[1]);
         if (!accountCode) return sendReply(ctx, cfg.replyNeedAccount);
-
         const state = await loadState();
         if (!state.accountsByCode[accountCode]) return sendReply(ctx, cfg.replyAccountNotFound);
-        const picCodes = toList(state.picIdsByAccountCode[accountCode]);
-        if (!picCodes.length) return sendReply(ctx, cfg.replyListEmpty);
-
-        const lines = picCodes.map((picCode) => {
-          const pic = state.picsById[picCode] || {};
-          return fill(cfg.replyPicListItem, {
-            PIC_CODE: picCode,
-            DISPLAY_NAME: text(pic.displayName),
-            PHONE: text(pic.phone),
-            CHAT_ID: text(pic.chatId),
-          });
+        const picIds = ensureListMap(state.picIdsByAccountCode, accountCode);
+        if (!picIds.length) return sendReply(ctx, cfg.replyListEmpty);
+        const rows = picIds.map((id) => {
+          const row = state.picsById[id] || {};
+          return fill(cfg.replyPicListItem, { PIC_CODE: id, DISPLAY_NAME: text(row.displayName), PHONE: text(row.phone), CHAT_ID: text(row.chatId) });
         });
-
-        return sendReply(ctx, fill(cfg.replyPicListHeader, { ACCOUNT_CODE: accountCode }) + '\n' + lines.join('\n'));
+        return sendReply(ctx, fill(cfg.replyPicListHeader, { ACCOUNT_CODE: accountCode }) + '\n' + rows.join('\n'));
       }
 
       return sendReply(ctx, cfg.replyUnknownAction);
     }
 
     async function onContext(ctx) {
-      if (!ctx || !ctx.isGroup) return sendReply(ctx, cfg.replyGroupOnly);
-      if (text(ctx.chatId) !== controlGroupId) return sendReply(ctx, cfg.replyControlGroupOnly);
-      if (!(await canManage(ctx))) return sendReply(ctx, cfg.replyNoAccess);
-
-      const args = ctx && ctx.command && Array.isArray(ctx.command.args) ? ctx.command.args.map((x) => text(x)) : [];
+      if (!(await ensureAllowed(ctx))) return;
+      const args = extractArgs(ctx);
       const action = keyText(args[0]);
       if (!action) return sendReply(ctx, cfg.replyNeedAction);
 
@@ -477,95 +309,58 @@ module.exports = {
         const label = text(args.slice(2).join(' '));
         if (!accountCode) return sendReply(ctx, cfg.replyNeedAccount);
         if (!label) return sendReply(ctx, cfg.replyNeedLabel);
-
         const state = await loadState();
         if (!state.accountsByCode[accountCode]) return sendReply(ctx, cfg.replyAccountNotFound);
-
-        const contextCode = nextContextCode(state);
+        state.seqCtx += 1;
+        const contextCode = nextCode(cfg.contextCodePrefix, state.seqCtx);
         state.contextsByCode[contextCode] = {
-          code: contextCode,
-          accountCode: accountCode,
-          label: label,
-          status: 'open',
+          contextCode,
+          accountCode,
+          contextLabel: label,
+          createdBy: actorIdFromCtx(ctx),
           createdAt: new Date().toISOString(),
-          createdBy: actorFromCtx(ctx),
+          updatedAt: new Date().toISOString(),
         };
-        const contextList = ensureListMap(state.contextCodesByAccountCode, accountCode);
-        if (contextList.indexOf(contextCode) < 0) contextList.push(contextCode);
+        const list = ensureListMap(state.contextCodesByAccountCode, accountCode);
+        if (!list.includes(contextCode)) list.push(contextCode);
         await saveState(state);
-
         return sendReply(ctx, fill(cfg.replyContextCreated, { CONTEXT_CODE: contextCode, ACCOUNT_CODE: accountCode }));
       }
 
       if (action === keyText(cfg.actionLink)) {
         const contextCode = text(args[1]);
         if (!contextCode) return sendReply(ctx, cfg.replyNeedContext);
-
-        const quotedTicket = extractTicketId(getQuotedText(ctx), ticketIdRegex);
-        const directTicket = extractTicketId(args[2], ticketIdRegex);
-        const ticketId = quotedTicket || directTicket;
-        if (!ticketId) return sendReply(ctx, cfg.replyNeedTicket);
-
         const state = await loadState();
         if (!state.contextsByCode[contextCode]) return sendReply(ctx, cfg.replyNeedContext);
-
+        const ticketId = extractTicketId(getQuotedText(ctx), cfg.ticketIdRegex);
+        if (!ticketId) return sendReply(ctx, cfg.replyNeedTicket);
         state.ticketContextByTicketId[ticketId] = contextCode;
         await saveState(state);
-
-        return sendReply(ctx, fill(cfg.replyContextLinked, { CONTEXT_CODE: contextCode, TICKET_ID: ticketId }));
+        return sendReply(ctx, fill(cfg.replyContextLinked, { CONTEXT_CODE: contextCode }));
       }
 
       if (action === keyText(cfg.actionList)) {
         const accountCode = text(args[1]);
         if (!accountCode) return sendReply(ctx, cfg.replyNeedAccount);
-
         const state = await loadState();
         if (!state.accountsByCode[accountCode]) return sendReply(ctx, cfg.replyAccountNotFound);
-        const contextCodes = toList(state.contextCodesByAccountCode[accountCode]);
-        if (!contextCodes.length) return sendReply(ctx, cfg.replyListEmpty);
-
-        const lines = contextCodes.map((contextCode) => {
-          const row = state.contextsByCode[contextCode] || {};
-          return fill(cfg.replyContextListItem, {
-            CONTEXT_CODE: contextCode,
-            CONTEXT_LABEL: text(row.label),
-          });
+        const codes = ensureListMap(state.contextCodesByAccountCode, accountCode);
+        if (!codes.length) return sendReply(ctx, cfg.replyListEmpty);
+        const rows = codes.map((code) => {
+          const row = state.contextsByCode[code] || {};
+          return fill(cfg.replyContextListItem, { CONTEXT_CODE: code, CONTEXT_LABEL: text(row.contextLabel) });
         });
-
-        return sendReply(ctx, fill(cfg.replyContextListHeader, { ACCOUNT_CODE: accountCode }) + '\n' + lines.join('\n'));
+        return sendReply(ctx, fill(cfg.replyContextListHeader, { ACCOUNT_CODE: accountCode }) + '\n' + rows.join('\n'));
       }
 
       return sendReply(ctx, cfg.replyUnknownAction);
     }
 
-    command.register(text(cfg.cmdAccount), onAccount, {
-      owner: 'ContactBookCV',
-      help: text(cfg.cmdAccountHelp),
-      minRole: text(cfg.minRoleManage),
-      prefix: text(globalConf.prefix),
-    });
+    command.register(text(cfg.cmdAccount), onAccount);
+    command.register(text(cfg.cmdPic), onPic);
+    command.register(text(cfg.cmdContext), onContext);
 
-    command.register(text(cfg.cmdPic), onPic, {
-      owner: 'ContactBookCV',
-      help: text(cfg.cmdPicHelp),
-      minRole: text(cfg.minRoleManage),
-      prefix: text(globalConf.prefix),
-    });
-
-    command.register(text(cfg.cmdContext), onContext, {
-      owner: 'ContactBookCV',
-      help: text(cfg.cmdContextHelp),
-      minRole: text(cfg.minRoleManage),
-      prefix: text(globalConf.prefix),
-    });
-
-    if (moduleLog) {
-      meta.log(tag, 'ready cmdAccount=' + text(cfg.cmdAccount) + ' cmdPic=' + text(cfg.cmdPic) + ' cmdContext=' + text(cfg.cmdContext));
-    }
-    if (detailLog || traceLog) {
-      meta.log(tag, 'ready storeNs=' + text(cfg.storeNs) + ' storeKey=' + text(cfg.storeKey));
-    }
-
+    if (moduleLog && meta && typeof meta.log === 'function') meta.log('ContactBookCV', 'ready phase1');
     return { onMessage: async () => {}, onEvent: async () => {} };
   },
 };
