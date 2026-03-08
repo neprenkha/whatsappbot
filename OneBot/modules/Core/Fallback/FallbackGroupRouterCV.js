@@ -4,13 +4,13 @@ function text(value) {
   return String(value ?? '').trim();
 }
 
-function resolveTargetGroup(meta, cfg, globalConf, ctx) {
+async function resolveTargetGroup(meta, cfg, globalConf, ctx) {
   const workgroups = meta && typeof meta.getService === 'function'
     ? meta.getService('workgroups')
     : null;
 
   if (workgroups && typeof workgroups.resolve === 'function') {
-    const resolved = workgroups.resolve(text(cfg.defaultGroupKey), ctx);
+    const resolved = await workgroups.resolve(text(cfg.defaultGroupKey), ctx);
     if (resolved && typeof resolved === 'object') {
       const fromObj = text(resolved.groupChatId || resolved.chatId || resolved.id);
       if (fromObj) return fromObj;

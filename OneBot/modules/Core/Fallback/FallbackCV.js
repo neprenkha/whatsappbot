@@ -224,7 +224,7 @@ module.exports = {
     async function resolveTargetGroup(workgroupKey, ctx) {
       const fromWorkgroups = await resolveWorkgroupChatId(workgroupKey, ctx);
       if (fromWorkgroups) return fromWorkgroups;
-      const fallback = FallbackGroupRouterCV.resolveTargetGroup(meta, cfg, globalConf, ctx);
+      const fallback = await FallbackGroupRouterCV.resolveTargetGroup(meta, cfg, globalConf, ctx);
       return text(fallback);
     }
 
