@@ -15,6 +15,14 @@ function toStr(v, d) {
   return s || d;
 }
 
+function toList(v) {
+  const raw = String(v === undefined || v === null ? '' : v).trim();
+  if (!raw) return [];
+  return raw.split(',').map(function mapOne(x) {
+    return String(x || '').trim();
+  }).filter(Boolean);
+}
+
 function loadGlobalConf(meta, cfg, bugLog) {
   const rel = toStr(cfg.globalConfRel, '');
   if (!rel) {
@@ -65,6 +73,9 @@ module.exports.init = async function init(meta) {
   const unknownText = toStr(cfg.unknownText, '');
   const unknownControlGroupOnly = toBool(cfg.unknownControlGroupOnly, false);
   const unknownPassthroughDm = toBool(cfg.unknownPassthroughDm, false);
+  const unknownIgnoreSet = new Set(toList(cfg.unknownIgnoreNames).map(function mapIgnore(x) {
+    return normalizeName(x);
+  }).filter(Boolean));
   const controlGroupId = toStr(globalConf.controlGroupId, '');
 
   const registry = Object.create(null);
@@ -108,6 +119,12 @@ module.exports.init = async function init(meta) {
     return String(chatId || '').trim() === controlGroupId;
   }
 
+  function shouldIgnoreUnknown(cmdName) {
+    const key = normalizeName(cmdName);
+    if (!key) return false;
+    return unknownIgnoreSet.has(key);
+  }
+
   async function handleUnknown(ctx, isGroup) {
     if (!unknownText) return;
     if (unknownPassthroughDm && !isGroup) return;
@@ -138,6 +155,7 @@ module.exports.init = async function init(meta) {
 
       const item = registry[cmdName];
       if (!item || typeof item.handler !== 'function') {
+        if (shouldIgnoreUnknown(cmdName)) return;
         await handleUnknown(ctx, isGroup);
         return;
       }
