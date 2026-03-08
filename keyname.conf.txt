@@ -361,6 +361,8 @@ Command:
 - unknownText
 - unknownControlGroupOnly
 - unknownPassthroughDm
+- unknownIgnoreNames
+
 Help:
 - cmdHelp
 Ping:
