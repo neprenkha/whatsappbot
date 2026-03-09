@@ -21,10 +21,10 @@ function toInt(v, d) {
   return Number.isFinite(n) ? n : d;
 }
 
-function fill(tpl, vars) {
-  let out = String(tpl || '');
-  Object.keys(vars || {}).forEach((k) => {
-    out = out.split(`{${k}}`).join(String(vars[k] == null ? '' : vars[k]));
+function fill(template, vars) {
+  let out = String(template || '');
+  Object.keys(vars || {}).forEach((key) => {
+    out = out.split(`{${key}}`).join(String(vars[key] == null ? '' : vars[key]));
   });
   return out;
 }
@@ -33,17 +33,17 @@ function normalizePhone(v) {
   return text(v).replace(/[^0-9]/g, '');
 }
 
-function normalizeChat(v) {
+function normalizeChatId(v) {
   return low(v);
 }
 
-function getQuoted(ctx) {
+function quotedChatId(ctx) {
   const raw = ctx && ctx.raw && typeof ctx.raw === 'object' ? ctx.raw : {};
-  const q = raw.quotedMsg || raw.quotedMessage || raw.quoted || {};
-  return text(q.from || q.author || q.participant || raw.quotedAuthor || '');
+  const quoted = raw.quotedMsg || raw.quotedMessage || raw.quoted || {};
+  return text(quoted.from || quoted.author || quoted.participant || raw.quotedAuthor || '');
 }
 
-function makeEmptyState() {
+function emptyState() {
   return {
     seq: { acc: 0, pic: 0, ctx: 0 },
     accountsByCode: {},
@@ -60,83 +60,49 @@ function makeEmptyState() {
 module.exports = {
   init: async (meta) => {
     const cfg = meta && meta.implConf ? meta.implConf : {};
+
     const enabled = toBool(cfg.enabled, true);
     const moduleLog = toBool(cfg.moduleLog, true);
     const bugLog = toBool(cfg.bugLog, true);
     const detailLog = toBool(cfg.detailLog, false);
     const traceLog = toBool(cfg.traceLog, false);
+
     if (!enabled) return { onMessage: async () => {}, onEvent: async () => {} };
 
-    let globalCfg = {};
+    let globalConf = {};
     try {
       const loaded = meta.loadConfRel(text(cfg.globalConfRel)) || {};
-      globalCfg = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
+      globalConf = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
     } catch (e) {
       if (bugLog) meta.log('ContactBookCV', 'global_conf_load_failed err=' + text(e && e.message));
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    const commandServiceName = text(cfg.commandServiceName);
-    const jsonStoreServiceName = text(cfg.jsonStoreServiceName);
-    const accessServiceName = text(cfg.accessServiceName);
-    const workGroupsServiceName = text(cfg.workGroupsServiceName);
-    const serviceName = text(cfg.serviceName);
-    const storeNs = text(cfg.storeNs);
-    const storeKey = text(cfg.storeKey);
-
-    const command = meta.getService(commandServiceName);
-    const jsonstore = meta.getService(jsonStoreServiceName);
-    const access = accessServiceName ? meta.getService(accessServiceName) : null;
-    const workgroups = workGroupsServiceName ? meta.getService(workGroupsServiceName) : null;
+    const command = meta.getService(text(cfg.commandServiceName));
+    const jsonstore = meta.getService(text(cfg.jsonStoreServiceName));
+    const access = meta.getService(text(cfg.accessServiceName));
 
     if (!command || typeof command.register !== 'function') return { onMessage: async () => {}, onEvent: async () => {} };
     if (!jsonstore || typeof jsonstore.open !== 'function') return { onMessage: async () => {}, onEvent: async () => {} };
 
-    const required = [
-      serviceName, storeNs, storeKey,
-      cfg.cmdAccount, cfg.cmdPic, cfg.cmdContext,
-      cfg.actionNew, cfg.actionLink, cfg.actionShow, cfg.actionList, cfg.actionSetName, cfg.actionClose,
-      cfg.accPrefix, cfg.picPrefix, cfg.ctxPrefix,
-      cfg.replyNoAccess, cfg.replyGroupOnly, cfg.replyControlGroupOnly, cfg.replyUnknown,
-      cfg.replyNeedAccountName, cfg.replyNeedAccountCode, cfg.replyNeedContextAccount, cfg.replyNeedContextLabel,
-      cfg.replyNeedTicket, cfg.replyNeedContextCode, cfg.replyNeedPicId,
-      cfg.replyAccCreated, cfg.replyPicLinked, cfg.replyContextCreated, cfg.replyContextLinked,
-      cfg.replyAccountNotFound, cfg.replyPicNotFound, cfg.replyContextNotFound,
-      cfg.replyListEmpty, cfg.replyListHeader,
-      cfg.replyAccountItem, cfg.replyPicItem, cfg.replyContextItem,
-      cfg.replyShowAccount, cfg.replyShowPic, cfg.replyShowContext,
-      cfg.unassignedLabel, cfg.assignedLabel,
-      cfg.folderAccountTemplate, cfg.folderContextTemplate, cfg.folderInboxTemplate
-    ].map(text);
-    for (let i = 0; i < required.length; i += 1) {
-      if (!required[i]) return { onMessage: async () => {}, onEvent: async () => {} };
-    }
+    const storeNs = text(cfg.storeNs);
+    const storeKey = text(cfg.storeKey);
+    const serviceName = text(cfg.serviceName);
 
     const store = jsonstore.open(storeNs);
 
     async function loadState() {
-      const raw = await store.get(storeKey, makeEmptyState());
-      const s = raw && typeof raw === 'object' ? raw : makeEmptyState();
-      return Object.assign(makeEmptyState(), s);
+      const raw = await store.get(storeKey, emptyState());
+      const state = raw && typeof raw === 'object' ? raw : emptyState();
+      return Object.assign(emptyState(), state);
     }
 
     async function saveState(state) {
       await store.set(storeKey, state);
     }
 
-    function nextCode(state, key, prefix) {
-      const n = Math.max(0, toInt(state.seq[key], 0)) + 1;
-      state.seq[key] = n;
-      return text(prefix) + String(n).padStart(Math.max(1, toInt(cfg.codePad, 4)), '0');
-    }
-
-    function ensureList(state, mapKey, itemKey) {
-      if (!state[mapKey][itemKey] || !Array.isArray(state[mapKey][itemKey])) state[mapKey][itemKey] = [];
-      return state[mapKey][itemKey];
-    }
-
     function inboundChat(ctx) {
-      return normalizeChat(text(ctx && ctx.chatId) || text(ctx && ctx.author) || text(ctx && ctx.from));
+      return normalizeChatId(text(ctx && ctx.chatId) || text(ctx && ctx.author) || text(ctx && ctx.from));
     }
 
     function inboundPhone(ctx) {
@@ -145,15 +111,26 @@ module.exports = {
       return normalizePhone(sender.phone || sender.id || raw.author || raw.from || '');
     }
 
-    function lookupPicId(state, chatId, phone) {
-      const c = normalizeChat(chatId);
-      const p = normalizePhone(phone);
-      if (c && state.picIdByChatId[c]) return text(state.picIdByChatId[c]);
-      if (p && state.picIdByPhone[p]) return text(state.picIdByPhone[p]);
+    function nextCode(state, key, prefix) {
+      const next = Math.max(0, toInt(state.seq[key], 0)) + 1;
+      state.seq[key] = next;
+      return text(prefix) + String(next).padStart(Math.max(1, toInt(cfg.codePad, 4)), '0');
+    }
+
+    function ensureList(mapObj, key) {
+      if (!mapObj[key] || !Array.isArray(mapObj[key])) mapObj[key] = [];
+      return mapObj[key];
+    }
+
+    function resolvePicId(state, chatId, phone) {
+      const chat = normalizeChatId(chatId);
+      const ph = normalizePhone(phone);
+      if (chat && state.picIdByChatId[chat]) return text(state.picIdByChatId[chat]);
+      if (ph && state.picIdByPhone[ph]) return text(state.picIdByPhone[ph]);
       return '';
     }
 
-    async function allowManage(ctx) {
+    async function canManage(ctx) {
       const minRole = text(cfg.minRoleManage);
       if (!minRole) return true;
       if (!access) return false;
@@ -164,28 +141,31 @@ module.exports = {
       return false;
     }
 
-    function inControl(ctx) {
-      return text(globalCfg.controlGroupId) ? text(ctx && ctx.chatId) === text(globalCfg.controlGroupId) : true;
+    function inControlGroup(ctx) {
+      const controlGroupId = text(globalConf.controlGroupId);
+      if (!controlGroupId) return true;
+      return text(ctx && ctx.chatId) === controlGroupId;
     }
 
-    async function reply(ctx, msg) {
-      const s = text(msg);
-      if (!s) return;
+    async function sendReply(ctx, body) {
+      const msg = text(body);
+      if (!msg) return;
       if (ctx && typeof ctx.reply === 'function') {
-        await ctx.reply(s);
+        await ctx.reply(msg);
         return;
       }
-      const sendName = String(globalCfg.sendPrefer || '').split(',').map((x) => text(x)).filter(Boolean)[0] || '';
+      const sendName = String(globalConf.sendPrefer || '').split(',').map((x) => text(x)).filter(Boolean)[0] || '';
       const send = sendName ? meta.getService(sendName) : null;
-      if (send && ctx && ctx.chatId) await send(ctx.chatId, s, { isAuto: 0, manualReply: 1 });
+      if (send && ctx && ctx.chatId) await send(ctx.chatId, msg, { isAuto: 0, manualReply: 1 });
     }
 
-    function renderList(items, tpl) {
+    function listMessage(items, lineTemplate) {
       if (!items.length) return text(cfg.replyListEmpty);
-      return fill(cfg.replyListHeader, { ITEMS: items.map((x) => fill(tpl, x)).join('\n') });
+      const lines = items.map((x) => fill(lineTemplate, x));
+      return fill(cfg.replyListHeader, { ITEMS: lines.join('\n') });
     }
 
-    async function createAccount(state, name, type, by) {
+    async function createAccount(state, name, type, actor) {
       const code = nextCode(state, 'acc', cfg.accPrefix);
       state.accountsByCode[code] = {
         code,
@@ -195,18 +175,20 @@ module.exports = {
         notes: '',
         defaultWorkgroupKey: '',
         createdAt: Date.now(),
-        createdBy: text(by),
+        createdBy: text(actor),
       };
-      ensureList(state, 'picIdsByAccountCode', code);
-      ensureList(state, 'contextCodesByAccountCode', code);
+      ensureList(state.picIdsByAccountCode, code);
+      ensureList(state.contextCodesByAccountCode, code);
       return state.accountsByCode[code];
     }
 
-    async function linkPic(state, accountCode, chatId, phone, name, by) {
-      const acc = state.accountsByCode[text(accountCode)];
-      if (!acc) return { ok: 0, code: 'account_not_found' };
-      let picId = lookupPicId(state, chatId, phone);
+    async function linkPic(state, accountCode, chatId, phone, displayName, actor) {
+      const account = state.accountsByCode[text(accountCode)];
+      if (!account) return { ok: 0, code: 'account_not_found' };
+
+      let picId = resolvePicId(state, chatId, phone);
       if (!picId) picId = nextCode(state, 'pic', cfg.picPrefix);
+
       const rec = state.picsById[picId] || {
         picId,
         displayName: '',
@@ -216,23 +198,28 @@ module.exports = {
         tags: '',
         notes: '',
         createdAt: Date.now(),
-        createdBy: text(by),
+        createdBy: text(actor),
       };
-      rec.displayName = text(name) || rec.displayName;
+
+      rec.displayName = text(displayName) || rec.displayName;
       rec.phone = normalizePhone(phone) || rec.phone;
-      rec.chatId = normalizeChat(chatId) || rec.chatId;
+      rec.chatId = normalizeChatId(chatId) || rec.chatId;
       rec.accountCode = text(accountCode);
       state.picsById[picId] = rec;
+
       if (rec.chatId) state.picIdByChatId[rec.chatId] = picId;
       if (rec.phone) state.picIdByPhone[rec.phone] = picId;
-      const list = ensureList(state, 'picIdsByAccountCode', rec.accountCode);
+
+      const list = ensureList(state.picIdsByAccountCode, rec.accountCode);
       if (!list.includes(picId)) list.push(picId);
+
       return { ok: 1, rec };
     }
 
-    async function createContext(state, accountCode, label, type, by) {
-      const acc = state.accountsByCode[text(accountCode)];
-      if (!acc) return { ok: 0, code: 'account_not_found' };
+    async function createContext(state, accountCode, label, type, actor) {
+      const account = state.accountsByCode[text(accountCode)];
+      if (!account) return { ok: 0, code: 'account_not_found' };
+
       const code = nextCode(state, 'ctx', cfg.ctxPrefix);
       const rec = {
         code,
@@ -242,11 +229,12 @@ module.exports = {
         tags: '',
         notes: '',
         createdAt: Date.now(),
-        createdBy: text(by),
+        createdBy: text(actor),
         status: text(cfg.contextStatusOpen),
       };
+
       state.contextsByCode[code] = rec;
-      const list = ensureList(state, 'contextCodesByAccountCode', rec.accountCode);
+      const list = ensureList(state.contextCodesByAccountCode, rec.accountCode);
       if (!list.includes(code)) list.push(code);
       return { ok: 1, rec };
     }
@@ -255,29 +243,19 @@ module.exports = {
       meta.registerService(serviceName, {
         resolveInbound: async (input) => {
           const state = await loadState();
-          const picId = lookupPicId(state, input && input.chatId, input && input.phone);
+          const picId = resolvePicId(state, input && input.chatId, input && input.phone);
           if (!picId) {
-            return {
-              assigned: 0,
-              accountCode: '',
-              picId: '',
-              contextCode: '',
-              status: text(cfg.unassignedLabel),
-            };
+            return { assigned: 0, accountCode: '', picId: '', contextCode: '', status: text(cfg.unassignedLabel) };
           }
           const pic = state.picsById[picId] || {};
-          return {
-            assigned: 1,
-            accountCode: text(pic.accountCode),
-            picId,
-            contextCode: '',
-            status: text(cfg.assignedLabel),
-          };
+          return { assigned: 1, accountCode: text(pic.accountCode), picId, contextCode: '', status: text(cfg.assignedLabel) };
         },
         resolveInboundFromCtx: async (ctx) => {
           const state = await loadState();
-          const picId = lookupPicId(state, inboundChat(ctx), inboundPhone(ctx));
-          if (!picId) return { assigned: 0, accountCode: '', picId: '', contextCode: '', status: text(cfg.unassignedLabel) };
+          const picId = resolvePicId(state, inboundChat(ctx), inboundPhone(ctx));
+          if (!picId) {
+            return { assigned: 0, accountCode: '', picId: '', contextCode: '', status: text(cfg.unassignedLabel) };
+          }
           const pic = state.picsById[picId] || {};
           return { assigned: 1, accountCode: text(pic.accountCode), picId, contextCode: '', status: text(cfg.assignedLabel) };
         },
@@ -285,26 +263,22 @@ module.exports = {
           const p = payload && typeof payload === 'object' ? payload : {};
           const ticketId = text(p.ticketId);
           if (!ticketId) return { ok: 0, code: 'need_ticket' };
+
           const state = await loadState();
-          let workgroupKey = text(p.workgroupKey);
-          if (!workgroupKey && workgroups && typeof workgroups.resolve === 'function') {
-            const found = await workgroups.resolve(text(p.workgroupKey));
-            workgroupKey = text(found && found.name);
-          }
           state.ticketLinksByTicketId[ticketId] = {
             ticketId,
             accountCode: text(p.accountCode),
             picId: text(p.picId),
             contextCode: text(p.contextCode),
-            workgroupKey,
+            workgroupKey: text(p.workgroupKey),
             updatedAt: Date.now(),
           };
           await saveState(state);
           return { ok: 1 };
         },
         getTicketLink: async (ticketId) => {
-          const state = await loadState();
           const id = text(ticketId);
+          const state = await loadState();
           const rec = state.ticketLinksByTicketId[id] || {};
           return {
             ticketId: id,
@@ -331,109 +305,135 @@ module.exports = {
     async function runAccount(ctx) {
       const args = ctx && ctx.command && Array.isArray(ctx.command.args) ? ctx.command.args.slice() : [];
       const action = low(args.shift());
+
       if (action === low(cfg.actionNew)) {
         const name = text(args.shift());
         const type = text(args.shift());
-        if (!name) return reply(ctx, cfg.replyNeedAccountName);
+        if (!name) return sendReply(ctx, cfg.replyNeedAccountName);
         const state = await loadState();
         const rec = await createAccount(state, name, type, text(ctx && (ctx.author || ctx.from)));
         await saveState(state);
-        return reply(ctx, fill(cfg.replyAccCreated, { ACC: rec.code, NAME: rec.displayName }));
+        return sendReply(ctx, fill(cfg.replyAccCreated, { ACC: rec.code, NAME: rec.displayName }));
       }
+
       if (action === low(cfg.actionLink)) {
         const accountCode = text(args.shift());
-        if (!accountCode) return reply(ctx, cfg.replyNeedAccountCode);
+        if (!accountCode) return sendReply(ctx, cfg.replyNeedAccountCode);
         const state = await loadState();
-        const linked = await linkPic(state, accountCode, getQuoted(ctx) || inboundChat(ctx), inboundPhone(ctx), text(ctx && (ctx.pushName || ctx.senderName)), text(ctx && (ctx.author || ctx.from)));
-        if (!linked.ok) return reply(ctx, cfg.replyAccountNotFound);
+        const linked = await linkPic(
+          state,
+          accountCode,
+          quotedChatId(ctx) || inboundChat(ctx),
+          inboundPhone(ctx),
+          text(ctx && (ctx.pushName || ctx.senderName)),
+          text(ctx && (ctx.author || ctx.from))
+        );
+        if (!linked.ok) return sendReply(ctx, cfg.replyAccountNotFound);
         await saveState(state);
-        return reply(ctx, fill(cfg.replyPicLinked, { ACC: accountCode, PIC: linked.rec.picId }));
+        return sendReply(ctx, fill(cfg.replyPicLinked, { ACC: accountCode, PIC: linked.rec.picId }));
       }
+
       if (action === low(cfg.actionShow)) {
         const accountCode = text(args.shift());
-        if (!accountCode) return reply(ctx, cfg.replyNeedAccountCode);
+        if (!accountCode) return sendReply(ctx, cfg.replyNeedAccountCode);
         const state = await loadState();
         const rec = state.accountsByCode[accountCode];
-        if (!rec) return reply(ctx, cfg.replyAccountNotFound);
-        return reply(ctx, fill(cfg.replyShowAccount, { ACC: rec.code, NAME: rec.displayName, TYPE: rec.type }));
+        if (!rec) return sendReply(ctx, cfg.replyAccountNotFound);
+        return sendReply(ctx, fill(cfg.replyShowAccount, { ACC: rec.code, NAME: rec.displayName, TYPE: rec.type }));
       }
+
       if (action === low(cfg.actionList)) {
         const state = await loadState();
         const items = Object.keys(state.accountsByCode).sort().map((k) => state.accountsByCode[k]).map((x) => ({ ACC: x.code, NAME: x.displayName, TYPE: x.type }));
-        return reply(ctx, renderList(items, cfg.replyAccountItem));
+        return sendReply(ctx, listMessage(items, cfg.replyAccountItem));
       }
+
       if (action === low(cfg.actionSetName)) {
         const accountCode = text(args.shift());
         const name = text(args.join(' '));
-        if (!accountCode) return reply(ctx, cfg.replyNeedAccountCode);
-        if (!name) return reply(ctx, cfg.replyNeedAccountName);
+        if (!accountCode) return sendReply(ctx, cfg.replyNeedAccountCode);
+        if (!name) return sendReply(ctx, cfg.replyNeedAccountName);
         const state = await loadState();
         const rec = state.accountsByCode[accountCode];
-        if (!rec) return reply(ctx, cfg.replyAccountNotFound);
+        if (!rec) return sendReply(ctx, cfg.replyAccountNotFound);
         rec.displayName = name;
         await saveState(state);
-        return reply(ctx, fill(cfg.replyShowAccount, { ACC: rec.code, NAME: rec.displayName, TYPE: rec.type }));
+        return sendReply(ctx, fill(cfg.replyShowAccount, { ACC: rec.code, NAME: rec.displayName, TYPE: rec.type }));
       }
-      return reply(ctx, cfg.replyUnknown);
+
+      return sendReply(ctx, cfg.replyUnknown);
     }
 
     async function runPic(ctx) {
       const args = ctx && ctx.command && Array.isArray(ctx.command.args) ? ctx.command.args.slice() : [];
       const action = low(args.shift());
+
       if (action === low(cfg.actionLink)) {
         const accountCode = text(args.shift());
-        if (!accountCode) return reply(ctx, cfg.replyNeedAccountCode);
+        if (!accountCode) return sendReply(ctx, cfg.replyNeedAccountCode);
         const state = await loadState();
-        const linked = await linkPic(state, accountCode, getQuoted(ctx) || inboundChat(ctx), inboundPhone(ctx), text(args.join(' ')), text(ctx && (ctx.author || ctx.from)));
-        if (!linked.ok) return reply(ctx, cfg.replyAccountNotFound);
+        const linked = await linkPic(
+          state,
+          accountCode,
+          quotedChatId(ctx) || inboundChat(ctx),
+          inboundPhone(ctx),
+          text(args.join(' ')),
+          text(ctx && (ctx.author || ctx.from))
+        );
+        if (!linked.ok) return sendReply(ctx, cfg.replyAccountNotFound);
         await saveState(state);
-        return reply(ctx, fill(cfg.replyPicLinked, { ACC: accountCode, PIC: linked.rec.picId }));
+        return sendReply(ctx, fill(cfg.replyPicLinked, { ACC: accountCode, PIC: linked.rec.picId }));
       }
+
       if (action === low(cfg.actionList)) {
         const accountCode = text(args.shift());
-        if (!accountCode) return reply(ctx, cfg.replyNeedAccountCode);
+        if (!accountCode) return sendReply(ctx, cfg.replyNeedAccountCode);
         const state = await loadState();
         const ids = state.picIdsByAccountCode[accountCode] || [];
         const items = ids.map((id) => state.picsById[id]).filter(Boolean).map((x) => ({ PIC: x.picId, ACC: x.accountCode, NAME: x.displayName }));
-        return reply(ctx, renderList(items, cfg.replyPicItem));
+        return sendReply(ctx, listMessage(items, cfg.replyPicItem));
       }
+
       if (action === low(cfg.actionSetName)) {
         const picId = text(args.shift());
         const name = text(args.join(' '));
-        if (!picId) return reply(ctx, cfg.replyNeedPicId);
-        if (!name) return reply(ctx, cfg.replyNeedPicId);
+        if (!picId) return sendReply(ctx, cfg.replyNeedPicId);
+        if (!name) return sendReply(ctx, cfg.replyNeedPicId);
         const state = await loadState();
         const rec = state.picsById[picId];
-        if (!rec) return reply(ctx, cfg.replyPicNotFound);
+        if (!rec) return sendReply(ctx, cfg.replyPicNotFound);
         rec.displayName = name;
         await saveState(state);
-        return reply(ctx, fill(cfg.replyShowPic, { PIC: rec.picId, ACC: rec.accountCode, NAME: rec.displayName }));
+        return sendReply(ctx, fill(cfg.replyShowPic, { PIC: rec.picId, ACC: rec.accountCode, NAME: rec.displayName }));
       }
-      return reply(ctx, cfg.replyUnknown);
+
+      return sendReply(ctx, cfg.replyUnknown);
     }
 
     async function runContext(ctx) {
       const args = ctx && ctx.command && Array.isArray(ctx.command.args) ? ctx.command.args.slice() : [];
       const action = low(args.shift());
+
       if (action === low(cfg.actionNew)) {
         const accountCode = text(args.shift());
         const label = text(args.join(' '));
-        if (!accountCode) return reply(ctx, cfg.replyNeedContextAccount);
-        if (!label) return reply(ctx, cfg.replyNeedContextLabel);
+        if (!accountCode) return sendReply(ctx, cfg.replyNeedContextAccount);
+        if (!label) return sendReply(ctx, cfg.replyNeedContextLabel);
         const state = await loadState();
         const made = await createContext(state, accountCode, label, '', text(ctx && (ctx.author || ctx.from)));
-        if (!made.ok) return reply(ctx, cfg.replyAccountNotFound);
+        if (!made.ok) return sendReply(ctx, cfg.replyAccountNotFound);
         await saveState(state);
-        return reply(ctx, fill(cfg.replyContextCreated, { CTX: made.rec.code, ACC: accountCode, LABEL: made.rec.label }));
+        return sendReply(ctx, fill(cfg.replyContextCreated, { CTX: made.rec.code, ACC: accountCode, LABEL: made.rec.label }));
       }
+
       if (action === low(cfg.actionLink)) {
         const ticketId = text(args.shift());
         const contextCode = text(args.shift());
-        if (!ticketId) return reply(ctx, cfg.replyNeedTicket);
-        if (!contextCode) return reply(ctx, cfg.replyNeedContextCode);
+        if (!ticketId) return sendReply(ctx, cfg.replyNeedTicket);
+        if (!contextCode) return sendReply(ctx, cfg.replyNeedContextCode);
         const state = await loadState();
         const ctxRec = state.contextsByCode[contextCode];
-        if (!ctxRec) return reply(ctx, cfg.replyContextNotFound);
+        if (!ctxRec) return sendReply(ctx, cfg.replyContextNotFound);
         const prev = state.ticketLinksByTicketId[ticketId] || {};
         state.ticketLinksByTicketId[ticketId] = {
           ticketId,
@@ -444,51 +444,50 @@ module.exports = {
           updatedAt: Date.now(),
         };
         await saveState(state);
-        return reply(ctx, fill(cfg.replyContextLinked, { TICKET: ticketId, CTX: contextCode }));
+        return sendReply(ctx, fill(cfg.replyContextLinked, { TICKET: ticketId, CTX: contextCode }));
       }
+
       if (action === low(cfg.actionList)) {
         const accountCode = text(args.shift());
-        if (!accountCode) return reply(ctx, cfg.replyNeedContextAccount);
+        if (!accountCode) return sendReply(ctx, cfg.replyNeedContextAccount);
         const state = await loadState();
         const ids = state.contextCodesByAccountCode[accountCode] || [];
         const items = ids.map((id) => state.contextsByCode[id]).filter(Boolean).map((x) => ({ CTX: x.code, ACC: x.accountCode, LABEL: x.label, STATUS: x.status }));
-        return reply(ctx, renderList(items, cfg.replyContextItem));
+        return sendReply(ctx, listMessage(items, cfg.replyContextItem));
       }
+
       if (action === low(cfg.actionClose)) {
         const contextCode = text(args.shift());
-        if (!contextCode) return reply(ctx, cfg.replyNeedContextCode);
+        if (!contextCode) return sendReply(ctx, cfg.replyNeedContextCode);
         const state = await loadState();
         const rec = state.contextsByCode[contextCode];
-        if (!rec) return reply(ctx, cfg.replyContextNotFound);
+        if (!rec) return sendReply(ctx, cfg.replyContextNotFound);
         rec.status = text(cfg.contextStatusClosed);
         await saveState(state);
-        return reply(ctx, fill(cfg.replyShowContext, { CTX: rec.code, ACC: rec.accountCode, LABEL: rec.label, STATUS: rec.status }));
+        return sendReply(ctx, fill(cfg.replyShowContext, { CTX: rec.code, ACC: rec.accountCode, LABEL: rec.label, STATUS: rec.status }));
       }
-      return reply(ctx, cfg.replyUnknown);
+
+      return sendReply(ctx, cfg.replyUnknown);
     }
 
-    const cmdAccount = low(cfg.cmdAccount);
-    const cmdPic = low(cfg.cmdPic);
-    const cmdContext = low(cfg.cmdContext);
-
-    command.register(cmdAccount, async (ctx) => {
-      if (!(await allowManage(ctx))) return reply(ctx, cfg.replyNoAccess);
-      if (!ctx || !ctx.isGroup) return reply(ctx, cfg.replyGroupOnly);
-      if (!inControl(ctx)) return reply(ctx, cfg.replyControlGroupOnly);
+    command.register(low(cfg.cmdAccount), async (ctx) => {
+      if (!(await canManage(ctx))) return sendReply(ctx, cfg.replyNoAccess);
+      if (!ctx || !ctx.isGroup) return sendReply(ctx, cfg.replyGroupOnly);
+      if (!inControlGroup(ctx)) return sendReply(ctx, cfg.replyControlGroupOnly);
       return runAccount(ctx);
     });
 
-    command.register(cmdPic, async (ctx) => {
-      if (!(await allowManage(ctx))) return reply(ctx, cfg.replyNoAccess);
-      if (!ctx || !ctx.isGroup) return reply(ctx, cfg.replyGroupOnly);
-      if (!inControl(ctx)) return reply(ctx, cfg.replyControlGroupOnly);
+    command.register(low(cfg.cmdPic), async (ctx) => {
+      if (!(await canManage(ctx))) return sendReply(ctx, cfg.replyNoAccess);
+      if (!ctx || !ctx.isGroup) return sendReply(ctx, cfg.replyGroupOnly);
+      if (!inControlGroup(ctx)) return sendReply(ctx, cfg.replyControlGroupOnly);
       return runPic(ctx);
     });
 
-    command.register(cmdContext, async (ctx) => {
-      if (!(await allowManage(ctx))) return reply(ctx, cfg.replyNoAccess);
-      if (!ctx || !ctx.isGroup) return reply(ctx, cfg.replyGroupOnly);
-      if (!inControl(ctx)) return reply(ctx, cfg.replyControlGroupOnly);
+    command.register(low(cfg.cmdContext), async (ctx) => {
+      if (!(await canManage(ctx))) return sendReply(ctx, cfg.replyNoAccess);
+      if (!ctx || !ctx.isGroup) return sendReply(ctx, cfg.replyGroupOnly);
+      if (!inControlGroup(ctx)) return sendReply(ctx, cfg.replyControlGroupOnly);
       return runContext(ctx);
     });
 
