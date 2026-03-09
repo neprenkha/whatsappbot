@@ -6,31 +6,31 @@ function text(v) {
   return String(v == null ? '' : v).trim();
 }
 
-function noop() {
+function noopHandlers() {
   return { onEvent: async () => {}, onMessage: async () => {} };
 }
 
 module.exports.init = async function init(meta) {
-  const ptrCfgPath = text(meta && meta.raw ? meta.raw.config : '');
-  let ptrCfg = {};
+  const pointerPath = text(meta && meta.raw ? meta.raw.config : '');
+  let pointer = {};
 
   if (meta && meta.implConf && typeof meta.implConf === 'object') {
-    ptrCfg = meta.implConf;
-  } else if (ptrCfgPath && typeof meta.loadConfRel === 'function') {
+    pointer = meta.implConf;
+  } else if (pointerPath && typeof meta.loadConfRel === 'function') {
     try {
-      const loaded = meta.loadConfRel(ptrCfgPath) || {};
-      ptrCfg = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
+      const loaded = meta.loadConfRel(pointerPath) || {};
+      pointer = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
     } catch (e) {
-      meta.log('ContactBookHub', `module.error id=${meta.id}, pointer_load_failed path=${ptrCfgPath} err=${e.message}`);
-      return noop();
+      meta.log('ContactBookHub', `module.error id=${meta.id}, pointer_load_failed path=${pointerPath} err=${e.message}`);
+      return noopHandlers();
     }
   }
 
-  const implFile = text(ptrCfg.implFile);
-  const implConfig = text(ptrCfg.implConfig);
+  const implFile = text(pointer.implFile);
+  const implConfig = text(pointer.implConfig);
   if (!implFile) {
-    meta.log('ContactBookHub', `module.error id=${meta.id}, missing_implFile path=${ptrCfgPath || '<none>'}`);
-    return noop();
+    meta.log('ContactBookHub', `module.error id=${meta.id}, missing_impl_file path=${pointerPath || '<none>'}`);
+    return noopHandlers();
   }
 
   const absImpl = path.isAbsolute(implFile) ? implFile : path.join(meta.codeRoot, implFile);
@@ -39,29 +39,29 @@ module.exports.init = async function init(meta) {
   try {
     impl = require(absImpl);
   } catch (e) {
-    meta.log('ContactBookHub', `module.error id=${meta.id}, require_failed file=${absImpl} err=${e.message}`);
-    return noop();
+    meta.log('ContactBookHub', `module.error id=${meta.id}, impl_require_failed file=${absImpl} err=${e.message}`);
+    return noopHandlers();
   }
 
-  const loadedImplCfg = { absPath: '', conf: {} };
+  const implCfg = { absPath: '', conf: {} };
   if (implConfig) {
     try {
       const loaded = meta.loadConfRel(implConfig) || {};
-      loadedImplCfg.absPath = text(loaded.absPath);
-      loadedImplCfg.conf = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
+      implCfg.absPath = text(loaded.absPath);
+      implCfg.conf = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
     } catch (e) {
-      meta.log('ContactBookHub', `module.error id=${meta.id}, impl_cfg_load_failed file=${implConfig} err=${e.message}`);
+      meta.log('ContactBookHub', `module.error id=${meta.id}, impl_conf_load_failed file=${implConfig} err=${e.message}`);
     }
   }
 
   if (!impl || typeof impl.init !== 'function') {
     meta.log('ContactBookHub', `module.error id=${meta.id}, impl_missing_init file=${absImpl}`);
-    return noop();
+    return noopHandlers();
   }
 
   return impl.init({
     ...meta,
-    implConf: loadedImplCfg.conf,
-    implConfPath: loadedImplCfg.absPath,
+    implConf: implCfg.conf,
+    implConfPath: implCfg.absPath,
   });
 };
