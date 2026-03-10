@@ -175,8 +175,127 @@ module.exports = {
 
     const burstMs = Math.max(1, toInt(cfg.burstMs, 1200));
     const msgBufferMax = Math.max(1, toInt(cfg.msgBufferMax, 20));
+    const tickMs = Math.max(1000, toInt(cfg.tickMs, 60000));
+    const batchMax = Math.max(1, toInt(cfg.batchMax, 5));
+    const maxAttempts = Math.max(1, toInt(cfg.maxAttempts, 3));
+    const retryDelayMs = Math.max(1000, toInt(cfg.retryDelayMs, 300000));
+    const reminderAfterMs = Math.max(1000, toInt(cfg.reminderAfterMs, 600000));
+    const escalationAfterMs = Math.max(reminderAfterMs, toInt(cfg.escalationAfterMs, 1800000));
+    const reminderTemplate = text(cfg.reminderTemplate);
+    const escalationTemplate = text(cfg.escalationTemplate);
 
     const burstState = new Map();
+    let antiMissRunning = false;
+
+    function fill(tpl, vars) {
+      let out = String(tpl || '');
+      Object.keys(vars || {}).forEach((k) => {
+        out = out.split(`{${k}}`).join(String(vars[k] == null ? '' : vars[k]));
+      });
+      return out;
+    }
+
+    function asMs(v) {
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    }
+
+    function isOpenAwaitingTicket(ticket) {
+      if (!ticket || typeof ticket !== 'object') return false;
+      const status = text(ticket.status).toLowerCase();
+      const openStatus = text(cfg.ticketStatusOpen).toLowerCase();
+      const closedStatus = text(cfg.ticketStatusClosed).toLowerCase();
+      if (!status) return false;
+      if (closedStatus && status === closedStatus) return false;
+      if (openStatus && status !== openStatus) return false;
+      if (!text(ticket.customerChatId)) return false;
+      if (!toBool(ticket.awaitingStaff)) return false;
+      return true;
+    }
+
+    function detectStage(ticket, nowMs) {
+      const lastInboundAt = asMs(ticket && ticket.lastInboundAt);
+      if (!lastInboundAt) return '';
+      const ageMs = nowMs - lastInboundAt;
+      if (ageMs < reminderAfterMs) return '';
+      if (ageMs >= escalationAfterMs) return 'escalation';
+      return 'reminder';
+    }
+
+    function canSendStage(ticket, stage, nowMs) {
+      const sentAtKey = stage === 'escalation' ? 'escalationSentAt' : 'reminderSentAt';
+      const countKey = stage === 'escalation' ? 'escalationCount' : 'reminderCount';
+      const nextAtKey = stage === 'escalation' ? 'escalationNextAt' : 'reminderNextAt';
+
+      const sentAt = asMs(ticket && ticket[sentAtKey]);
+      const nextAt = asMs(ticket && ticket[nextAtKey]);
+      const count = Math.max(0, toInt(ticket && ticket[countKey], 0));
+
+      if (count >= maxAttempts) return false;
+      if (nextAt > 0 && nowMs < nextAt) return false;
+      if (sentAt > 0 && nowMs - sentAt < retryDelayMs) return false;
+      return true;
+    }
+
+    async function runAntiMissTick() {
+      if (antiMissRunning) return;
+      antiMissRunning = true;
+      try {
+        const tickets = await loadTicketState();
+        if (!Array.isArray(tickets) || !tickets.length) return;
+
+        const nowMs = Date.now();
+        let changed = false;
+        let sentCount = 0;
+
+        for (const ticket of tickets) {
+          if (sentCount >= batchMax) break;
+          if (!isOpenAwaitingTicket(ticket)) continue;
+
+          const stage = detectStage(ticket, nowMs);
+          if (!stage) continue;
+          if (!canSendStage(ticket, stage, nowMs)) continue;
+
+          const targetChatId = await resolveTargetGroup(text(ticket.groupKey || cfg.defaultGroupKey), null);
+          if (!targetChatId) continue;
+
+          const tpl = stage === 'escalation' ? escalationTemplate : reminderTemplate;
+          if (!tpl) continue;
+
+          const payload = fill(tpl, {
+            TICKETID: text(ticket.ticketId),
+            CHATID: text(ticket.customerChatId),
+            STATUS: text(ticket.status),
+            LASTINBOUNDAT: String(asMs(ticket.lastInboundAt)),
+            LASTSTAFFREPLYAT: String(asMs(ticket.lastStaffReplyAt)),
+          });
+          if (!payload) continue;
+
+          await sendFn(targetChatId, payload, {
+            isAuto: 1,
+            manualReply: 0,
+            lastInboundAtMs: asMs(ticket.lastInboundAt),
+          });
+
+          const sentAtKey = stage === 'escalation' ? 'escalationSentAt' : 'reminderSentAt';
+          const countKey = stage === 'escalation' ? 'escalationCount' : 'reminderCount';
+          const nextAtKey = stage === 'escalation' ? 'escalationNextAt' : 'reminderNextAt';
+          ticket[sentAtKey] = nowMs;
+          ticket[countKey] = Math.max(0, toInt(ticket[countKey], 0)) + 1;
+          ticket[nextAtKey] = nowMs + retryDelayMs;
+          ticket.updatedAt = new Date(nowMs).toISOString();
+
+          changed = true;
+          sentCount += 1;
+        }
+
+        if (changed) await saveTicketState(tickets);
+      } catch (e) {
+        if (bugLog) meta.log(tag, `bug anti_miss_tick err=${text(e && e.message ? e.message : e)}`);
+      } finally {
+        antiMissRunning = false;
+      }
+    }
 
     async function loadTicketState() {
       const raw = await store.get(ticketRef.key, { tickets: [] });
@@ -224,7 +343,7 @@ module.exports = {
     async function resolveTargetGroup(workgroupKey, ctx) {
       const fromWorkgroups = await resolveWorkgroupChatId(workgroupKey, ctx);
       if (fromWorkgroups) return fromWorkgroups;
-      const fallback = await FallbackGroupRouterCV.resolveTargetGroup(meta, cfg, globalConf, ctx);
+      const fallback = FallbackGroupRouterCV.resolveTargetGroup(meta, cfg, globalConf, ctx);
       return text(fallback);
     }
 
@@ -482,6 +601,12 @@ module.exports = {
         },
       });
     }
+
+    setInterval(() => {
+      runAntiMissTick().catch((e) => {
+        if (bugLog) meta.log(tag, `bug anti_miss_loop err=${text(e && e.message ? e.message : e)}`);
+      });
+    }, tickMs);
 
     return {
       onMessage: async (ctx) => {
