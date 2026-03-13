@@ -64,10 +64,12 @@ module.exports = {
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    let globalConf = {};
-    if (typeof meta.loadConfRel === 'function') {
-      globalConf = meta.loadConfRel(text(cfg.globalConfRel)) || {};
-    }
+    const loadedGlobal = typeof meta.loadConfRel === 'function'
+      ? (meta.loadConfRel(text(cfg.globalConfRel)) || {})
+      : {};
+    const globalConf = loadedGlobal && loadedGlobal.conf && typeof loadedGlobal.conf === 'object'
+      ? loadedGlobal.conf
+      : (loadedGlobal && typeof loadedGlobal === 'object' ? loadedGlobal : {});
     const controlGroupId = text(globalConf.controlGroupId);
     if (!controlGroupId) {
       if (bugLogEnabled) meta.log(logTag, 'global config invalid missing=controlGroupId');
