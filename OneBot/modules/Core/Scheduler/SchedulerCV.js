@@ -80,14 +80,20 @@ module.exports = {
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    let globalConf = {};
-    if (typeof meta.loadConfRel === 'function') {
-      globalConf = meta.loadConfRel(text(cfg.globalConfRel)) || {};
-    }
+    const loadedGlobal = typeof meta.loadConfRel === 'function'
+      ? (meta.loadConfRel(text(cfg.globalConfRel)) || {})
+      : {};
+    const globalConf = loadedGlobal && loadedGlobal.conf && typeof loadedGlobal.conf === 'object'
+      ? loadedGlobal.conf
+      : (loadedGlobal && typeof loadedGlobal === 'object' ? loadedGlobal : {});
 
     const command = meta.getService('command');
     const access = meta.getService('access');
-    const send = meta.getService('send');
+    const preferredSendService = String(globalConf.sendPrefer || '')
+      .split(',')
+      .map((x) => text(x))
+      .filter(Boolean)[0] || '';
+    const sendSvc = meta.getService('send') || (preferredSendService ? meta.getService(preferredSendService) : null);
     const workgroups = meta.getService('workgroups');
     const jsonstore = meta.getService('jsonstore');
     const journal = meta.getService('messagejournal');
@@ -96,7 +102,13 @@ module.exports = {
       if (bugLogEnabled) meta.log(logTag, 'missing command service');
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
-    if (typeof send !== 'function') {
+    let sendFn = null;
+    if (typeof sendSvc === 'function') {
+      sendFn = async (chatId, payload, options) => await sendSvc(chatId, payload, options || {});
+    } else if (sendSvc && typeof sendSvc.send === 'function') {
+      sendFn = async (chatId, payload, options) => await sendSvc.send(chatId, payload, options || {});
+    }
+    if (!sendFn) {
       if (bugLogEnabled) meta.log(logTag, 'missing send service');
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
@@ -131,7 +143,7 @@ module.exports = {
 
       const chatId = text(ctx && ctx.chatId);
       if (!chatId) return;
-      await send(chatId, message, { isAuto: 0 });
+      await sendFn(chatId, message, { isAuto: 0 });
     }
 
     async function loadJobs() {
@@ -340,7 +352,7 @@ module.exports = {
           DUEAT: String(job.dueAt || 0),
         });
 
-        await send(destinationChatId, staffMessage, { isAuto: 1 });
+        await sendFn(destinationChatId, staffMessage, { isAuto: 1 });
         job.status = 'done';
         job.sentAt = now;
         job.updatedAt = now;
