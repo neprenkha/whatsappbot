@@ -4,6 +4,19 @@ function text(value) {
   return String(value ?? '').trim();
 }
 
+function toInt(value, fallback) {
+  const n = Number.parseInt(text(value), 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function fill(template, vars) {
+  let out = String(template || '');
+  Object.keys(vars || {}).forEach((name) => {
+    out = out.split(`{${name}}`).join(String(vars[name] ?? ''));
+  });
+  return out;
+}
+
 function parseTicketId(raw, ticketIdRegex) {
   const source = text(raw);
   if (!source) return '';
@@ -15,6 +28,30 @@ function parseTicketId(raw, ticketIdRegex) {
 function stripTicketId(textBody, ticketIdRegex) {
   const re = new RegExp(text(ticketIdRegex), 'ig');
   return text(textBody).replace(re, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function renderBatch(meta, cfg, input) {
+  const ticketId = text(input && input.ticketId);
+  const customerName = text(input && input.customerName);
+  const customerChatId = text(input && input.customerChatId);
+  const rawMessages = Array.isArray(input && input.messages) ? input.messages : [];
+  const messages = rawMessages.map((x) => text(x).replace(/\s+/g, ' ')).filter(Boolean);
+
+  if (!messages.length) return '';
+
+  const header = fill(text(cfg && cfg.forwardTextPrefixTemplate), {
+    TICKETID: ticketId,
+    FROM: customerName,
+    CHATID: customerChatId,
+    COUNT: String(messages.length),
+  });
+
+  const lines = messages.map((msg, idx) => `${idx + 1}) ${msg}`);
+  const merged = [header].concat(lines).filter(Boolean).join('\n');
+
+  const maxLen = Math.max(1, toInt(cfg && cfg.forwardTextMaxLen, 3500));
+  if (merged.length <= maxLen) return merged;
+  return merged.slice(0, maxLen);
 }
 
 async function sendToCustomer(input) {
@@ -84,5 +121,6 @@ async function sendToCustomer(input) {
 }
 
 module.exports = {
+  renderBatch,
   sendToCustomer,
 };
