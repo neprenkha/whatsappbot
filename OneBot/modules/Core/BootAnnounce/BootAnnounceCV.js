@@ -33,6 +33,22 @@ function loadGlobalConf(meta, cfg, bugLog) {
   }
 }
 
+function eventType(evt) {
+  if (!evt) return '';
+  if (typeof evt === 'string') return evt.trim().toLowerCase();
+  if (typeof evt.type === 'string') return evt.type.trim().toLowerCase();
+  if (typeof evt.name === 'string') return evt.name.trim().toLowerCase();
+  if (typeof evt.event === 'string') return evt.event.trim().toLowerCase();
+  return '';
+}
+
+function isReadyEvent(evt) {
+  const t = eventType(evt);
+  return t === 'ready' ||
+    t === 'connector.ready' ||
+    t === 'whatsapp.ready';
+}
+
 module.exports = {
   init: async (meta) => {
     const cfg = meta && meta.implConf ? meta.implConf : {};
@@ -60,8 +76,14 @@ module.exports = {
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    const send = meta.getService(serviceName);
-    if (typeof send !== 'function') {
+    const sendSvc = meta.getService(serviceName);
+    let sendFn = null;
+    if (typeof sendSvc === 'function') {
+      sendFn = async (chatId, payload, options) => await sendSvc(chatId, payload, options || {});
+    } else if (sendSvc && typeof sendSvc.send === 'function') {
+      sendFn = async (chatId, payload, options) => await sendSvc.send(chatId, payload, options || {});
+    }
+    if (!sendFn) {
       if (bugLog) meta.log('BootAnnounceCV', 'send_service_missing serviceName=' + serviceName);
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
@@ -71,22 +93,37 @@ module.exports = {
     if (tips) lines.push(tips);
     if (botName && !title) lines.push(botName);
     const payload = lines.join('\n').trim();
-
-    if (payload) {
-      const run = async () => {
-        try {
-          await send(controlGroupId, payload, { isAuto: 0, manualReply: 1, bypassRateLimit: 1 });
-          if (detailLog || traceLog || moduleLog) meta.log('BootAnnounceCV', 'announce_sent');
-        } catch (e) {
-          if (bugLog) meta.log('BootAnnounceCV', 'announce_failed err=' + String(e && e.message ? e.message : e));
-        }
-      };
-
-      if (delayMs > 0) setTimeout(run, delayMs);
-      else await run();
+    if (!payload) {
+      if (moduleLog) meta.log('BootAnnounceCV', 'ready no_payload');
+      return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
+    let announced = false;
+
+    async function announceOnce() {
+      if (announced) return;
+      announced = true;
+      try {
+        await sendFn(controlGroupId, payload, { isAuto: 0, manualReply: 1, bypassRateLimit: 1 });
+        if (detailLog || traceLog || moduleLog) meta.log('BootAnnounceCV', 'announce_sent');
+      } catch (e) {
+        announced = false;
+        if (bugLog) meta.log('BootAnnounceCV', 'announce_failed err=' + String(e && e.message ? e.message : e));
+      }
+    }
+
+    const onEvent = async (evt) => {
+      if (!isReadyEvent(evt)) return;
+      if (delayMs > 0) {
+        setTimeout(() => {
+          announceOnce().catch(() => {});
+        }, delayMs);
+        return;
+      }
+      await announceOnce();
+    };
+
     if (moduleLog) meta.log('BootAnnounceCV', 'ready');
-    return { onMessage: async () => {}, onEvent: async () => {} };
+    return { onMessage: async () => {}, onEvent };
   },
 };
