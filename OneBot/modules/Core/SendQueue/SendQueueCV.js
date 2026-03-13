@@ -69,6 +69,8 @@ module.exports = {
     const enabled = asBool(readConf(conf, 'enabled', 1), true);
     const moduleLog = asBool(readConf(conf, 'moduleLog', 1), true);
     const bugLog = asBool(readConf(conf, 'bugLog', 1), true);
+    const detailLog = asBool(readConf(conf, 'detailLog', 0), false);
+    const traceLog = asBool(readConf(conf, 'traceLog', 0), false);
 
     if (!enabled) {
       if (moduleLog) log(tag, 'disabled enabled=0');
@@ -199,6 +201,9 @@ module.exports = {
             queue.splice(idx, 1);
             nextAllowedAtMs.set(item.chatId, Date.now() + minGapMsPerChat);
             sent += 1;
+            if (traceLog || detailLog) {
+              log(tag, 'send_ok chatId=' + item.chatId + ' sent=' + sent + ' remain=' + queue.length);
+            }
           } catch (err) {
             item.attempts += 1;
             item.lastError = errText(err);
@@ -206,6 +211,9 @@ module.exports = {
             if (item.attempts >= maxAttempts) {
               pushDead(item);
               queue.splice(idx, 1);
+              if (detailLog || traceLog) {
+                log(tag, 'dead_push chatId=' + item.chatId + ' attempts=' + item.attempts + ' reason=' + item.lastError);
+              }
             }
           }
         }
@@ -231,7 +239,7 @@ module.exports = {
     meta.registerService(serviceName, api);
 
     if (moduleLog) {
-      log(tag, 'ready enabled=1 serviceName=' + serviceName + ' baseSend=' + baseSend + ' delayMs=' + delayMs + ' batchMax=' + batchMax + ' maxQueue=' + maxQueue + ' minGapMsPerChat=' + minGapMsPerChat + ' maxAttempts=' + maxAttempts + ' retryDelayMs=' + retryDelayMs + ' deadMax=' + deadMax);
+      log(tag, 'ready enabled=1 serviceName=' + serviceName + ' baseSend=' + baseSend + ' delayMs=' + delayMs + ' batchMax=' + batchMax + ' maxQueue=' + maxQueue + ' minGapMsPerChat=' + minGapMsPerChat + ' maxAttempts=' + maxAttempts + ' retryDelayMs=' + retryDelayMs + ' deadMax=' + deadMax + ' detailLog=' + (detailLog ? '1' : '0') + ' traceLog=' + (traceLog ? '1' : '0'));
     }
 
     return {
