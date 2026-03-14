@@ -64,10 +64,12 @@ module.exports = {
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    let globalConf = {};
-    if (typeof meta.loadConfRel === 'function') {
-      globalConf = meta.loadConfRel(text(cfg.globalConfRel)) || {};
-    }
+    const loadedGlobal = typeof meta.loadConfRel === 'function'
+      ? (meta.loadConfRel(text(cfg.globalConfRel)) || {})
+      : {};
+    const globalConf = loadedGlobal && loadedGlobal.conf && typeof loadedGlobal.conf === 'object'
+      ? loadedGlobal.conf
+      : (loadedGlobal && typeof loadedGlobal === 'object' ? loadedGlobal : {});
     const controlGroupId = text(globalConf.controlGroupId);
     if (!controlGroupId) {
       if (bugLogEnabled) meta.log(logTag, 'global config invalid missing=controlGroupId');
@@ -76,20 +78,13 @@ module.exports = {
 
     const command = meta.getService('command');
     const access = meta.getService('access');
-    const sendServiceName = text(cfg.sendService) || 'send';
-    const sendSvc = meta.getService(sendServiceName);
+    const send = meta.getService('send');
 
     if (!command || typeof command.register !== 'function') {
       if (bugLogEnabled) meta.log(logTag, 'missing command service');
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
-    let sendFn = null;
-    if (typeof sendSvc === 'function') {
-      sendFn = async (chatId, payload, options) => await sendSvc(chatId, payload, options || {});
-    } else if (sendSvc && typeof sendSvc.send === 'function') {
-      sendFn = async (chatId, payload, options) => await sendSvc.send(chatId, payload, options || {});
-    }
-    if (!sendFn) {
+    if (typeof send !== 'function') {
       if (bugLogEnabled) meta.log(logTag, 'missing send service');
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
@@ -117,7 +112,7 @@ module.exports = {
 
       const chatId = text(ctx && ctx.chatId);
       if (!chatId) return;
-      await sendFn(chatId, payload, { isAuto: 0 });
+      await send(chatId, payload, { isAuto: 0 });
     }
 
     async function guardScope(ctx, minRole) {
