@@ -38,6 +38,15 @@ function getErrText(err) {
   return String(err.code || err.reason || err.message || err);
 }
 
+function isPromiseLike(value) {
+  return !!value && (typeof value === 'object' || typeof value === 'function') && typeof value.then === 'function';
+}
+
+async function resolveChatId(value) {
+  const resolved = isPromiseLike(value) ? await value : value;
+  return asText(resolved, '');
+}
+
 function normalizeItem(raw) {
   const item = raw && typeof raw === 'object' ? Object.assign({}, raw) : {};
   item.id = Number.isFinite(Number(item.id)) ? Number(item.id) : 0;
@@ -98,6 +107,7 @@ module.exports = {
     let timer = null;
     let running = false;
     let ready = false;
+    let api = null;
 
     function openStore() {
       if (!jsonstore || typeof jsonstore.open !== 'function') return null;
@@ -109,7 +119,21 @@ module.exports = {
     function resolveSender() {
       for (let i = 0; i < sendPrefer.length; i += 1) {
         const name = sendPrefer[i];
+        if (!name || name === serviceName) {
+          if (bugLog) log(tag, 'sender_skip_self serviceName=' + name);
+          continue;
+        }
+        if (traceLog || detailLog) log(tag, 'outbox_sendprefer serviceName=' + name);
         const svc = meta.getService(name);
+        if (!svc) continue;
+        if (api && svc === api) {
+          if (bugLog) log(tag, 'sender_skip_self_service serviceName=' + name);
+          continue;
+        }
+        if (svc && typeof svc.enqueue === 'function') {
+          if (bugLog) log(tag, 'sender_skip_queue_like serviceName=' + name);
+          continue;
+        }
         if (typeof svc === 'function') return svc;
         if (svc && typeof svc.send === 'function') {
           return async (chatId, payload, options) => await svc.send(chatId, payload, options || {});
@@ -157,13 +181,16 @@ module.exports = {
     }
 
     async function enqueue(chatId, payload, options) {
+      const outChatId = await resolveChatId(chatId);
+      if (!outChatId || outChatId === '[object Promise]') return 0;
+
       const itemOptions = options && typeof options === 'object' ? Object.assign({}, options) : {};
       if (!Object.prototype.hasOwnProperty.call(itemOptions, 'isAuto')) itemOptions.isAuto = 1;
       if (!Object.prototype.hasOwnProperty.call(itemOptions, 'manualReply')) itemOptions.manualReply = 0;
 
       const item = normalizeItem({
         id: lastId + 1,
-        chatId,
+        chatId: outChatId,
         payload,
         options: itemOptions,
         attempts: 0,
@@ -204,7 +231,10 @@ module.exports = {
           }
 
           try {
-            await sender(item.chatId, item.payload, item.options || {});
+            const outChatId = await resolveChatId(item.chatId);
+            if (!outChatId || outChatId === '[object Promise]') throw new Error('outbox.invalid_chatId');
+            if (traceLog || detailLog) log(tag, 'outbox_sender_target chatId=' + outChatId + ' payloadType=' + (typeof item.payload === 'string' ? 'text' : 'media'));
+            await sender(outChatId, item.payload, item.options || {});
             queue.shift();
             sentCount += 1;
           } catch (err) {
@@ -239,7 +269,7 @@ module.exports = {
       }, tickMs);
     }
 
-    const api = {
+    api = {
       send: async (chatId, payload, options) => await enqueue(chatId, payload, options),
       size: () => queue.length,
       flush: async () => await flushOnce(),
