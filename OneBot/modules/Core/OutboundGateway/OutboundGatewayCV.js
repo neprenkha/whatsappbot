@@ -52,6 +52,15 @@ function normalizeOpts(v) {
   return Object.assign({}, v);
 }
 
+function isPromiseLike(v) {
+  return !!v && (typeof v === 'object' || typeof v === 'function') && typeof v.then === 'function';
+}
+
+async function resolveChatId(chatId) {
+  const resolved = isPromiseLike(chatId) ? await chatId : chatId;
+  return String(resolved || '').trim();
+}
+
 function makeBlocked(reason, waitMs) {
   const err = new Error('ratelimit.block');
   err.code = 'ratelimit.block';
@@ -105,8 +114,8 @@ module.exports.init = async function init(meta) {
   }
 
   async function sendWrapped(chatId, payload, options) {
-    const outChatId = String(chatId || '').trim();
-    if (!outChatId) throw new Error('outbound.invalid_chatId');
+    const outChatId = await resolveChatId(chatId);
+    if (!outChatId || outChatId === '[object Promise]') throw new Error('outbound.invalid_chatId');
 
     const opts = normalizeOpts(options);
 
@@ -129,6 +138,10 @@ module.exports.init = async function init(meta) {
         }
         throw makeBlocked(checked.reason, checked.waitMs);
       }
+    }
+
+    if (traceLog || detailLog) {
+      meta.log('OutboundGatewayCV', 'og_senddirect chatId=' + outChatId + ' payloadType=' + (typeof payload === 'string' ? 'text' : 'media') + ' baseSend=' + baseSend);
     }
 
     const res = await sendBase(outChatId, payload, opts);
