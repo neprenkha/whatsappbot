@@ -54,20 +54,15 @@ module.exports = {
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    const loadedGlobal = typeof meta.loadConfRel === 'function'
-      ? (meta.loadConfRel(text(cfg.globalConfRel)) || {})
-      : {};
-    const globalConf = loadedGlobal && loadedGlobal.conf && typeof loadedGlobal.conf === 'object'
-      ? loadedGlobal.conf
-      : (loadedGlobal && typeof loadedGlobal === 'object' ? loadedGlobal : {});
+    let globalConf = {};
+    if (typeof meta.loadConfRel === 'function') {
+      globalConf = meta.loadConfRel(text(cfg.globalConfRel)) || {};
+    }
 
     const command = meta.getService('command');
     const access = meta.getService('access');
-    const preferredSendService = String(globalConf.sendPrefer || '')
-      .split(',')
-      .map((x) => text(x))
-      .filter(Boolean)[0] || '';
-    const sendSvc = meta.getService('send') || (preferredSendService ? meta.getService(preferredSendService) : null);
+    const sendServiceName = text(cfg.sendService) || 'send';
+    const sendSvc = meta.getService(sendServiceName);
     const workgroups = meta.getService('workgroups');
     const timezone = meta.getService('timezone');
 
