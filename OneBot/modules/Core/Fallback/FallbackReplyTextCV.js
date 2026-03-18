@@ -22,6 +22,26 @@ function bugEnabled(value) {
   return v === '1' || v === 'true' || v === 'yes' || v === 'on';
 }
 
+function resolveSend(meta, globalConf) {
+  const names = String(globalConf.sendPrefer || '')
+    .split(',')
+    .map((x) => text(x))
+    .filter(Boolean);
+
+  if (!names.includes('send')) names.push('send');
+  if (!names.includes('outbox')) names.push('outbox');
+
+  for (const name of names) {
+    const svc = meta.getService(name);
+    if (typeof svc === 'function') return svc;
+    if (svc && typeof svc.send === 'function') {
+      return async (chatId, payload, options) => await svc.send(chatId, payload, options || {});
+    }
+  }
+
+  return null;
+}
+
 async function sendToCustomer(input) {
   const cfg = input.cfg;
   const meta = input.meta;
@@ -61,17 +81,8 @@ async function sendToCustomer(input) {
     globalConf = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
   }
 
-  const serviceName = String(globalConf.sendPrefer || '')
-    .split(',')
-    .map((x) => text(x))
-    .filter(Boolean)[0] || '';
-
-  if (!serviceName) {
-    return { ok: 0, code: 'send_missing' };
-  }
-
-  const send = meta.getService(serviceName);
-  if (typeof send !== 'function') {
+  const send = resolveSend(meta, globalConf);
+  if (!send) {
     return { ok: 0, code: 'send_missing' };
   }
 
