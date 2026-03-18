@@ -343,7 +343,7 @@ module.exports = {
     async function resolveTargetGroup(workgroupKey, ctx) {
       const fromWorkgroups = await resolveWorkgroupChatId(workgroupKey, ctx);
       if (fromWorkgroups) return fromWorkgroups;
-      const fallback = FallbackGroupRouterCV.resolveTargetGroup(meta, cfg, globalConf, ctx);
+      const fallback = await FallbackGroupRouterCV.resolveTargetGroup(meta, cfg, globalConf, ctx);
       return text(fallback);
     }
 
@@ -372,18 +372,23 @@ module.exports = {
             ? ticketRow.quickReplies
             : {};
 
-          const cardText = await ticketCard.render({
-            ticketId: entry.ticketId,
-            customerChatId: entry.chatId,
-            customerName: entry.customerName,
-            status: entry.status,
-            time: new Date(entry.lastAt).toISOString(),
-            messageCount: entry.messages.length,
-            lastText: entry.messages[entry.messages.length - 1] || '',
-            qr1: text(quickReplies['1']),
-            qr2: text(quickReplies['2']),
-            qr3: text(quickReplies['3']),
-          });
+          let cardText = '';
+          try {
+            cardText = await ticketCard.render({
+              ticketId: entry.ticketId,
+              customerChatId: entry.chatId,
+              customerName: entry.customerName,
+              status: entry.status,
+              time: new Date(entry.lastAt).toISOString(),
+              messageCount: entry.messages.length,
+              lastText: entry.messages[entry.messages.length - 1] || '',
+              qr1: text(quickReplies['1']),
+              qr2: text(quickReplies['2']),
+              qr3: text(quickReplies['3']),
+            });
+          } catch (e) {
+            if (bugLog) meta.log(tag, `bug ticket_card_render_failed ticketId=${entry.ticketId} err=${text(e && e.message ? e.message : e)}`);
+          }
 
           const consolidated = FallbackForwardTextCV.renderBatch(meta, cfg, {
             ticketId: entry.ticketId,
@@ -392,9 +397,12 @@ module.exports = {
             messages: entry.messages,
           });
 
-          await sendFn(targetChat, cardText, { isAuto: 1, manualReply: 0, lastInboundAtMs: Number(entry.lastAt || (ticketRow && ticketRow.lastInboundAt) || 0) });
+          const lastInboundAtMs = Number(entry.lastAt || (ticketRow && ticketRow.lastInboundAt) || 0);
+          if (cardText) {
+            await sendFn(targetChat, cardText, { isAuto: 0, manualReply: 1, bypassRateLimit: 1, lastInboundAtMs });
+          }
           if (consolidated) {
-            await sendFn(targetChat, consolidated, { isAuto: 1, manualReply: 0, lastInboundAtMs: Number(entry.lastAt || (ticketRow && ticketRow.lastInboundAt) || 0) });
+            await sendFn(targetChat, consolidated, { isAuto: 0, manualReply: 1, bypassRateLimit: 1, lastInboundAtMs });
           }
         } catch (e) {
           if (bugLog) meta.log(tag, `bug burst_flush err=${text(e && e.message ? e.message : e)}`);
