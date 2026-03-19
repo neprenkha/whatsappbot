@@ -28,6 +28,17 @@ function getFromMe(ctx) {
   return !!getRaw(ctx).fromMe;
 }
 
+function getSenderId(ctx) {
+  const raw = getRaw(ctx);
+  return toText(
+    (ctx && (ctx.senderId || ctx.author || ctx.from)) ||
+    raw.participant ||
+    raw.author ||
+    raw.from ||
+    ''
+  ).trim();
+}
+
 function getText(ctx) {
   return toText(ctx && ctx.text).trim();
 }
@@ -47,6 +58,19 @@ function isEmptySystem(ctx) {
     type === 'notification_template' ||
     type === 'notification' ||
     type === 'ciphertext'
+  );
+}
+
+function isLidIdentity(value) {
+  return toText(value).trim().toLowerCase().endsWith('@lid');
+}
+
+function toLowerSet(csv) {
+  return new Set(
+    toText(csv)
+      .split(',')
+      .map((x) => x.trim().toLowerCase())
+      .filter(Boolean)
   );
 }
 
@@ -73,6 +97,8 @@ module.exports = {
     const dropStatusBroadcast = toBool(cfg.dropStatusBroadcast, false);
     const dropEmptySystem = toBool(cfg.dropEmptySystem, true);
     const dropFromMe = toBool(cfg.dropFromMe, false);
+    const dropLid = toBool(cfg.dropLid, true);
+    const dropChatIdCsv = toLowerSet(cfg.dropChatIds);
 
     if (!enabled) {
       if (moduleLog) log(tag, 'disabled enabled=0');
@@ -96,9 +122,25 @@ module.exports = {
         return;
       }
 
+      const senderId = getSenderId(ctx);
+      const chatLower = chatId.toLowerCase();
+      const senderLower = senderId.toLowerCase();
+
       if (dropFromMe && getFromMe(ctx)) {
         stopIfPossible(ctx);
         if (moduleLog || detailLog || traceLog) log(tag, 'drop reason=from_me chatId=' + chatId + ' fromMe=' + fromMe + ' type=' + type);
+        return;
+      }
+
+      if (dropLid && (isLidIdentity(chatId) || isLidIdentity(senderId))) {
+        stopIfPossible(ctx);
+        if (moduleLog || detailLog || traceLog) log(tag, 'drop reason=lid_identity chatId=' + chatId + ' senderId=' + senderId + ' fromMe=' + fromMe + ' type=' + type);
+        return;
+      }
+
+      if (dropChatIdCsv.size && (dropChatIdCsv.has(chatLower) || dropChatIdCsv.has(senderLower))) {
+        stopIfPossible(ctx);
+        if (moduleLog || detailLog || traceLog) log(tag, 'drop reason=chatid_blocklist chatId=' + chatId + ' senderId=' + senderId + ' fromMe=' + fromMe + ' type=' + type);
         return;
       }
 
