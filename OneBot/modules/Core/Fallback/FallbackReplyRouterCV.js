@@ -28,6 +28,74 @@ function commandPrefix(cmdReply) {
   return m && m[0] ? m[0] : '';
 }
 
+function parseTicketId(raw, ticketIdRegex) {
+  const source = text(raw);
+  if (!source) return '';
+  const re = new RegExp(text(ticketIdRegex), 'i');
+  const m = source.match(re);
+  return m && m[0] ? text(m[0]) : '';
+}
+
+function pick(obj, path) {
+  let cur = obj;
+  for (let i = 0; i < path.length; i += 1) {
+    if (!cur || typeof cur !== 'object') return null;
+    cur = cur[path[i]];
+  }
+  return cur;
+}
+
+function quotedTextFromContextInfo(ctx) {
+  const msg = ctx && ctx.message && typeof ctx.message === 'object' ? ctx.message : {};
+  const raw = ctx && ctx.raw && typeof ctx.raw === 'object' ? ctx.raw : {};
+  const msgData = msg && msg._data && typeof msg._data === 'object' ? msg._data : {};
+  const rawData = raw && raw._data && typeof raw._data === 'object' ? raw._data : {};
+
+  const sources = [
+    msgData,
+    rawData,
+    msg,
+    raw,
+  ];
+
+  const out = [];
+  const push = (v) => {
+    const t = text(v);
+    if (t) out.push(t);
+  };
+
+  for (const src of sources) {
+    const contextInfo = pick(src, ['contextInfo']) || pick(src, ['messageContextInfo']) || {};
+    const quotedMessage = pick(contextInfo, ['quotedMessage']) || {};
+
+    push(pick(quotedMessage, ['conversation']));
+    push(pick(quotedMessage, ['extendedTextMessage', 'text']));
+    push(pick(quotedMessage, ['imageMessage', 'caption']));
+    push(pick(quotedMessage, ['videoMessage', 'caption']));
+    push(pick(quotedMessage, ['documentMessage', 'caption']));
+    push(pick(quotedMessage, ['documentWithCaptionMessage', 'message', 'documentMessage', 'caption']));
+    push(pick(quotedMessage, ['ephemeralMessage', 'message', 'extendedTextMessage', 'text']));
+    push(pick(quotedMessage, ['ephemeralMessage', 'message', 'conversation']));
+    push(pick(quotedMessage, ['viewOnceMessage', 'message', 'extendedTextMessage', 'text']));
+    push(pick(quotedMessage, ['viewOnceMessage', 'message', 'conversation']));
+  }
+
+  return out.join('\n');
+}
+
+function resolvedQuotedTicketId(ctx, cfg, quoteParsed) {
+  const fromParsed = parseTicketId(quoteParsed && quoteParsed.ticketId, cfg.ticketIdRegex);
+  if (fromParsed) return fromParsed;
+
+  const fromQuotedText = parseTicketId(quoteParsed && quoteParsed.quotedText, cfg.ticketIdRegex);
+  if (fromQuotedText) return fromQuotedText;
+
+  const fromContextInfo = parseTicketId(quotedTextFromContextInfo(ctx), cfg.ticketIdRegex);
+  if (fromContextInfo) return fromContextInfo;
+
+  return '';
+}
+
 function parseQuick(ctx, cfg, quoteParsed) {
   const body = messageTextFromCtx(ctx);
   if (!body) return null;
@@ -54,7 +122,7 @@ function parseQuick(ctx, cfg, quoteParsed) {
   const sendMatch = first.match(quickSendRe);
   if (sendMatch) {
     const explicitTicket = text(parts[1] || '');
-    const fromQuote = quoteParsed && quoteParsed.ticketId ? text(quoteParsed.ticketId) : '';
+    const fromQuote = resolvedQuotedTicketId(ctx, cfg, quoteParsed);
     return {
       kind: 'quick_send',
       slot: text(sendMatch[1]),
@@ -94,7 +162,7 @@ function parseMove(ctx, cfg, quoteParsed) {
   if (!parts.length) return null;
   if (keyText(parts[0]) !== keyText(cmdMoveTicket)) return null;
 
-  const fromQuote = quoteParsed && quoteParsed.ticketId ? text(quoteParsed.ticketId) : '';
+  const fromQuote = resolvedQuotedTicketId(ctx, cfg, quoteParsed);
   const a1 = text(parts[1] || '');
   const a2 = text(parts[2] || '');
 
@@ -147,13 +215,14 @@ function create(deps) {
     if (!ctx || !ctx.isGroup) return;
 
     const quoteParsed = await deps.parseQuote(ctx, cfg);
+    const quotedTicketId = resolvedQuotedTicketId(ctx, cfg, quoteParsed);
     const bindParsed = parseBind(ctx, cfg);
     const moveParsed = parseMove(ctx, cfg, quoteParsed);
     const quickParsed = parseQuick(ctx, cfg, quoteParsed);
     const commandParsed = parseCommand(ctx, cfg);
 
     const hasQuotedContext = !!(quoteParsed && quoteParsed.quotedDetected);
-    const hasTicket = quoteParsed && text(quoteParsed.ticketId);
+    const hasTicket = !!quotedTicketId;
     const attempted = !!(hasQuotedContext || hasTicket || bindParsed || moveParsed || quickParsed || commandParsed);
     if (!attempted) return;
 
@@ -281,7 +350,9 @@ function create(deps) {
     }
 
     let payload = null;
-    if (quoteParsed && (quoteParsed.quotedDetected || text(quoteParsed.ticketId))) payload = quoteParsed;
+    if (quoteParsed && (quoteParsed.quotedDetected || quotedTicketId)) {
+      payload = Object.assign({}, quoteParsed, { ticketId: quotedTicketId || text(quoteParsed.ticketId) });
+    }
     if (!payload && commandParsed) payload = commandParsed;
     if (!payload) return;
 

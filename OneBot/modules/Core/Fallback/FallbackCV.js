@@ -57,6 +57,19 @@ function messageTextFromCtx(ctx) {
   );
 }
 
+function mediaKindFromCtx(ctx) {
+  const msg = ctx && ctx.message ? ctx.message : null;
+  if (!msg || !msg.hasMedia) return '';
+  const kind = text(msg.type || (msg._data && msg._data.type)).toLowerCase();
+  if (kind === 'image' || kind === 'document' || kind === 'audio' || kind === 'video' || kind === 'ptt') return kind;
+  return '';
+}
+
+function canDownloadMedia(ctx) {
+  const msg = ctx && ctx.message ? ctx.message : null;
+  return !!(msg && msg.hasMedia && typeof msg.downloadMedia === 'function');
+}
+
 function idFromCtx(ctx) {
   return text(
     (ctx && (ctx.senderId || ctx.author || ctx.from)) ||
@@ -473,7 +486,9 @@ module.exports = {
       if (!chatId) return;
 
       const body = messageTextFromCtx(ctx);
-      if (!body) return;
+      const inboundMediaKind = mediaKindFromCtx(ctx);
+      const hasInboundMedia = !!inboundMediaKind && canDownloadMedia(ctx);
+      if (!body && !hasInboundMedia) return;
 
       const tickets = await loadTicketState();
 
@@ -537,6 +552,22 @@ module.exports = {
 
       burstState.set(burstKey, current);
       scheduleBurstFlush(chatId, ticket.ticketId);
+
+      if (hasInboundMedia) {
+        try {
+          const mediaObj = await ctx.message.downloadMedia();
+          const targetChat = await resolveTargetGroup(groupKey, ctx);
+          if (mediaObj && targetChat) {
+            const mediaPayload = Object.assign({}, mediaObj);
+            if (body) mediaPayload.caption = body;
+            await sendFn(targetChat, mediaPayload, { isAuto: 1, manualReply: 0, lastInboundAtMs: Number(current.lastAt || 0) });
+          } else if (bugLog) {
+            meta.log(tag, `bug inbound_media_forward_skipped ticketId=${ticket.ticketId} hasMedia=${mediaObj ? '1' : '0'} hasTarget=${targetChat ? '1' : '0'}`);
+          }
+        } catch (e) {
+          if (bugLog) meta.log(tag, `bug inbound_media_forward_failed ticketId=${ticket.ticketId} err=${text(e && e.message ? e.message : e)}`);
+        }
+      }
 
       await sendFn(chatId, text(cfg.inboundAckTemplate), { isAuto: 1, manualReply: 0 });
       if (typeof ctx.stopPropagation === 'function') ctx.stopPropagation();
