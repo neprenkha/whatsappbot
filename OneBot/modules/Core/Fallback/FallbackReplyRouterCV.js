@@ -16,6 +16,7 @@ function messageTextFromCtx(ctx) {
   return text(
     (ctx && ctx.text) ||
     (ctx && ctx.message && (ctx.message.body || ctx.message.caption)) ||
+    (ctx && ctx.message && ctx.message._data && (ctx.message._data.body || ctx.message._data.caption)) ||
     (ctx && ctx.raw && ctx.raw._data && (ctx.raw._data.body || ctx.raw._data.caption)) ||
     ''
   );
@@ -145,14 +146,15 @@ function create(deps) {
   async function onGroupMessage(ctx) {
     if (!ctx || !ctx.isGroup) return;
 
-    const quoteParsed = deps.parseQuote(ctx, cfg);
+    const quoteParsed = await deps.parseQuote(ctx, cfg);
     const bindParsed = parseBind(ctx, cfg);
     const moveParsed = parseMove(ctx, cfg, quoteParsed);
     const quickParsed = parseQuick(ctx, cfg, quoteParsed);
     const commandParsed = parseCommand(ctx, cfg);
 
+    const hasQuotedContext = !!(quoteParsed && quoteParsed.quotedDetected);
     const hasTicket = quoteParsed && text(quoteParsed.ticketId);
-    const attempted = !!(hasTicket || bindParsed || moveParsed || quickParsed || commandParsed);
+    const attempted = !!(hasQuotedContext || hasTicket || bindParsed || moveParsed || quickParsed || commandParsed);
     if (!attempted) return;
 
     if (!(await deps.canReply(ctx))) {
@@ -279,13 +281,14 @@ function create(deps) {
     }
 
     let payload = null;
-    if (quoteParsed && text(quoteParsed.ticketId)) payload = quoteParsed;
+    if (quoteParsed && (quoteParsed.quotedDetected || text(quoteParsed.ticketId))) payload = quoteParsed;
     if (!payload && commandParsed) payload = commandParsed;
     if (!payload) return;
 
     const ticketId = text(payload.ticketId);
-    const body = text(payload.body);
-    const captionText = messageTextFromCtx(ctx);
+    const fallbackBody = messageTextFromCtx(ctx);
+    const body = text(payload.body || fallbackBody);
+    const captionText = fallbackBody;
     const mediaKind = mediaKindFromCtx(ctx);
 
     if (!ticketId) {
