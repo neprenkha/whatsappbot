@@ -4,6 +4,22 @@ function text(value) {
   return String(value ?? '').trim();
 }
 
+function lower(value) {
+  return text(value).toLowerCase();
+}
+
+function isExternalCustomerCtx(ctx) {
+  if (!ctx || ctx.isGroup) return false;
+  if (ctx && ctx.raw && ctx.raw.fromMe) return false;
+  const chatId = lower(ctx.chatId);
+  const senderId = lower((ctx && (ctx.senderId || ctx.author || ctx.from)) || (ctx && ctx.raw && (ctx.raw.participant || ctx.raw.author || ctx.raw.from)) || '');
+  if (!chatId) return false;
+  if (chatId === 'status@broadcast') return false;
+  if (chatId.endsWith('@lid')) return false;
+  if (senderId.endsWith('@lid')) return false;
+  return chatId.endsWith('@c.us') || chatId.endsWith('@s.whatsapp.net');
+}
+
 async function resolveTargetGroup(meta, cfg, globalConf, ctx) {
   const workgroups = meta && typeof meta.getService === 'function'
     ? meta.getService('workgroups')
@@ -19,7 +35,10 @@ async function resolveTargetGroup(meta, cfg, globalConf, ctx) {
     if (fromRaw) return fromRaw;
   }
 
-  return text(globalConf && globalConf.controlGroupId);
+  if (isExternalCustomerCtx(ctx)) {
+    return text(globalConf && globalConf.controlGroupId);
+  }
+  return '';
 }
 
 module.exports = {
