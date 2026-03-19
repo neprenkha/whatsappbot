@@ -57,6 +57,50 @@ function messageTextFromCtx(ctx) {
   );
 }
 
+function idFromCtx(ctx) {
+  return text(
+    (ctx && (ctx.senderId || ctx.author || ctx.from)) ||
+    (ctx && ctx.raw && (ctx.raw.participant || ctx.raw.author || ctx.raw.from)) ||
+    ''
+  );
+}
+
+function isStatusBroadcastCtx(ctx) {
+  const chatId = text(ctx && ctx.chatId).toLowerCase();
+  const senderId = idFromCtx(ctx).toLowerCase();
+  return chatId === 'status@broadcast' || senderId === 'status@broadcast';
+}
+
+function isInternalIdentityCtx(ctx) {
+  const chatId = text(ctx && ctx.chatId).toLowerCase();
+  const senderId = idFromCtx(ctx).toLowerCase();
+  if (chatId.endsWith('@lid')) return true;
+  if (senderId.endsWith('@lid')) return true;
+  return false;
+}
+
+function isFromMeCtx(ctx) {
+  return !!(ctx && ctx.raw && ctx.raw.fromMe);
+}
+
+function isInternalOpsCtx(ctx, globalConf) {
+  const controlGroupId = text(globalConf && globalConf.controlGroupId).toLowerCase();
+  if (!controlGroupId) return false;
+  const chatId = text(ctx && ctx.chatId).toLowerCase();
+  const senderId = idFromCtx(ctx).toLowerCase();
+  return chatId === controlGroupId || senderId === controlGroupId;
+}
+
+function isCustomerDmCtx(ctx, globalConf) {
+  if (!ctx || ctx.isGroup) return false;
+  if (isFromMeCtx(ctx)) return false;
+  if (isStatusBroadcastCtx(ctx)) return false;
+  if (isInternalIdentityCtx(ctx)) return false;
+  if (isInternalOpsCtx(ctx, globalConf)) return false;
+  const chatId = text(ctx.chatId).toLowerCase();
+  return chatId.endsWith('@c.us') || chatId.endsWith('@s.whatsapp.net');
+}
+
 async function canAccess(access, ctx, roleName) {
   const role = text(roleName);
   if (!role || !access) return false;
@@ -256,7 +300,10 @@ module.exports = {
           if (!stage) continue;
           if (!canSendStage(ticket, stage, nowMs)) continue;
 
-          const targetChatId = await resolveTargetGroup(text(ticket.groupKey || cfg.defaultGroupKey), null);
+          const targetChatId = await resolveTargetGroup(
+            text(ticket.groupKey || cfg.defaultGroupKey),
+            { isGroup: 0, chatId: text(ticket.customerChatId) }
+          );
           if (!targetChatId) continue;
 
           const tpl = stage === 'escalation' ? escalationTemplate : reminderTemplate;
@@ -399,10 +446,10 @@ module.exports = {
 
           const lastInboundAtMs = Number(entry.lastAt || (ticketRow && ticketRow.lastInboundAt) || 0);
           if (cardText) {
-            await sendFn(targetChat, cardText, { isAuto: 0, manualReply: 1, bypassRateLimit: 1, lastInboundAtMs });
+            await sendFn(targetChat, cardText, { isAuto: 1, manualReply: 0, lastInboundAtMs });
           }
           if (consolidated) {
-            await sendFn(targetChat, consolidated, { isAuto: 0, manualReply: 1, bypassRateLimit: 1, lastInboundAtMs });
+            await sendFn(targetChat, consolidated, { isAuto: 1, manualReply: 0, lastInboundAtMs });
           }
         } catch (e) {
           if (bugLog) meta.log(tag, `bug burst_flush err=${text(e && e.message ? e.message : e)}`);
@@ -414,6 +461,13 @@ module.exports = {
 
     async function onDmMessage(ctx) {
       if (!ctx || ctx.isGroup) return;
+
+      if (!isCustomerDmCtx(ctx, globalConf)) {
+        if (bugLog && (isFromMeCtx(ctx) || isStatusBroadcastCtx(ctx) || isInternalIdentityCtx(ctx) || isInternalOpsCtx(ctx, globalConf))) {
+          meta.log(tag, `drop inbound_non_customer chatId=${text(ctx.chatId)} senderId=${idFromCtx(ctx)}`);
+        }
+        return;
+      }
 
       const chatId = text(ctx.chatId);
       if (!chatId) return;
@@ -582,13 +636,19 @@ module.exports = {
       },
       canReply: async (ctx) => canAccess(access, ctx, cfg.minRoleTicketReply),
       sendStaffReply: async (ctx, message) => {
-        if (ctx && typeof ctx.reply === 'function') {
-          await ctx.reply(text(message));
-          return;
-        }
         const chatId = text(ctx && ctx.chatId);
         if (!chatId) return;
-        await sendFn(chatId, text(message), { isAuto: 0, manualReply: 1, bypassRateLimit: 1 });
+        const payload = text(message);
+        const options = { isAuto: 0, manualReply: 1, bypassRateLimit: 1 };
+        if (ctx && typeof ctx.reply === 'function') {
+          try {
+            await ctx.reply(payload, options);
+            return;
+          } catch (e) {
+            if (bugLog) meta.log(tag, `bug staff_reply_ctx_reply_failed err=${text(e && e.message ? e.message : e)}`);
+          }
+        }
+        await sendFn(chatId, payload, options);
       },
       bugLog: bugLog,
       log: (line) => meta.log(tag, line),
