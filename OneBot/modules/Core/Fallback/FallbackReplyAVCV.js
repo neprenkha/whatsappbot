@@ -9,6 +9,11 @@ function toInt(value, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function toBool(value) {
+  const s = text(value).toLowerCase();
+  return s === '1' || s === 'true' || s === 'yes' || s === 'on';
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
 }
@@ -30,13 +35,21 @@ function avTypeOf(staffMsg) {
   return text(staffMsg && (staffMsg.type || (staffMsg._data && staffMsg._data.type) || '')).toLowerCase();
 }
 
+function mediaFileNameOf(staffMsg) {
+  return text(staffMsg && (staffMsg.filename || (staffMsg._data && staffMsg._data.filename) || ''));
+}
+
+function mediaMimeTypeOf(staffMsg) {
+  return text(staffMsg && (staffMsg.mimetype || (staffMsg._data && staffMsg._data.mimetype) || ''));
+}
+
 function resolveSendService(meta, cfg) {
   const preferred = text(cfg.replyMediaSendPrefer)
     .split(',')
     .map((x) => text(x))
     .filter(Boolean);
 
-  let names = preferred;
+  let names = preferred.slice();
   if (!names.length && typeof meta.loadConfRel === 'function' && text(cfg.globalConfRel)) {
     const loaded = meta.loadConfRel(text(cfg.globalConfRel)) || {};
     const globalConf = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
@@ -46,9 +59,15 @@ function resolveSendService(meta, cfg) {
       .filter(Boolean);
   }
 
+  if (!names.includes('send')) names.push('send');
+  if (!names.includes('outbox')) names.push('outbox');
+
   for (const name of names) {
     const svc = meta.getService(name);
     if (typeof svc === 'function') return svc;
+    if (svc && typeof svc.send === 'function') {
+      return async (chatId, payload, options) => await svc.send(chatId, payload, options || {});
+    }
   }
   return null;
 }
@@ -116,6 +135,8 @@ async function sendToCustomer(input) {
   }
 
   if (!mediaObj) return { ok: 0, code: 'media_download_failed' };
+  if (!text(mediaObj.filename)) mediaObj.filename = mediaFileNameOf(staffMsg);
+  if (!text(mediaObj.mimetype)) mediaObj.mimetype = mediaMimeTypeOf(staffMsg);
 
   const caption = stripTicketId(captionText, cfg.ticketIdRegex);
 
@@ -124,7 +145,10 @@ async function sendToCustomer(input) {
     manualReply: 1,
     bypassRateLimit: 1,
   });
-  if (caption) outOptions.caption = caption;
+  if (kind === 'ptt') outOptions.sendAudioAsVoice = true;
+  if (kind === 'audio' && toBool(cfg.replyAudioAsVoice)) outOptions.sendAudioAsVoice = true;
+  if (kind === 'video' && toBool(cfg.replyVideoAsDocument)) outOptions.sendMediaAsDocument = true;
+  if (caption && kind !== 'ptt') outOptions.caption = caption;
 
   const maxTries = Math.max(1, toInt(cfg.replyMediaMaxTries, 1));
   const retryBaseMs = Math.max(0, toInt(cfg.replyMediaRetryBaseMs, 0));

@@ -30,13 +30,21 @@ function mediaTypeOf(staffMsg) {
   return text(staffMsg && (staffMsg.type || (staffMsg._data && staffMsg._data.type) || '')).toLowerCase();
 }
 
+function mediaFileNameOf(staffMsg) {
+  return text(staffMsg && (staffMsg.filename || (staffMsg._data && staffMsg._data.filename) || ''));
+}
+
+function mediaMimeTypeOf(staffMsg) {
+  return text(staffMsg && (staffMsg.mimetype || (staffMsg._data && staffMsg._data.mimetype) || ''));
+}
+
 function resolveSendService(meta, cfg) {
   const preferred = text(cfg.replyMediaSendPrefer)
     .split(',')
     .map((x) => text(x))
     .filter(Boolean);
 
-  let names = preferred;
+  let names = preferred.slice();
   if (!names.length && typeof meta.loadConfRel === 'function' && text(cfg.globalConfRel)) {
     const loaded = meta.loadConfRel(text(cfg.globalConfRel)) || {};
     const globalConf = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
@@ -46,9 +54,15 @@ function resolveSendService(meta, cfg) {
       .filter(Boolean);
   }
 
+  if (!names.includes('send')) names.push('send');
+  if (!names.includes('outbox')) names.push('outbox');
+
   for (const name of names) {
     const svc = meta.getService(name);
     if (typeof svc === 'function') return svc;
+    if (svc && typeof svc.send === 'function') {
+      return async (chatId, payload, options) => await svc.send(chatId, payload, options || {});
+    }
   }
   return null;
 }
@@ -116,6 +130,8 @@ async function sendToCustomer(input) {
   }
 
   if (!mediaObj) return { ok: 0, code: 'media_download_failed' };
+  if (!text(mediaObj.filename)) mediaObj.filename = mediaFileNameOf(staffMsg);
+  if (!text(mediaObj.mimetype)) mediaObj.mimetype = mediaMimeTypeOf(staffMsg);
 
   const caption = stripTicketId(captionText, cfg.ticketIdRegex);
 
@@ -124,6 +140,7 @@ async function sendToCustomer(input) {
     manualReply: 1,
     bypassRateLimit: 1,
   });
+  if (kind === 'document') outOptions.sendMediaAsDocument = true;
   if (caption) outOptions.caption = caption;
 
   const maxTries = Math.max(1, toInt(cfg.replyMediaMaxTries, 1));
