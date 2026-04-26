@@ -88,28 +88,40 @@ module.exports = {
     const command = meta.getService('command');
     const access = meta.getService('access');
     const sendServiceName = text(cfg.sendService) || 'send';
-    const sendSvc = meta.getService(sendServiceName);
     const workgroups = meta.getService('workgroups');
     const jsonstore = meta.getService('jsonstore');
     const journal = meta.getService('messagejournal');
+    let sendMissingLoggedAt = 0;
 
     if (!command || typeof command.register !== 'function') {
       if (bugLogEnabled) meta.log(logTag, 'missing command service');
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
-    let sendFn = null;
-    if (typeof sendSvc === 'function') {
-      sendFn = async (chatId, payload, options) => await sendSvc(chatId, payload, options || {});
-    } else if (sendSvc && typeof sendSvc.send === 'function') {
-      sendFn = async (chatId, payload, options) => await sendSvc.send(chatId, payload, options || {});
-    }
-    if (!sendFn) {
-      if (bugLogEnabled) meta.log(logTag, 'missing send service');
-      return { onMessage: async () => {}, onEvent: async () => {} };
-    }
     if (!jsonstore || typeof jsonstore.open !== 'function') {
       if (bugLogEnabled) meta.log(logTag, 'missing jsonstore service');
       return { onMessage: async () => {}, onEvent: async () => {} };
+    }
+
+    function makeSendFn(sendSvc) {
+      if (typeof sendSvc === 'function') {
+        return async (chatId, payload, options) => await sendSvc(chatId, payload, options || {});
+      }
+      if (sendSvc && typeof sendSvc.send === 'function') {
+        return async (chatId, payload, options) => await sendSvc.send(chatId, payload, options || {});
+      }
+      return null;
+    }
+
+    function resolveSendFn() {
+      return makeSendFn(meta.getService(sendServiceName));
+    }
+
+    function logMissingSendService(reason) {
+      if (!bugLogEnabled) return;
+      const now = Date.now();
+      if (sendMissingLoggedAt > 0 && (now - sendMissingLoggedAt) < intervalMs) return;
+      sendMissingLoggedAt = now;
+      meta.log(logTag, `missing send service name=${sendServiceName} reason=${text(reason) || 'unavailable'}`);
     }
 
     const store = jsonstore.open(text(cfg.storeNs));
@@ -138,6 +150,12 @@ module.exports = {
 
       const chatId = text(ctx && ctx.chatId);
       if (!chatId) return;
+
+      const sendFn = resolveSendFn();
+      if (!sendFn) {
+        logMissingSendService('sendReply');
+        return;
+      }
       await sendFn(chatId, message, { isAuto: 0 });
     }
 
@@ -346,6 +364,12 @@ module.exports = {
           MESSAGE: text(job.message),
           DUEAT: String(job.dueAt || 0),
         });
+
+        const sendFn = resolveSendFn();
+        if (!sendFn) {
+          logMissingSendService('runTick');
+          return;
+        }
 
         await sendFn(destinationChatId, staffMessage, { isAuto: 1 });
         job.status = 'done';

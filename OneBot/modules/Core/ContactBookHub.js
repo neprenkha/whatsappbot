@@ -11,25 +11,12 @@ function noopHandlers() {
 }
 
 module.exports.init = async function init(meta) {
-  const pointerPath = text(meta && meta.raw ? meta.raw.config : '');
-  let pointer = {};
+  const hubConf = meta && meta.hubConf && typeof meta.hubConf === 'object' ? meta.hubConf : {};
+  const implFile = text(hubConf.implFile);
+  const implConfig = text(hubConf.implConfig);
 
-  if (meta && meta.implConf && typeof meta.implConf === 'object') {
-    pointer = meta.implConf;
-  } else if (pointerPath && typeof meta.loadConfRel === 'function') {
-    try {
-      const loaded = meta.loadConfRel(pointerPath) || {};
-      pointer = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
-    } catch (e) {
-      meta.log('ContactBookHub', `module.error id=${meta.id}, pointer_load_failed path=${pointerPath} err=${e.message}`);
-      return noopHandlers();
-    }
-  }
-
-  const implFile = text(pointer.implFile);
-  const implConfig = text(pointer.implConfig);
   if (!implFile) {
-    meta.log('ContactBookHub', `module.error id=${meta.id}, missing_impl_file path=${pointerPath || '<none>'}`);
+    meta.log('ContactBookHub', `module.error id=${meta.id}, missing_impl_file hubConfPath=${meta.hubConfPath || '<none>'}`);
     return noopHandlers();
   }
 
@@ -43,14 +30,17 @@ module.exports.init = async function init(meta) {
     return noopHandlers();
   }
 
-  const implCfg = { absPath: '', conf: {} };
+  let implCfg = { absPath: '', conf: {} };
   if (implConfig) {
     try {
       const loaded = meta.loadConfRel(implConfig) || {};
-      implCfg.absPath = text(loaded.absPath);
-      implCfg.conf = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
+      implCfg = {
+        absPath: text(loaded.absPath),
+        conf: loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {},
+      };
     } catch (e) {
       meta.log('ContactBookHub', `module.error id=${meta.id}, impl_conf_load_failed file=${implConfig} err=${e.message}`);
+      return noopHandlers();
     }
   }
 

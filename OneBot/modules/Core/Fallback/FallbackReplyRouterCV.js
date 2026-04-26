@@ -8,6 +8,11 @@ function keyText(value) {
   return text(value).toLowerCase();
 }
 
+function toInt(value, fallback) {
+  const n = Number.parseInt(text(value), 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function splitArgs(raw) {
   return text(raw).split(/\s+/).filter(Boolean);
 }
@@ -61,7 +66,7 @@ function quotedTextFromContextInfo(ctx) {
   const out = [];
   const push = (v) => {
     const t = text(v);
-    if (t) out.push(t);
+    if (t && !out.includes(t)) out.push(t);
   };
 
   for (const src of sources) {
@@ -76,8 +81,14 @@ function quotedTextFromContextInfo(ctx) {
     push(pick(quotedMessage, ['documentWithCaptionMessage', 'message', 'documentMessage', 'caption']));
     push(pick(quotedMessage, ['ephemeralMessage', 'message', 'extendedTextMessage', 'text']));
     push(pick(quotedMessage, ['ephemeralMessage', 'message', 'conversation']));
+    push(pick(quotedMessage, ['ephemeralMessage', 'message', 'imageMessage', 'caption']));
+    push(pick(quotedMessage, ['ephemeralMessage', 'message', 'videoMessage', 'caption']));
+    push(pick(quotedMessage, ['ephemeralMessage', 'message', 'documentMessage', 'caption']));
     push(pick(quotedMessage, ['viewOnceMessage', 'message', 'extendedTextMessage', 'text']));
     push(pick(quotedMessage, ['viewOnceMessage', 'message', 'conversation']));
+    push(pick(quotedMessage, ['viewOnceMessage', 'message', 'imageMessage', 'caption']));
+    push(pick(quotedMessage, ['viewOnceMessage', 'message', 'videoMessage', 'caption']));
+    push(pick(quotedMessage, ['viewOnceMessage', 'message', 'documentMessage', 'caption']));
   }
 
   return out.join('\n');
@@ -199,30 +210,177 @@ function parseCommand(ctx, cfg) {
   };
 }
 
+function mediaMimeTypeFromCtx(ctx) {
+  return text(
+    (ctx && ctx.message && (ctx.message.mimetype || (ctx.message._data && ctx.message._data.mimetype))) ||
+    (ctx && ctx.raw && ctx.raw._data && ctx.raw._data.mimetype) ||
+    ''
+  );
+}
+
+function mediaFileNameFromCtx(ctx) {
+  return text(
+    (ctx && ctx.message && (ctx.message.filename || (ctx.message._data && ctx.message._data.filename))) ||
+    (ctx && ctx.raw && ctx.raw._data && ctx.raw._data.filename) ||
+    ''
+  );
+}
+
 function mediaKindFromCtx(ctx) {
   const msg = ctx && ctx.message ? ctx.message : null;
+  const raw = ctx && ctx.raw && typeof ctx.raw === 'object' ? ctx.raw : {};
+  const rawData = raw && raw._data && typeof raw._data === 'object' ? raw._data : {};
   if (!msg) return '';
-  if (!msg.hasMedia) return '';
-  const type = keyText(msg.type || (msg._data && msg._data.type) || '');
-  if (type === 'image' || type === 'document' || type === 'audio' || type === 'video' || type === 'ptt') return type;
+
+  const direct = keyText(msg.type || (msg._data && msg._data.type) || raw.type || rawData.type || rawData.mediaKeyType || '');
+  if (direct === 'image' || direct === 'document' || direct === 'audio' || direct === 'video' || direct === 'ptt') return direct;
+
+  const isPtt = !!(msg.ptt || (msg._data && msg._data.ptt) || rawData.ptt);
+  if (isPtt) return 'ptt';
+
+  const mime = keyText(mediaMimeTypeFromCtx(ctx));
+  if (mime.indexOf('image/') === 0) return 'image';
+  if (mime.indexOf('video/') === 0) return 'video';
+  if (mime.indexOf('audio/') === 0) return 'audio';
+  if (mime || mediaFileNameFromCtx(ctx)) return 'document';
+
   return '';
+}
+
+function hasMediaCtx(ctx) {
+  const msg = ctx && ctx.message ? ctx.message : null;
+  const raw = ctx && ctx.raw && typeof ctx.raw === 'object' ? ctx.raw : {};
+  const rawData = raw && raw._data && typeof raw._data === 'object' ? raw._data : {};
+  return !!(
+    mediaKindFromCtx(ctx) ||
+    (msg && msg.hasMedia) ||
+    (msg && typeof msg.downloadMedia === 'function') ||
+    rawData.mediaKey ||
+    rawData.directPath ||
+    rawData.clientUrl ||
+    rawData.isMedia
+  );
+}
+
+function senderKeyFromCtx(ctx) {
+  return text(
+    (ctx && (ctx.senderId || ctx.author || ctx.from)) ||
+    (ctx && ctx.raw && (ctx.raw.participant || ctx.raw.author || ctx.raw.from)) ||
+    ''
+  ).toLowerCase();
+}
+
+function chatKeyFromCtx(ctx) {
+  return text((ctx && ctx.chatId) || (ctx && ctx.raw && ctx.raw.from) || '').toLowerCase();
+}
+
+function mediaGroupKeyFromCtx(ctx) {
+  const msg = ctx && ctx.message && typeof ctx.message === 'object' ? ctx.message : {};
+  const raw = ctx && ctx.raw && typeof ctx.raw === 'object' ? ctx.raw : {};
+  const msgData = msg && msg._data && typeof msg._data === 'object' ? msg._data : {};
+  const rawData = raw && raw._data && typeof raw._data === 'object' ? raw._data : {};
+
+  return text(
+    msg.mediaGroupId ||
+    msg.groupId ||
+    msgData.mediaGroupId ||
+    msgData.groupId ||
+    raw.mediaGroupId ||
+    raw.groupId ||
+    rawData.mediaGroupId ||
+    rawData.groupId ||
+    ''
+  );
+}
+
+function sessionKeyFromCtx(ctx) {
+  const chatKey = chatKeyFromCtx(ctx);
+  const senderKey = senderKeyFromCtx(ctx);
+  if (!chatKey || !senderKey) return '';
+  return `${chatKey}::${senderKey}`;
 }
 
 function create(deps) {
   const cfg = deps.cfg;
+  const recentQuoteReplyMap = new Map();
+  const bulkWindowMs = Math.max(1000, toInt(cfg.replyMediaDownloadTimeoutMs, 15000));
+
+  function cleanupReplySessions(nowMs) {
+    for (const [key, value] of recentQuoteReplyMap.entries()) {
+      if (!value || Number(value.expiresAtMs || 0) <= nowMs) {
+        recentQuoteReplyMap.delete(key);
+      }
+    }
+  }
+
+  function rememberReplySession(ctx, ticketId) {
+    const key = sessionKeyFromCtx(ctx);
+    if (!key || !ticketId) return;
+    const mediaGroupKey = mediaGroupKeyFromCtx(ctx);
+    recentQuoteReplyMap.set(key, {
+      ticketId: text(ticketId),
+      chatKey: chatKeyFromCtx(ctx),
+      senderKey: senderKeyFromCtx(ctx),
+      mediaGroupKey: text(mediaGroupKey),
+      expiresAtMs: Date.now() + bulkWindowMs,
+    });
+  }
+
+  function resolveContinuationTicketId(ctx) {
+    const key = sessionKeyFromCtx(ctx);
+    if (!key) return '';
+    const row = recentQuoteReplyMap.get(key);
+    if (!row) return '';
+
+    const nowMs = Date.now();
+    if (Number(row.expiresAtMs || 0) <= nowMs) {
+      recentQuoteReplyMap.delete(key);
+      return '';
+    }
+
+    const currentMediaGroupKey = mediaGroupKeyFromCtx(ctx);
+    if (text(row.mediaGroupKey) && currentMediaGroupKey && text(row.mediaGroupKey) !== text(currentMediaGroupKey)) {
+      return '';
+    }
+
+    row.expiresAtMs = nowMs + bulkWindowMs;
+    recentQuoteReplyMap.set(key, row);
+    return text(row.ticketId);
+  }
 
   async function onGroupMessage(ctx) {
     if (!ctx || !ctx.isGroup) return;
 
-    const quoteParsed = await deps.parseQuote(ctx, cfg);
-    const quotedTicketId = resolvedQuotedTicketId(ctx, cfg, quoteParsed);
+    cleanupReplySessions(Date.now());
+
+    const quoteParsedRaw = await deps.parseQuote(ctx, cfg);
+    const contextQuotedText = quotedTextFromContextInfo(ctx);
+    const quoteParsed = quoteParsedRaw && typeof quoteParsedRaw === 'object'
+      ? Object.assign({}, quoteParsedRaw)
+      : null;
+
+    if (quoteParsed && !text(quoteParsed.quotedText) && contextQuotedText) {
+      quoteParsed.quotedText = contextQuotedText;
+    }
+    if (quoteParsed && !quoteParsed.quotedDetected && contextQuotedText) {
+      quoteParsed.quotedDetected = true;
+    }
+
+    const explicitQuotedTicketId = resolvedQuotedTicketId(ctx, cfg, quoteParsed);
     const bindParsed = parseBind(ctx, cfg);
     const moveParsed = parseMove(ctx, cfg, quoteParsed);
     const quickParsed = parseQuick(ctx, cfg, quoteParsed);
     const commandParsed = parseCommand(ctx, cfg);
 
-    const hasQuotedContext = !!(quoteParsed && quoteParsed.quotedDetected);
-    const hasTicket = !!quotedTicketId;
+    const hasQuotedContext = !!(
+      (quoteParsed && quoteParsed.quotedDetected) ||
+      contextQuotedText
+    );
+    const explicitTicket = explicitQuotedTicketId || text(commandParsed && commandParsed.ticketId) || text(quickParsed && quickParsed.ticketId);
+    const continuationTicketId = !explicitTicket && !hasQuotedContext && !bindParsed && !moveParsed && !quickParsed && !commandParsed && hasMediaCtx(ctx)
+      ? resolveContinuationTicketId(ctx)
+      : '';
+    const hasTicket = !!(explicitTicket || continuationTicketId);
     const attempted = !!(hasQuotedContext || hasTicket || bindParsed || moveParsed || quickParsed || commandParsed);
     if (!attempted) return;
 
@@ -230,6 +388,7 @@ function create(deps) {
       await deps.sendStaffReply(ctx, cfg.replyNoAccess);
       return;
     }
+
     if (bindParsed && typeof deps.onBindTag === 'function') {
       const bindResult = await deps.onBindTag({
         tag: bindParsed.tag,
@@ -350,10 +509,29 @@ function create(deps) {
     }
 
     let payload = null;
-    if (quoteParsed && (quoteParsed.quotedDetected || quotedTicketId)) {
-      payload = Object.assign({}, quoteParsed, { ticketId: quotedTicketId || text(quoteParsed.ticketId) });
+    if (quoteParsed && (quoteParsed.quotedDetected || explicitQuotedTicketId)) {
+      payload = Object.assign({}, quoteParsed, {
+        source: 'quote',
+        ticketId: explicitQuotedTicketId || text(quoteParsed.ticketId),
+      });
+    }
+    if (!payload && hasQuotedContext) {
+      payload = {
+        source: 'quote',
+        quotedDetected: true,
+        quotedText: contextQuotedText,
+        ticketId: explicitQuotedTicketId,
+        body: messageTextFromCtx(ctx),
+      };
     }
     if (!payload && commandParsed) payload = commandParsed;
+    if (!payload && continuationTicketId) {
+      payload = {
+        source: 'quote_bulk',
+        ticketId: continuationTicketId,
+        body: messageTextFromCtx(ctx),
+      };
+    }
     if (!payload) return;
 
     const ticketId = text(payload.ticketId);
@@ -442,7 +620,15 @@ function create(deps) {
       return;
     }
 
-    await deps.sendStaffReply(ctx, cfg.replyReplySent);
+    if (isMediaReply) {
+      rememberReplySession(ctx, ticketId);
+    } else {
+      cleanupReplySessions(0);
+    }
+
+    if (payload.source !== 'quote_bulk') {
+      await deps.sendStaffReply(ctx, cfg.replyReplySent);
+    }
     if (typeof ctx.stopPropagation === 'function') {
       ctx.stopPropagation();
     }

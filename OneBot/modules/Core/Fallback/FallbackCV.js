@@ -40,6 +40,16 @@ function nowPeriodUTC() {
   return `${yy}${mm}`;
 }
 
+function messageObjFromCtx(ctx) {
+  return ctx && ctx.message ? ctx.message : null;
+}
+
+function rawDataFromCtx(ctx) {
+  const raw = ctx && ctx.raw ? ctx.raw : null;
+  const rawData = raw && raw._data && typeof raw._data === 'object' ? raw._data : {};
+  return rawData;
+}
+
 function buildCustomerLabel(ctx) {
   return text(
     (ctx && (ctx.pushName || ctx.senderName || ctx.authorName)) ||
@@ -48,26 +58,117 @@ function buildCustomerLabel(ctx) {
   );
 }
 
-function messageTextFromCtx(ctx) {
+function bodyTextFromCtx(ctx) {
   return text(
     (ctx && ctx.text) ||
-    (ctx && ctx.message && (ctx.message.body || ctx.message.caption)) ||
-    (ctx && ctx.raw && ctx.raw._data && (ctx.raw._data.body || ctx.raw._data.caption)) ||
+    (ctx && ctx.message && ctx.message.body) ||
+    rawDataFromCtx(ctx).body ||
     ''
   );
 }
 
-function mediaKindFromCtx(ctx) {
-  const msg = ctx && ctx.message ? ctx.message : null;
-  if (!msg || !msg.hasMedia) return '';
-  const kind = text(msg.type || (msg._data && msg._data.type)).toLowerCase();
-  if (kind === 'image' || kind === 'document' || kind === 'audio' || kind === 'video' || kind === 'ptt') return kind;
+function captionTextFromCtx(ctx) {
+  return text(
+    (ctx && ctx.message && ctx.message.caption) ||
+    rawDataFromCtx(ctx).caption ||
+    ''
+  );
+}
+
+function mediaFileNameFromCtx(ctx) {
+  const msg = messageObjFromCtx(ctx);
+  const rawData = rawDataFromCtx(ctx);
+  return text(
+    (msg && (msg.filename || (msg._data && msg._data.filename))) ||
+    rawData.filename ||
+    ''
+  );
+}
+
+function mediaMimeTypeFromCtx(ctx) {
+  const msg = messageObjFromCtx(ctx);
+  const rawData = rawDataFromCtx(ctx);
+  return text(
+    (msg && (msg.mimetype || (msg._data && msg._data.mimetype))) ||
+    rawData.mimetype ||
+    ''
+  );
+}
+
+function normalizeMediaKind(kind) {
+  const v = text(kind).toLowerCase();
+  if (v === 'image' || v === 'document' || v === 'audio' || v === 'video' || v === 'ptt') return v;
   return '';
 }
 
+function inferMediaKindFromMimeAndName(mimeType, fileName, isPtt) {
+  const mime = text(mimeType).toLowerCase();
+  const name = text(fileName);
+  if (isPtt) return 'ptt';
+  if (mime.startsWith('image/')) return 'image';
+  if (mime.startsWith('video/')) return 'video';
+  if (mime.startsWith('audio/')) return 'audio';
+  if (mime || name) return 'document';
+  return '';
+}
+
+function hasMediaMarkersFromCtx(ctx) {
+  const msg = messageObjFromCtx(ctx);
+  const rawData = rawDataFromCtx(ctx);
+  const directKind = normalizeMediaKind(
+    (msg && (msg.type || (msg._data && msg._data.type))) ||
+    rawData.type ||
+    rawData.mediaKeyType
+  );
+  if (directKind) return true;
+  if (msg && msg.hasMedia) return true;
+  if (msg && (msg.ptt || (msg._data && msg._data.ptt))) return true;
+  if (rawData.ptt) return true;
+  if (mediaMimeTypeFromCtx(ctx)) return true;
+  if (mediaFileNameFromCtx(ctx)) return true;
+  if (rawData.mediaKey || rawData.directPath || rawData.clientUrl || rawData.isMedia) return true;
+  return false;
+}
+
+function inferMediaKindFromCtx(ctx) {
+  const msg = messageObjFromCtx(ctx);
+  const rawData = rawDataFromCtx(ctx);
+  const directKind = normalizeMediaKind(
+    (msg && (msg.type || (msg._data && msg._data.type))) ||
+    rawData.type ||
+    rawData.mediaKeyType
+  );
+  if (directKind) return directKind;
+
+  const isPtt = !!(
+    (msg && (msg.ptt || (msg._data && msg._data.ptt))) ||
+    rawData.ptt
+  );
+
+  return inferMediaKindFromMimeAndName(mediaMimeTypeFromCtx(ctx), mediaFileNameFromCtx(ctx), isPtt);
+}
+
+function inferMediaKindFromDownloadedMedia(ctx, mediaObj, fallbackKind) {
+  const preferred = normalizeMediaKind(fallbackKind);
+  if (preferred) return preferred;
+  const msg = messageObjFromCtx(ctx);
+  const rawData = rawDataFromCtx(ctx);
+  const isPtt = !!(
+    (msg && (msg.ptt || (msg._data && msg._data.ptt))) ||
+    rawData.ptt
+  );
+  const inferred = inferMediaKindFromMimeAndName(
+    text(mediaObj && mediaObj.mimetype) || mediaMimeTypeFromCtx(ctx),
+    text(mediaObj && mediaObj.filename) || mediaFileNameFromCtx(ctx),
+    isPtt
+  );
+  if (inferred) return inferred;
+  return mediaObj ? 'document' : '';
+}
+
 function canDownloadMedia(ctx) {
-  const msg = ctx && ctx.message ? ctx.message : null;
-  return !!(msg && msg.hasMedia && typeof msg.downloadMedia === 'function');
+  const msg = messageObjFromCtx(ctx);
+  return !!(msg && typeof msg.downloadMedia === 'function' && hasMediaMarkersFromCtx(ctx));
 }
 
 function idFromCtx(ctx) {
@@ -93,7 +194,14 @@ function isInternalIdentityCtx(ctx) {
 }
 
 function isFromMeCtx(ctx) {
-  return !!(ctx && ctx.raw && ctx.raw.fromMe);
+  const msg = messageObjFromCtx(ctx);
+  const raw = ctx && ctx.raw ? ctx.raw : null;
+  const rawData = rawDataFromCtx(ctx);
+  return !!(
+    (msg && (msg.fromMe || (msg.id && msg.id.fromMe))) ||
+    (raw && (raw.fromMe || (raw.id && raw.id.fromMe))) ||
+    rawData.fromMe
+  );
 }
 
 function isInternalOpsCtx(ctx, globalConf) {
@@ -122,6 +230,40 @@ async function canAccess(access, ctx, roleName) {
   if (typeof access.check === 'function') return !!(await access.check(ctx, role));
   if (typeof access.meetsMinRole === 'function') return !!(await access.meetsMinRole(ctx, role));
   return false;
+}
+
+function buildInboundMediaOptions(cfg, kind, captionText, lastInboundAtMs) {
+  const mediaKind = text(kind).toLowerCase();
+  const caption = text(captionText);
+  const options = {
+    isAuto: 1,
+    manualReply: 0,
+    lastInboundAtMs: Number(lastInboundAtMs || 0),
+  };
+
+  if (mediaKind === 'document') options.sendMediaAsDocument = true;
+  if (mediaKind === 'ptt') options.sendAudioAsVoice = true;
+  if (mediaKind === 'audio' && toBool(cfg && cfg.replyAudioAsVoice)) options.sendAudioAsVoice = true;
+  if (mediaKind === 'video' && toBool(cfg && cfg.replyVideoAsDocument)) options.sendMediaAsDocument = true;
+  if (caption && mediaKind !== 'ptt') options.caption = caption;
+
+  return options;
+}
+
+function buildInboundDisplayText(kind, captionText, fileName, bodyText) {
+  const mediaKind = text(kind).toLowerCase();
+  const caption = text(captionText);
+  const name = text(fileName);
+  const body = text(bodyText);
+  if (caption) return caption;
+  if (name) return name;
+  if (body) return body;
+  if (mediaKind === 'document') return '[document]';
+  if (mediaKind === 'image') return '[image]';
+  if (mediaKind === 'video') return '[video]';
+  if (mediaKind === 'audio') return '[audio]';
+  if (mediaKind === 'ptt') return '[voice]';
+  return '[media]';
 }
 
 module.exports = {
@@ -485,10 +627,27 @@ module.exports = {
       const chatId = text(ctx.chatId);
       if (!chatId) return;
 
-      const body = messageTextFromCtx(ctx);
-      const inboundMediaKind = mediaKindFromCtx(ctx);
-      const hasInboundMedia = !!inboundMediaKind && canDownloadMedia(ctx);
-      if (!body && !hasInboundMedia) return;
+      const bodyText = bodyTextFromCtx(ctx);
+      const captionText = captionTextFromCtx(ctx);
+      let mediaObj = null;
+      let inboundMediaKind = inferMediaKindFromCtx(ctx);
+      const shouldTryDownload = canDownloadMedia(ctx);
+      if (shouldTryDownload) {
+        try {
+          mediaObj = await ctx.message.downloadMedia();
+        } catch (e) {
+          mediaObj = null;
+          if (bugLog) meta.log(tag, `bug inbound_media_download_failed chatId=${chatId} err=${text(e && e.message ? e.message : e)}`);
+        }
+      }
+
+      if (mediaObj) {
+        inboundMediaKind = inferMediaKindFromDownloadedMedia(ctx, mediaObj, inboundMediaKind);
+      }
+
+      const hasInboundMedia = !!mediaObj;
+      if (hasInboundMedia && !inboundMediaKind) inboundMediaKind = 'document';
+      if (!bodyText && !captionText && !hasInboundMedia) return;
 
       const tickets = await loadTicketState();
 
@@ -545,7 +704,13 @@ module.exports = {
       current.lastAt = Date.now();
       current.ctx = ctx;
       current.groupKey = groupKey;
-      current.messages.push(body);
+
+      const resolvedFileName = text(mediaObj && mediaObj.filename) || mediaFileNameFromCtx(ctx);
+      const resolvedMimeType = text(mediaObj && mediaObj.mimetype) || mediaMimeTypeFromCtx(ctx);
+      const displayText = hasInboundMedia
+        ? buildInboundDisplayText(inboundMediaKind, captionText, resolvedFileName, bodyText)
+        : bodyText;
+      if (displayText) current.messages.push(displayText);
       if (current.messages.length > msgBufferMax) {
         current.messages = current.messages.slice(current.messages.length - msgBufferMax);
       }
@@ -555,17 +720,20 @@ module.exports = {
 
       if (hasInboundMedia) {
         try {
-          const mediaObj = await ctx.message.downloadMedia();
           const targetChat = await resolveTargetGroup(groupKey, ctx);
-          if (mediaObj && targetChat) {
-            const mediaPayload = Object.assign({}, mediaObj);
-            if (body) mediaPayload.caption = body;
-            await sendFn(targetChat, mediaPayload, { isAuto: 1, manualReply: 0, lastInboundAtMs: Number(current.lastAt || 0) });
+          if (targetChat) {
+            if (!text(mediaObj.filename) && resolvedFileName) mediaObj.filename = resolvedFileName;
+            if (!text(mediaObj.mimetype) && resolvedMimeType) mediaObj.mimetype = resolvedMimeType;
+            await sendFn(
+              targetChat,
+              mediaObj,
+              buildInboundMediaOptions(cfg, inboundMediaKind, captionText, Number(current.lastAt || 0))
+            );
           } else if (bugLog) {
-            meta.log(tag, `bug inbound_media_forward_skipped ticketId=${ticket.ticketId} hasMedia=${mediaObj ? '1' : '0'} hasTarget=${targetChat ? '1' : '0'}`);
+            meta.log(tag, `bug inbound_media_forward_skipped ticketId=${ticket.ticketId} hasMedia=1 hasTarget=0`);
           }
         } catch (e) {
-          if (bugLog) meta.log(tag, `bug inbound_media_forward_failed ticketId=${ticket.ticketId} err=${text(e && e.message ? e.message : e)}`);
+          if (bugLog) meta.log(tag, `bug inbound_media_forward_failed ticketId=${ticket.ticketId} kind=${inboundMediaKind} err=${text(e && e.message ? e.message : e)}`);
         }
       }
 

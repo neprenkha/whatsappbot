@@ -39,6 +39,7 @@ function optionsKey(options) {
   return JSON.stringify({
     isAuto: opts.isAuto,
     manualReply: opts.manualReply,
+    bypassRateLimit: opts.bypassRateLimit,
   });
 }
 
@@ -58,6 +59,14 @@ function normalizeItem(raw) {
   item.lastError = asText(item.lastError, '');
   if (!item.options || typeof item.options !== 'object') item.options = {};
   return item;
+}
+
+function isPriorityOptions(options) {
+  const opts = options && typeof options === 'object' ? options : {};
+  if (opts.manualReply === 1 || opts.manualReply === true) return true;
+  if (opts.isAuto === 0 || opts.isAuto === false) return true;
+  if (opts.bypassRateLimit === 1 || opts.bypassRateLimit === true) return true;
+  return false;
 }
 
 module.exports = {
@@ -130,11 +139,46 @@ module.exports = {
       if (dead.length > deadMax) dead = dead.slice(dead.length - deadMax);
     }
 
+    function insertQueue(item, priority) {
+      const normalized = normalizeItem(item);
+      if (!priority || queue.length === 0) {
+        queue.push(normalized);
+        return;
+      }
+
+      let insertAt = 0;
+      while (insertAt < queue.length && isPriorityOptions(queue[insertAt].options)) {
+        insertAt += 1;
+      }
+      queue.splice(insertAt, 0, normalized);
+    }
+
+    function schedulePumpSoon() {
+      setTimeout(() => {
+        pumpOnce().catch((err) => {
+          if (bugLog) log(tag, 'pump_error err=' + errText(err));
+        });
+      }, 0);
+    }
+
+    async function tryImmediate(chatId, payload, options) {
+      const downstream = meta.getService(baseSend);
+      if (!downstream) throw new Error('downstream_missing');
+      if (typeof downstream.sendImmediate === 'function') {
+        return await downstream.sendImmediate(chatId, payload, options || {});
+      }
+      if (typeof downstream.send === 'function') {
+        return await downstream.send(chatId, payload, options || {});
+      }
+      throw new Error('downstream_missing_send');
+    }
+
     async function enqueue(chatId, payload, options) {
       const chat = asText(chatId, '');
       if (!chat) return 0;
 
       const opts = buildOptions(options);
+      const priority = isPriorityOptions(opts);
 
       if (dedupeMs > 0) {
         const now = Date.now();
@@ -148,13 +192,8 @@ module.exports = {
         dedupeMap.set(key, now);
       }
 
-      if (queue.length >= maxQueue) {
-        if (bugLog) log(tag, 'queue_full maxQueue=' + maxQueue + ' chatId=' + chat);
-        return 0;
-      }
-
       seq += 1;
-      queue.push(normalizeItem({
+      const item = normalizeItem({
         id: seq,
         chatId: chat,
         payload,
@@ -163,17 +202,41 @@ module.exports = {
         attempts: 0,
         nextTryAtMs: 0,
         lastError: '',
-      }));
-      return seq;
+      });
+
+      if (priority) {
+        try {
+          const directId = await tryImmediate(chat, payload, opts);
+          return Number.isFinite(Number(directId)) && Number(directId) > 0 ? Number(directId) : item.id;
+        } catch (err) {
+          item.lastError = errText(err);
+          if (detailLog || traceLog) {
+            log(tag, 'priority_fallback_queue chatId=' + chat + ' err=' + item.lastError);
+          }
+        }
+      }
+
+      if (queue.length >= maxQueue) {
+        if (bugLog) log(tag, 'queue_full maxQueue=' + maxQueue + ' chatId=' + chat);
+        return 0;
+      }
+
+      insertQueue(item, priority);
+      if (priority) schedulePumpSoon();
+      return item.id;
     }
 
     function findEligibleIndex(now) {
-      for (let i = 0; i < queue.length; i += 1) {
-        const item = normalizeItem(queue[i]);
-        queue[i] = item;
-        const nextTryAtMs = Number(item.nextTryAtMs || 0);
-        const nextAllowed = Number(nextAllowedAtMs.get(item.chatId) || 0);
-        if (now >= nextTryAtMs && now >= nextAllowed) return i;
+      for (let pass = 0; pass < 2; pass += 1) {
+        const wantPriority = pass === 0;
+        for (let i = 0; i < queue.length; i += 1) {
+          const item = normalizeItem(queue[i]);
+          queue[i] = item;
+          if (isPriorityOptions(item.options) !== wantPriority) continue;
+          const nextTryAtMs = Number(item.nextTryAtMs || 0);
+          const nextAllowed = Number(nextAllowedAtMs.get(item.chatId) || 0);
+          if (now >= nextTryAtMs && now >= nextAllowed) return i;
+        }
       }
       return -1;
     }
@@ -214,6 +277,8 @@ module.exports = {
               if (detailLog || traceLog) {
                 log(tag, 'dead_push chatId=' + item.chatId + ' attempts=' + item.attempts + ' reason=' + item.lastError);
               }
+            } else {
+              queue[idx] = item;
             }
           }
         }

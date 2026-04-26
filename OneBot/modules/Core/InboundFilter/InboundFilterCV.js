@@ -16,16 +16,40 @@ function getRaw(ctx) {
   return ctx && ctx.raw && typeof ctx.raw === 'object' ? ctx.raw : {};
 }
 
+function getRawData(ctx) {
+  const raw = getRaw(ctx);
+  return raw && raw._data && typeof raw._data === 'object' ? raw._data : {};
+}
+
+function getMessage(ctx) {
+  return ctx && ctx.message && typeof ctx.message === 'object' ? ctx.message : {};
+}
+
 function getType(ctx) {
-  return toText(getRaw(ctx).type).trim().toLowerCase();
+  const msg = getMessage(ctx);
+  const raw = getRaw(ctx);
+  const rawData = getRawData(ctx);
+  return toText(msg.type || (msg._data && msg._data.type) || raw.type || rawData.type).trim().toLowerCase();
 }
 
 function getChatId(ctx) {
-  return toText(ctx && ctx.chatId).trim();
+  const raw = getRaw(ctx);
+  const rawData = getRawData(ctx);
+  return toText((ctx && ctx.chatId) || raw.from || rawData.from || '').trim();
 }
 
 function getFromMe(ctx) {
-  return !!getRaw(ctx).fromMe;
+  const msg = getMessage(ctx);
+  const raw = getRaw(ctx);
+  const rawData = getRawData(ctx);
+  return !!(
+    (ctx && ctx.fromMe) ||
+    msg.fromMe ||
+    (msg.id && msg.id.fromMe) ||
+    raw.fromMe ||
+    (raw.id && raw.id.fromMe) ||
+    rawData.fromMe
+  );
 }
 
 function getSenderId(ctx) {
@@ -40,7 +64,9 @@ function getSenderId(ctx) {
 }
 
 function getText(ctx) {
-  return toText(ctx && ctx.text).trim();
+  const msg = getMessage(ctx);
+  const rawData = getRawData(ctx);
+  return toText((ctx && ctx.text) || msg.body || msg.caption || rawData.body || rawData.caption || '').trim();
 }
 
 function isStatusBroadcast(ctx) {
@@ -115,6 +141,9 @@ module.exports = {
       const chatId = getChatId(ctx);
       const fromMe = getFromMe(ctx) ? '1' : '0';
       const type = getType(ctx);
+      const senderId = getSenderId(ctx);
+      const chatLower = chatId.toLowerCase();
+      const senderLower = senderId.toLowerCase();
 
       if (dropStatusBroadcast && isStatusBroadcast(ctx)) {
         stopIfPossible(ctx);
@@ -122,13 +151,9 @@ module.exports = {
         return;
       }
 
-      const senderId = getSenderId(ctx);
-      const chatLower = chatId.toLowerCase();
-      const senderLower = senderId.toLowerCase();
-
       if (dropFromMe && getFromMe(ctx)) {
         stopIfPossible(ctx);
-        if (moduleLog || detailLog || traceLog) log(tag, 'drop reason=from_me chatId=' + chatId + ' fromMe=' + fromMe + ' type=' + type);
+        if (moduleLog || detailLog || traceLog) log(tag, 'drop reason=from_me chatId=' + chatId + ' senderId=' + senderId + ' fromMe=' + fromMe + ' type=' + type);
         return;
       }
 
@@ -146,12 +171,12 @@ module.exports = {
 
       if (dropEmptySystem && isEmptySystem(ctx)) {
         stopIfPossible(ctx);
-        if (moduleLog || detailLog || traceLog) log(tag, 'drop reason=empty_system chatId=' + chatId + ' fromMe=' + fromMe + ' type=' + type);
+        if (moduleLog || detailLog || traceLog) log(tag, 'drop reason=empty_system chatId=' + chatId + ' senderId=' + senderId + ' fromMe=' + fromMe + ' type=' + type);
         return;
       }
 
       if (detailLog || traceLog) {
-        log(tag, 'pass chatId=' + chatId + ' fromMe=' + fromMe + ' type=' + type);
+        log(tag, 'pass chatId=' + chatId + ' senderId=' + senderId + ' fromMe=' + fromMe + ' type=' + type);
       }
     }
 

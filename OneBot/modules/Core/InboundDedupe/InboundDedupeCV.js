@@ -1,7 +1,5 @@
 'use strict';
 
-// REWRITTEN: standalone CV implementation with config-driven inbound dedupe.
-
 function toBool(v, d) {
   if (v === undefined || v === null || v === '') return d;
   const s = String(v).trim().toLowerCase();
@@ -71,6 +69,135 @@ function normalizeValue(v) {
   return String(v || '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
+function text(v) {
+  return String(v === undefined || v === null ? '' : v).trim();
+}
+
+function rawObj(ctx) {
+  return ctx && ctx.raw && typeof ctx.raw === 'object' ? ctx.raw : {};
+}
+
+function rawDataObj(ctx) {
+  const raw = rawObj(ctx);
+  return raw && raw._data && typeof raw._data === 'object' ? raw._data : {};
+}
+
+function messageObj(ctx) {
+  return ctx && ctx.message && typeof ctx.message === 'object' ? ctx.message : {};
+}
+
+function bool01(v) {
+  return v ? '1' : '0';
+}
+
+function normalizeMessageType(ctx) {
+  const msg = messageObj(ctx);
+  const raw = rawObj(ctx);
+  const rawData = rawDataObj(ctx);
+  return text(msg.type || (msg._data && msg._data.type) || raw.type || rawData.type || rawData.mediaKeyType).toLowerCase();
+}
+
+function normalizeSenderId(ctx) {
+  const raw = rawObj(ctx);
+  return text(
+    (ctx && (ctx.senderId || ctx.author || ctx.from)) ||
+    raw.participant ||
+    raw.author ||
+    raw.from ||
+    ''
+  );
+}
+
+function normalizeChatId(ctx) {
+  return text((ctx && ctx.chatId) || rawObj(ctx).from || rawDataObj(ctx).from || '');
+}
+
+function normalizeFromMe(ctx) {
+  const msg = messageObj(ctx);
+  const raw = rawObj(ctx);
+  const rawData = rawDataObj(ctx);
+  return !!(
+    (ctx && ctx.fromMe) ||
+    msg.fromMe ||
+    (msg.id && msg.id.fromMe) ||
+    raw.fromMe ||
+    (raw.id && raw.id.fromMe) ||
+    rawData.fromMe
+  );
+}
+
+function normalizeText(ctx) {
+  const msg = messageObj(ctx);
+  const rawData = rawDataObj(ctx);
+  return text((ctx && ctx.text) || msg.body || rawData.body || '');
+}
+
+function normalizeCaption(ctx) {
+  const msg = messageObj(ctx);
+  const rawData = rawDataObj(ctx);
+  return text(msg.caption || rawData.caption || '');
+}
+
+function normalizeFilename(ctx) {
+  const msg = messageObj(ctx);
+  const rawData = rawDataObj(ctx);
+  return text(msg.filename || (msg._data && msg._data.filename) || rawData.filename || '');
+}
+
+function normalizeMimeType(ctx) {
+  const msg = messageObj(ctx);
+  const rawData = rawDataObj(ctx);
+  return text(msg.mimetype || (msg._data && msg._data.mimetype) || rawData.mimetype || '');
+}
+
+function normalizeRawId(ctx) {
+  const msg = messageObj(ctx);
+  const raw = rawObj(ctx);
+  const rawData = rawDataObj(ctx);
+  return text(
+    (raw.id && raw.id._serialized) ||
+    raw.id ||
+    (msg.id && (msg.id._serialized || msg.id.id || msg.id.remote)) ||
+    rawData.id ||
+    ''
+  );
+}
+
+function normalizeHasMedia(ctx) {
+  const msg = messageObj(ctx);
+  const rawData = rawDataObj(ctx);
+  return !!(
+    msg.hasMedia ||
+    msg.ptt ||
+    (msg._data && msg._data.ptt) ||
+    rawData.ptt ||
+    rawData.mediaKey ||
+    rawData.directPath ||
+    rawData.clientUrl ||
+    normalizeFilename(ctx) ||
+    normalizeMimeType(ctx)
+  );
+}
+
+function buildCanonicalEvent(ctx) {
+  return {
+    chatId: normalizeChatId(ctx),
+    senderId: normalizeSenderId(ctx),
+    fromMe: bool01(normalizeFromMe(ctx)),
+    text: normalizeText(ctx),
+    body: normalizeText(ctx),
+    caption: normalizeCaption(ctx),
+    messageType: normalizeMessageType(ctx),
+    filename: normalizeFilename(ctx),
+    mimetype: normalizeMimeType(ctx),
+    rawId: normalizeRawId(ctx),
+    hasMedia: bool01(normalizeHasMedia(ctx)),
+    raw: rawObj(ctx),
+    message: messageObj(ctx),
+    sender: { id: normalizeSenderId(ctx) },
+  };
+}
+
 module.exports.init = async function init(meta) {
   const cfg = meta && meta.implConf ? meta.implConf : {};
 
@@ -85,12 +212,11 @@ module.exports.init = async function init(meta) {
     return { onMessage: async () => {}, onEvent: async () => {} };
   }
 
-  const globalConf = loadGlobalConf(meta, cfg, bugLog);
-  void globalConf;
+  loadGlobalConf(meta, cfg, bugLog);
 
   const dedupeMs = Math.max(1, toInt(cfg.dedupeMs, 6000));
   const maxKeys = Math.max(100, toInt(cfg.maxKeys, 8000));
-  const keyFields = toList(cfg.keyFields, ['chatId', 'sender.id', 'text', 'raw.id._serialized']);
+  const keyFields = toList(cfg.keyFields, ['chatId', 'senderId', 'fromMe', 'messageType', 'text', 'caption', 'filename', 'mimetype', 'rawId']);
   const keyMode = toStr(cfg.keyMode, 'all');
   const skipWhenFromMe = toBool(cfg.skipWhenFromMe, false);
   const skipWhenCommand = toBool(cfg.skipWhenCommand, false);
@@ -115,8 +241,8 @@ module.exports.init = async function init(meta) {
     }
   }
 
-  function isCommand(text) {
-    const s = String(text || '').trim();
+  function isCommand(textValue) {
+    const s = String(textValue || '').trim();
     if (!s) return false;
     for (let i = 0; i < commandPrefixes.length; i += 1) {
       const p = String(commandPrefixes[i] || '');
@@ -125,11 +251,21 @@ module.exports.init = async function init(meta) {
     return false;
   }
 
+  function resolveFieldValue(ev, fieldName) {
+    const field = String(fieldName || '').trim();
+    if (!field) return '';
+    if (field in ev) return ev[field];
+    if (field === 'type') return ev.messageType;
+    if (field === 'raw.id._serialized') return ev.rawId;
+    if (field === 'sender.id') return ev.senderId;
+    return getByPath(ev, field);
+  }
+
   function buildParts(ev) {
     const parts = [];
     for (let i = 0; i < keyFields.length; i += 1) {
       const p = keyFields[i];
-      const val = normalizeValue(getByPath(ev, p));
+      const val = normalizeValue(resolveFieldValue(ev, p));
       if (keyMode === 'all') {
         parts.push(val || '-');
       } else if (val) {
@@ -140,16 +276,16 @@ module.exports.init = async function init(meta) {
   }
 
   function shouldSkip(ev) {
-    if (skipWhenFromMe && toBool(getByPath(ev, 'raw.fromMe') || ev.fromMe, false)) return true;
-    if (skipWhenCommand && isCommand(getByPath(ev, 'text'))) return true;
+    if (skipWhenFromMe && ev.fromMe === '1') return true;
+    if (skipWhenCommand && isCommand(ev.text || ev.body || ev.caption)) return true;
     return false;
   }
 
   async function onMessage(ctx) {
     try {
-      const ev = ctx && ctx.message ? ctx.message : ctx;
-      if (!ev || typeof ev !== 'object') return;
+      if (!ctx || typeof ctx !== 'object') return;
 
+      const ev = buildCanonicalEvent(ctx);
       if (shouldSkip(ev)) return;
 
       const parts = buildParts(ev);
@@ -163,8 +299,7 @@ module.exports.init = async function init(meta) {
       const exp = Number(seenMap.get(key) || 0);
       if (exp > nowMs) {
         if (traceLog || detailLog) {
-          const chatId = toStr(getByPath(ev, 'chatId'), '');
-          meta.log('InboundDedupeCV', 'dedupe_drop chatId=' + chatId + ' key=' + key.slice(0, 120));
+          meta.log('InboundDedupeCV', 'dedupe_drop chatId=' + toStr(ev.chatId, '') + ' key=' + key.slice(0, 160));
         }
         if (ctx && typeof ctx.stopPropagation === 'function') ctx.stopPropagation();
         return;
