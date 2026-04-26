@@ -34,6 +34,10 @@ const BOT_NAME = (process.env.BOT_NAME || 'ONEBOT').trim();
 const CODE_ROOT = (process.env.CODE_ROOT || __dirname).trim();
 const DATA_ROOT = (process.env.DATA_ROOT || 'X:\\OneData').trim();
 const TRACE_INBOUND = String(process.env.ONEBOT_TRACE_INBOUND || '').trim() === '1';
+const SEND_DIAG_BEFORE_SEND = String(process.env.ONEBOT_SEND_DIAGNOSTIC || '').trim() === '1';
+const SEND_DIAG_ON_FAILURE = String(process.env.ONEBOT_SEND_DIAGNOSTIC_ON_FAILURE || '1').trim() !== '0';
+const SEND_DIAG_DEBOUNCE_MS = Math.max(0, Number.parseInt(String(process.env.ONEBOT_SEND_DIAG_DEBOUNCE_MS || '60000'), 10) || 60000);
+const PUPPETEER_PROTOCOL_TIMEOUT_MS = Math.max(30000, Number.parseInt(String(process.env.ONEBOT_PROTOCOL_TIMEOUT_MS || '120000'), 10) || 120000);
 
 const botDataRoot = path.join(DATA_ROOT, 'bots', BOT_NAME);
 const sessionRoot = path.join(botDataRoot, 'session');
@@ -49,7 +53,6 @@ function nowIso() {
   return new Date().toISOString().replace('T', ' ').replace('Z', '');
 }
 
-
 function describeError(err) {
   try {
     if (err === undefined) return 'undefined';
@@ -64,9 +67,27 @@ function describeError(err) {
   }
 }
 
-async function logChatSendDiagnostics(client, chatId) {
+const sendDiagState = new Map();
+
+function shouldRunSendDiagnostic(chatId, force) {
+  const id = String(chatId || '').trim();
+  if (!id) return false;
+  if (force) {
+    sendDiagState.set(id, Date.now());
+    return true;
+  }
+  const now = Date.now();
+  const prev = Number(sendDiagState.get(id) || 0);
+  if ((now - prev) < SEND_DIAG_DEBOUNCE_MS) return false;
+  sendDiagState.set(id, now);
+  if (sendDiagState.size > 5000) sendDiagState.clear();
+  return true;
+}
+
+async function logChatSendDiagnostics(client, chatId, force) {
   const id = String(chatId || '').trim();
   if (!id) return;
+  if (!shouldRunSendDiagnostic(id, !!force)) return;
   try {
     const chat = await client.getChatById(id);
     if (!chat) {
@@ -84,6 +105,7 @@ async function logChatSendDiagnostics(client, chatId) {
     console.warn('[connector] send.diagnostic chatId=' + id + ' loaded=0 err=' + describeError(e));
   }
 }
+
 function traceInbound(eventName, result, msg, err) {
   if (!TRACE_INBOUND) return;
   try {
@@ -147,6 +169,7 @@ async function main() {
     authStrategy: new LocalAuth({ clientId: BOT_NAME, dataPath: sessionRoot }),
     puppeteer: {
       headless: false,
+      protocolTimeout: PUPPETEER_PROTOCOL_TIMEOUT_MS,
       args: [
         '--start-minimized',
         '--disable-dev-shm-usage',
@@ -201,11 +224,16 @@ async function main() {
 
     const opts = sanitizeTransportOptions(options);
 
-    await logChatSendDiagnostics(client, outChatId);
+    if (SEND_DIAG_BEFORE_SEND) {
+      await logChatSendDiagnostics(client, outChatId, false);
+    }
 
     try {
       return await client.sendMessage(outChatId, outPayload, opts);
     } catch (e) {
+      if (SEND_DIAG_ON_FAILURE) {
+        await logChatSendDiagnostics(client, outChatId, true);
+      }
       const detail = describeError(e);
       console.error('[connector] send.failed chatId=' + outChatId + ' err=' + detail);
       const err = new Error('transport.send_failed: ' + detail);
@@ -215,7 +243,6 @@ async function main() {
   };
 
   kernel.attachTransport({ sendDirect });
-
 
   const runtimeState = {
     authenticatedAt: 0,
@@ -315,7 +342,6 @@ async function main() {
     console.log('[connector] disconnected:', reason);
     kernel.onEvent({ type: 'disconnected', reason: String(reason || ''), at: nowIso() });
   });
-
 
   client.on('change_state', (state) => {
     runtimeState.waState = String(state || '');
