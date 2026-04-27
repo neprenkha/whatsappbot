@@ -25,6 +25,27 @@ function readConf(conf, key, fallback) {
   return fallback;
 }
 
+function readSettingText(conf, key) {
+  const value = asText(readConf(conf, key, ''), '');
+  if (!value) throw new Error('config_missing_' + key);
+  return value;
+}
+
+function readSettingInt(conf, key) {
+  const valueRaw = readSettingText(conf, key);
+  const value = asInt(valueRaw, Number.NaN);
+  if (!Number.isFinite(value)) throw new Error('config_invalid_' + key);
+  return value;
+}
+
+function readSettingBool(conf, key) {
+  const valueRaw = readSettingText(conf, key);
+  const text = String(valueRaw).trim().toLowerCase();
+  if (text === '1' || text === 'true' || text === 'yes' || text === 'on') return true;
+  if (text === '0' || text === 'false' || text === 'no' || text === 'off') return false;
+  throw new Error('config_invalid_' + key);
+}
+
 function payloadKey(payload) {
   if (typeof payload === 'string') return payload.slice(0, 200);
   try {
@@ -75,29 +96,55 @@ module.exports = {
     const conf = meta && meta.implConf ? meta.implConf : {};
     const log = meta && typeof meta.log === 'function' ? meta.log : () => {};
 
-    const enabled = asBool(readConf(conf, 'enabled', 1), true);
-    const moduleLog = asBool(readConf(conf, 'moduleLog', 1), true);
-    const bugLog = asBool(readConf(conf, 'bugLog', 1), true);
-    const detailLog = asBool(readConf(conf, 'detailLog', 0), false);
-    const traceLog = asBool(readConf(conf, 'traceLog', 0), false);
+    let enabled;
+    let moduleLog;
+    let bugLog;
+    let detailLog;
+    let traceLog;
+    let serviceName;
+    let baseSend;
+    let delayMs;
+    let batchMax;
+    let maxQueue;
+    let minGapMsPerChat;
+    let maxAttempts;
+    let retryDelayMs;
+    let deadMax;
+    let dedupeMs;
+    let dedupeMax;
+    let dedupeLog;
+    let defaultIsAuto;
+    let defaultManualReply;
+
+    try {
+      enabled = readSettingBool(conf, 'enabled');
+      moduleLog = readSettingBool(conf, 'moduleLog');
+      bugLog = readSettingBool(conf, 'bugLog');
+      detailLog = readSettingBool(conf, 'detailLog');
+      traceLog = readSettingBool(conf, 'traceLog');
+      serviceName = readSettingText(conf, 'serviceName');
+      baseSend = readSettingText(conf, 'baseSend');
+      delayMs = readSettingInt(conf, 'delayMs');
+      batchMax = readSettingInt(conf, 'batchMax');
+      maxQueue = readSettingInt(conf, 'maxQueue');
+      minGapMsPerChat = readSettingInt(conf, 'minGapMsPerChat');
+      maxAttempts = readSettingInt(conf, 'maxAttempts');
+      retryDelayMs = readSettingInt(conf, 'retryDelayMs');
+      deadMax = readSettingInt(conf, 'deadMax');
+      dedupeMs = readSettingInt(conf, 'dedupeMs');
+      dedupeMax = readSettingInt(conf, 'dedupeMax');
+      dedupeLog = readSettingBool(conf, 'dedupeLog');
+      defaultIsAuto = readSettingBool(conf, 'defaultIsAuto');
+      defaultManualReply = readSettingBool(conf, 'defaultManualReply');
+    } catch (err) {
+      log(tag, 'disabled config_error=' + errText(err));
+      return { onMessage: async () => {}, onEvent: async () => {} };
+    }
 
     if (!enabled) {
       if (moduleLog) log(tag, 'disabled enabled=0');
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
-
-    const serviceName = asText(readConf(conf, 'serviceName', 'send'), 'send');
-    const baseSend = asText(readConf(conf, 'baseSend', 'outbox'), 'outbox');
-    const delayMs = Math.max(100, asInt(readConf(conf, 'delayMs', 800), 800));
-    const batchMax = Math.max(1, asInt(readConf(conf, 'batchMax', 5), 5));
-    const maxQueue = Math.max(1, asInt(readConf(conf, 'maxQueue', 2000), 2000));
-    const minGapMsPerChat = Math.max(0, asInt(readConf(conf, 'minGapMsPerChat', 0), 0));
-    const maxAttempts = Math.max(1, asInt(readConf(conf, 'maxAttempts', 5), 5));
-    const retryDelayMs = Math.max(0, asInt(readConf(conf, 'retryDelayMs', delayMs), delayMs));
-    const deadMax = Math.max(1, asInt(readConf(conf, 'deadMax', 500), 500));
-    const dedupeMs = Math.max(0, asInt(readConf(conf, 'dedupeMs', 0), 0));
-    const dedupeMax = Math.max(0, asInt(readConf(conf, 'dedupeMax', 5000), 5000));
-    const dedupeLog = asBool(readConf(conf, 'dedupeLog', 0), false);
 
     let seq = 0;
     let queue = [];
@@ -108,8 +155,8 @@ module.exports = {
 
     function buildOptions(options) {
       const opts = options && typeof options === 'object' ? Object.assign({}, options) : {};
-      if (!Object.prototype.hasOwnProperty.call(opts, 'isAuto')) opts.isAuto = 1;
-      if (!Object.prototype.hasOwnProperty.call(opts, 'manualReply')) opts.manualReply = 0;
+      if (!Object.prototype.hasOwnProperty.call(opts, 'isAuto')) opts.isAuto = defaultIsAuto ? 1 : 0;
+      if (!Object.prototype.hasOwnProperty.call(opts, 'manualReply')) opts.manualReply = defaultManualReply ? 1 : 0;
       return opts;
     }
 
@@ -163,14 +210,17 @@ module.exports = {
 
     async function tryImmediate(chatId, payload, options) {
       const downstream = meta.getService(baseSend);
-      if (!downstream) throw new Error('downstream_missing');
-      if (typeof downstream.sendImmediate === 'function') {
-        return await downstream.sendImmediate(chatId, payload, options || {});
+      if (!downstream) {
+        const err = new Error('downstream_missing');
+        err.code = 'downstream_missing';
+        throw err;
       }
-      if (typeof downstream.send === 'function') {
-        return await downstream.send(chatId, payload, options || {});
+      if (typeof downstream.sendImmediate !== 'function') {
+        const err = new Error('downstream_immediate_unavailable');
+        err.code = 'downstream_immediate_unavailable';
+        throw err;
       }
-      throw new Error('downstream_missing_send');
+      return await downstream.sendImmediate(chatId, payload, options || {});
     }
 
     async function enqueue(chatId, payload, options) {
@@ -304,7 +354,7 @@ module.exports = {
     meta.registerService(serviceName, api);
 
     if (moduleLog) {
-      log(tag, 'ready enabled=1 serviceName=' + serviceName + ' baseSend=' + baseSend + ' delayMs=' + delayMs + ' batchMax=' + batchMax + ' maxQueue=' + maxQueue + ' minGapMsPerChat=' + minGapMsPerChat + ' maxAttempts=' + maxAttempts + ' retryDelayMs=' + retryDelayMs + ' deadMax=' + deadMax + ' detailLog=' + (detailLog ? '1' : '0') + ' traceLog=' + (traceLog ? '1' : '0'));
+      log(tag, 'ready enabled=' + (enabled ? '1' : '0') + ' serviceName=' + serviceName + ' baseSend=' + baseSend + ' delayMs=' + delayMs + ' batchMax=' + batchMax + ' maxQueue=' + maxQueue + ' minGapMsPerChat=' + minGapMsPerChat + ' maxAttempts=' + maxAttempts + ' retryDelayMs=' + retryDelayMs + ' deadMax=' + deadMax + ' detailLog=' + (detailLog ? '1' : '0') + ' traceLog=' + (traceLog ? '1' : '0'));
     }
 
     return {
