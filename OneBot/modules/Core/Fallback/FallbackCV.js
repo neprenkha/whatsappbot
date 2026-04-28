@@ -236,8 +236,9 @@ function buildInboundMediaOptions(cfg, kind, captionText, lastInboundAtMs) {
   const mediaKind = text(kind).toLowerCase();
   const caption = text(captionText);
   const options = {
-    isAuto: 1,
-    manualReply: 0,
+    isAuto: 0,
+    manualReply: 1,
+    bypassRateLimit: 1,
     lastInboundAtMs: Number(lastInboundAtMs || 0),
   };
 
@@ -248,6 +249,15 @@ function buildInboundMediaOptions(cfg, kind, captionText, lastInboundAtMs) {
   if (caption && mediaKind !== 'ptt') options.caption = caption;
 
   return options;
+}
+
+function buildControlGroupForwardOptions(lastInboundAtMs) {
+  return {
+    isAuto: 0,
+    manualReply: 1,
+    bypassRateLimit: 1,
+    lastInboundAtMs: Number(lastInboundAtMs || 0),
+  };
 }
 
 function buildInboundDisplayText(kind, captionText, fileName, bodyText) {
@@ -274,6 +284,7 @@ module.exports = {
     const required = [
       'enabled',
       'globalConfRel',
+      'sendService',
       'ticketStoreSpec',
       'ticketSeqKey',
       'msgBufferMax',
@@ -345,11 +356,8 @@ module.exports = {
     }
 
     const jsonstore = meta.getService('jsonstore');
-    const preferredSendService = String(globalConf.sendPrefer || '')
-      .split(',')
-      .map((x) => text(x))
-      .filter(Boolean)[0] || '';
-    const sendSvc = meta.getService('send') || (preferredSendService ? meta.getService(preferredSendService) : null);
+    const sendServiceName = text(cfg.sendService);
+    const sendSvc = sendServiceName ? meta.getService(sendServiceName) : null;
     const access = meta.getService('access');
 
     if (!jsonstore || typeof jsonstore.open !== 'function') {
@@ -365,7 +373,7 @@ module.exports = {
     }
 
     if (!sendFn) {
-      if (bugLog) meta.log(tag, 'disabled missing_send_service');
+      if (bugLog) meta.log(tag, `disabled missing_send_service name=${sendServiceName}`);
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
@@ -601,13 +609,13 @@ module.exports = {
 
           const lastInboundAtMs = Number(entry.lastAt || (ticketRow && ticketRow.lastInboundAt) || 0);
           if (cardText) {
-            await sendFn(targetChat, cardText, { isAuto: 1, manualReply: 0, lastInboundAtMs });
+            await sendFn(targetChat, cardText, buildControlGroupForwardOptions(lastInboundAtMs));
           }
           if (consolidated) {
-            await sendFn(targetChat, consolidated, { isAuto: 1, manualReply: 0, lastInboundAtMs });
+            await sendFn(targetChat, consolidated, buildControlGroupForwardOptions(lastInboundAtMs));
           }
         } catch (e) {
-          if (bugLog) meta.log(tag, `bug burst_flush err=${text(e && e.message ? e.message : e)}`);
+          if (bugLog) meta.log(tag, `bug burst_flush_forward_failed ticketId=${entry && entry.ticketId ? entry.ticketId : ''} chatId=${entry && entry.chatId ? entry.chatId : ''} groupKey=${entry && entry.groupKey ? entry.groupKey : ''} err=${text(e && e.message ? e.message : e)}`);
         }
       }, burstMs);
 
@@ -733,7 +741,7 @@ module.exports = {
             meta.log(tag, `bug inbound_media_forward_skipped ticketId=${ticket.ticketId} hasMedia=1 hasTarget=0`);
           }
         } catch (e) {
-          if (bugLog) meta.log(tag, `bug inbound_media_forward_failed ticketId=${ticket.ticketId} kind=${inboundMediaKind} err=${text(e && e.message ? e.message : e)}`);
+          if (bugLog) meta.log(tag, `bug inbound_media_forward_failed ticketId=${ticket.ticketId} chatId=${chatId} groupKey=${groupKey} kind=${inboundMediaKind} err=${text(e && e.message ? e.message : e)}`);
         }
       }
 
