@@ -50,6 +50,7 @@ module.exports = {
       'statusReplyTemplate',
       'infoReplyTemplate',
       'restartExitCode',
+      'sendService',
     ];
 
     const missing = requiredKeys.filter((k) => !text(cfg[k]));
@@ -78,7 +79,7 @@ module.exports = {
 
     const command = meta.getService('command');
     const access = meta.getService('access');
-    const sendServiceName = text(cfg.sendService) || 'send';
+    const sendServiceName = text(cfg.sendService);
     const sendSvc = meta.getService(sendServiceName);
 
     if (!command || typeof command.register !== 'function') {
@@ -132,6 +133,12 @@ module.exports = {
         return false;
       }
       if (!(await canAccess(ctx, minRole))) {
+        const accessGetRole = access && typeof access.getRole === 'function'
+          ? text(await access.getRole(ctx))
+          : '';
+        if (bugLogEnabled) {
+          meta.log(logTag, 'access_denied cmd=' + text(ctx && ctx.command && ctx.command.name) + ' required=' + text(minRole) + ' resolved=' + (accessGetRole || '(unknown)') + ' chatId=' + text(ctx && ctx.chatId) + ' sender=' + text(ctx && ctx.sender && (ctx.sender.id || ctx.sender.phone || ctx.sender.lid)));
+        }
         await sendReply(ctx, cfg.replyNoAccess);
         return false;
       }
@@ -187,7 +194,11 @@ module.exports = {
         return;
       }
 
-      await sendReply(ctx, cfg.replyRestarting);
+      try {
+        await sendReply(ctx, cfg.replyRestarting);
+      } catch (e) {
+        if (bugLogEnabled) meta.log(logTag, 'restart_reply_failed err=' + text(e && e.message ? e.message : e));
+      }
       setTimeout(() => {
         process.exit(exitCode);
       }, 10);
