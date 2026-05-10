@@ -49,6 +49,48 @@ function ensureDir(p) {
 ensureDir(sessionRoot);
 ensureDir(qrRoot);
 
+function parseConfText(raw) {
+  const out = {};
+  String(raw || '').split(/\r?\n/).forEach((line) => {
+    const t = String(line || '').trim();
+    if (!t || t.startsWith('#')) return;
+    const idx = t.indexOf('=');
+    if (idx < 0) return;
+    const key = t.slice(0, idx).trim();
+    if (!key) return;
+    out[key] = t.slice(idx + 1).trim();
+  });
+  return out;
+}
+
+function loadGlobalConnectorConf() {
+  const confPath = path.join(botDataRoot, 'config', 'modules', 'Core', 'Impl', 'GlobalCV.conf');
+  try {
+    return parseConfText(fs.readFileSync(confPath, 'utf8'));
+  } catch (_) {
+    return {};
+  }
+}
+
+function confText(conf, key, fallback) {
+  const value = conf && Object.prototype.hasOwnProperty.call(conf, key) ? String(conf[key] || '').trim() : '';
+  return value || fallback;
+}
+
+function confInt(conf, key, fallback, minValue) {
+  const raw = confText(conf, key, '');
+  const parsed = Number.parseInt(raw, 10);
+  const value = Number.isFinite(parsed) ? parsed : fallback;
+  return Math.max(minValue, value);
+}
+
+const connectorConf = loadGlobalConnectorConf();
+const READY_WATCHDOG_MS = confInt(connectorConf, 'connectorReadyWatchdogMs', 60000, 1000);
+const READY_WATCHDOG_ACTION = confText(connectorConf, 'connectorReadyWatchdogAction', 'log').toLowerCase();
+const READY_WATCHDOG_RELOAD_MAX = confInt(connectorConf, 'connectorReadyWatchdogReloadMax', 0, 0);
+const READY_WATCHDOG_RELOAD_WAIT_MS = confInt(connectorConf, 'connectorReadyWatchdogReloadWaitMs', READY_WATCHDOG_MS, 1000);
+const READY_WATCHDOG_EXIT_CODE = confInt(connectorConf, 'connectorReadyWatchdogExitCode', 0, 0);
+
 function nowIso() {
   return new Date().toISOString().replace('T', ' ').replace('Z', '');
 }
@@ -251,6 +293,7 @@ async function main() {
     loadingPercent: -1,
     loadingMessage: '',
     watchdogTimer: null,
+    recoveryAttempts: 0,
   };
 
   function clearReadyWatchdog() {
@@ -260,13 +303,41 @@ async function main() {
     }
   }
 
-  function scheduleReadyWatchdog() {
+  async function runReadyWatchdog() {
+    if (runtimeState.readyAt > 0) return;
+    const sinceAuthMs = runtimeState.authenticatedAt > 0 ? (Date.now() - runtimeState.authenticatedAt) : -1;
+    console.warn('[connector] ready_watchdog timeout=' + String(READY_WATCHDOG_MS) + ' ready=0 sinceAuthMs=' + String(sinceAuthMs) + ' state=' + String(runtimeState.waState || '') + ' loading=' + String(runtimeState.loadingPercent) + ' loadingMsg=' + String(runtimeState.loadingMessage || ''));
+
+    if (READY_WATCHDOG_ACTION === 'reload' || READY_WATCHDOG_ACTION === 'reload_exit') {
+      if (runtimeState.recoveryAttempts < READY_WATCHDOG_RELOAD_MAX) {
+        runtimeState.recoveryAttempts += 1;
+        try {
+          const page = client.pupPage || (client.pupBrowser && (await client.pupBrowser.pages())[0]);
+          if (!page || typeof page.reload !== 'function') throw new Error('puppeteer_page_unavailable');
+          console.warn('[connector] ready_watchdog_recover action=reload attempt=' + String(runtimeState.recoveryAttempts) + ' max=' + String(READY_WATCHDOG_RELOAD_MAX));
+          await page.reload({ waitUntil: 'domcontentloaded', timeout: PUPPETEER_PROTOCOL_TIMEOUT_MS });
+          scheduleReadyWatchdog(READY_WATCHDOG_RELOAD_WAIT_MS);
+          return;
+        } catch (e) {
+          console.warn('[connector] ready_watchdog_recover_failed action=reload err=' + describeError(e));
+        }
+      }
+    }
+
+    if ((READY_WATCHDOG_ACTION === 'exit' || READY_WATCHDOG_ACTION === 'reload_exit') && READY_WATCHDOG_EXIT_CODE > 0) {
+      console.warn('[connector] ready_watchdog_recover action=exit code=' + String(READY_WATCHDOG_EXIT_CODE));
+      process.exit(READY_WATCHDOG_EXIT_CODE);
+    }
+  }
+
+  function scheduleReadyWatchdog(delayMs) {
     clearReadyWatchdog();
+    const waitMs = Math.max(1000, Number(delayMs || READY_WATCHDOG_MS) || READY_WATCHDOG_MS);
     runtimeState.watchdogTimer = setTimeout(() => {
-      if (runtimeState.readyAt > 0) return;
-      const sinceAuthMs = runtimeState.authenticatedAt > 0 ? (Date.now() - runtimeState.authenticatedAt) : -1;
-      console.warn('[connector] ready_watchdog timeout=60000 ready=0 sinceAuthMs=' + String(sinceAuthMs) + ' state=' + String(runtimeState.waState || '') + ' loading=' + String(runtimeState.loadingPercent) + ' loadingMsg=' + String(runtimeState.loadingMessage || ''));
-    }, 60000);
+      runReadyWatchdog().catch((e) => {
+        console.warn('[connector] ready_watchdog_error err=' + describeError(e));
+      });
+    }, waitMs);
   }
 
   function attachBrowserDiagnostics(browser) {
@@ -317,6 +388,7 @@ async function main() {
 
   client.on('authenticated', () => {
     runtimeState.authenticatedAt = Date.now();
+    runtimeState.recoveryAttempts = 0;
     console.log('[connector] authenticated');
     scheduleReadyWatchdog();
     kernel.onEvent({ type: 'authenticated', at: nowIso() });
@@ -330,6 +402,7 @@ async function main() {
 
   client.on('ready', async () => {
     runtimeState.readyAt = Date.now();
+    runtimeState.recoveryAttempts = 0;
     clearReadyWatchdog();
     console.log('[connector] ready');
     kernel.onEvent({ type: 'ready', at: nowIso() });
