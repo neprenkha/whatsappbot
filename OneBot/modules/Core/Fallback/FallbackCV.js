@@ -185,14 +185,6 @@ function isStatusBroadcastCtx(ctx) {
   return chatId === 'status@broadcast' || senderId === 'status@broadcast';
 }
 
-function isInternalIdentityCtx(ctx) {
-  const chatId = text(ctx && ctx.chatId).toLowerCase();
-  const senderId = idFromCtx(ctx).toLowerCase();
-  if (chatId.endsWith('@lid')) return true;
-  if (senderId.endsWith('@lid')) return true;
-  return false;
-}
-
 function isFromMeCtx(ctx) {
   const msg = messageObjFromCtx(ctx);
   const raw = ctx && ctx.raw ? ctx.raw : null;
@@ -212,14 +204,19 @@ function isInternalOpsCtx(ctx, globalConf) {
   return chatId === controlGroupId || senderId === controlGroupId;
 }
 
-function isCustomerDmCtx(ctx, globalConf) {
-  if (!ctx || ctx.isGroup) return false;
-  if (isFromMeCtx(ctx)) return false;
-  if (isStatusBroadcastCtx(ctx)) return false;
-  if (isInternalIdentityCtx(ctx)) return false;
-  if (isInternalOpsCtx(ctx, globalConf)) return false;
+function dmDropReason(ctx, globalConf) {
+  if (!ctx) return 'unsupported_chat_id';
+  if (ctx.isGroup) return 'group';
+  if (isFromMeCtx(ctx)) return 'from_me';
+  if (isStatusBroadcastCtx(ctx)) return 'status';
+  if (isInternalOpsCtx(ctx, globalConf)) return 'ops';
   const chatId = text(ctx.chatId).toLowerCase();
-  return chatId.endsWith('@c.us') || chatId.endsWith('@s.whatsapp.net');
+  if (chatId.endsWith('@c.us') || chatId.endsWith('@s.whatsapp.net') || chatId.endsWith('@lid')) return '';
+  return 'unsupported_chat_id';
+}
+
+function isCustomerDmCtx(ctx, globalConf) {
+  return !dmDropReason(ctx, globalConf);
 }
 
 async function canAccess(access, ctx, roleName) {
@@ -306,6 +303,7 @@ module.exports = {
       'replyTicketNotFound',
       'replyTicketClosed',
       'replyReplySent',
+      'replyMediaFailed',
       'replyMediaSendPrefer',
       'replyMediaMaxTries',
       'replyMediaRetryBaseMs',
@@ -623,11 +621,10 @@ module.exports = {
     }
 
     async function onDmMessage(ctx) {
-      if (!ctx || ctx.isGroup) return;
-
-      if (!isCustomerDmCtx(ctx, globalConf)) {
-        if (bugLog && (isFromMeCtx(ctx) || isStatusBroadcastCtx(ctx) || isInternalIdentityCtx(ctx) || isInternalOpsCtx(ctx, globalConf))) {
-          meta.log(tag, `drop inbound_non_customer chatId=${text(ctx.chatId)} senderId=${idFromCtx(ctx)}`);
+      const dropReason = dmDropReason(ctx, globalConf);
+      if (dropReason) {
+        if (bugLog) {
+          meta.log(tag, `drop inbound_non_customer reason=${dropReason} chatId=${text(ctx && ctx.chatId)} senderId=${idFromCtx(ctx)}`);
         }
         return;
       }

@@ -100,6 +100,7 @@ module.exports.init = async function init(meta) {
   const defaultRole = normalizeRole(cfg.defaultRole, '');
   const bootstrapFirstOwner = toBool(cfg.bootstrapFirstOwner, true);
   const ownerSeedList = toList(cfg.ownerSeedList).map(normalizePrincipal).filter(Boolean);
+  const ownerSeedRole = normalizeRole(cfg.ownerSeedRole, '');
 
   const cmdRole = toStr(cfg.cmdRole, '');
   const actionSet = toStr(cfg.actionSet, '');
@@ -115,6 +116,7 @@ module.exports.init = async function init(meta) {
   const msgDelOk = toStr(cfg.msgDelOk, '');
   const msgNotFound = toStr(cfg.msgNotFound, '');
   const msgMe = toStr(cfg.msgMe, '');
+  const msgRole = toStr(cfg.msgRole, '');
   const msgListPrefix = toStr(cfg.msgListPrefix, '');
 
   const controlGroupId = toStr(globalConf.controlGroupId, '');
@@ -138,8 +140,10 @@ module.exports.init = async function init(meta) {
     msgDelOk,
     msgNotFound,
     msgMe,
+    msgRole,
     msgListPrefix
   ];
+  if (ownerSeedList.length > 0) required.push(ownerSeedRole);
   for (let i = 0; i < required.length; i += 1) {
     if (!required[i]) {
       if (bugLog) meta.log('AccessRolesCV', 'safe_disabled required_config_missing');
@@ -180,18 +184,45 @@ module.exports.init = async function init(meta) {
     if (bugLog) meta.log('AccessRolesCV', 'load_assignments_failed err=' + String(e && e.message ? e.message : e));
   }
 
-  function hasPrivilegedRole() {
-    const keys = Object.keys(assignments);
-    for (let i = 0; i < keys.length; i += 1) {
-      const role = normalizeRole(assignments[keys[i]], defaultRole);
-      if (role === 'owner' || role === 'admin') return true;
-    }
-    return false;
+  function hasAssignments() {
+    return Object.keys(assignments).length > 0;
   }
 
   async function saveAssignments() {
     await store.set(storeKey, assignments);
   }
+
+  async function bootstrapSeedAssignmentsAtInit() {
+    if (!bootstrapFirstOwner) return;
+    if (hasAssignments()) {
+      if (detailLog || traceLog) meta.log('AccessRolesCV', 'bootstrap_seed_init_skipped existing_assignments=1');
+      return;
+    }
+    if (ownerSeedList.length < 1) {
+      if (detailLog || traceLog) meta.log('AccessRolesCV', 'bootstrap_seed_init_skipped ownerSeedList_empty=1');
+      return;
+    }
+    if (!ownerSeedRole) {
+      if (bugLog) meta.log('AccessRolesCV', 'bootstrap_seed_init_skipped ownerSeedRole_invalid');
+      return;
+    }
+
+    let added = 0;
+    for (let i = 0; i < ownerSeedList.length; i += 1) {
+      const seed = ownerSeedList[i];
+      if (!seed) continue;
+      if (Object.prototype.hasOwnProperty.call(assignments, seed)) continue;
+      assignments[seed] = ownerSeedRole;
+      added += 1;
+    }
+
+    if (added > 0) {
+      await saveAssignments();
+      if (moduleLog) meta.log('AccessRolesCV', 'bootstrap_seed_init_added count=' + String(added) + ' role=' + ownerSeedRole);
+    }
+  }
+
+  await bootstrapSeedAssignmentsAtInit();
 
   function principalFromCtx(ctx) {
     return normalizePrincipal(firstNonEmpty([
@@ -245,6 +276,14 @@ module.exports.init = async function init(meta) {
     if (ctx && typeof ctx.reply === 'function' && textValue) await ctx.reply(textValue);
   }
 
+  async function replyRole(ctx, template, idKey) {
+    const target = normalizePrincipal(idKey);
+    const message = template
+      .replace('{role}', getRole(target))
+      .replace('{idKey}', target || '');
+    await reply(ctx, message);
+  }
+
   function inControlGroup(ctx) {
     return String(ctx && ctx.chatId || '').trim() === controlGroupId;
   }
@@ -253,7 +292,7 @@ module.exports.init = async function init(meta) {
     const actorKey = normalizePrincipal(actor);
     if (!bootstrapFirstOwner) return;
     if (!actorKey) return;
-    if (hasPrivilegedRole()) return;
+    if (hasAssignments()) return;
 
     if (ownerSeedList.length < 1) {
       if (bugLog) meta.log('AccessRolesCV', 'safe_disabled bootstrap_owner_seed_missing');
@@ -263,7 +302,7 @@ module.exports.init = async function init(meta) {
     const seeded = ownerSeedList.indexOf(actorKey) >= 0;
     if (!seeded) return;
 
-    assignments[actorKey] = 'owner';
+    assignments[actorKey] = ownerSeedRole;
     await saveAssignments();
     if (moduleLog) meta.log('AccessRolesCV', 'bootstrap_owner_assigned actor=' + actorKey);
   }
@@ -277,19 +316,30 @@ module.exports.init = async function init(meta) {
     }
 
     const args = ctx && ctx.command && Array.isArray(ctx.command.args) ? ctx.command.args.slice() : [];
-    const action = toStr(args.shift(), actionMe).toLowerCase();
+    const actionRaw = toStr(args.shift(), '');
+    const action = actionRaw.toLowerCase();
 
-    if (action === actionMe) {
-      await tryBootstrapOwner(actor);
-      const actorRole = getRole(actor);
-      const message = msgMe
-        .replace('{role}', actorRole)
-        .replace('{idKey}', actor || '');
-      await reply(ctx, message);
+    await tryBootstrapOwner(actor);
+
+    if (!action || action === actionMe) {
+      await replyRole(ctx, msgMe, actor);
       return;
     }
 
-    await tryBootstrapOwner(actor);
+    if (action !== actionList && action !== actionSet && action !== actionDel) {
+      const target = targetFromArg(actionRaw);
+      if (target === actor) {
+        await replyRole(ctx, msgMe, actor);
+        return;
+      }
+      if (!hasAtLeast(actor, 'admin')) {
+        await reply(ctx, msgNoAccess);
+        return;
+      }
+      await replyRole(ctx, msgRole, target);
+      return;
+    }
+
     const canManage = hasAtLeast(actor, 'owner');
     if (!canManage) {
       await reply(ctx, msgNoAccess);

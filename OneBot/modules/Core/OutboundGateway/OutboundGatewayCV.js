@@ -104,6 +104,15 @@ module.exports.init = async function init(meta) {
 
   const blockLogMap = new Map();
 
+  let sendChain = Promise.resolve();
+
+  async function runSerializedSend(chatId, payload, opts) {
+    const previous = sendChain.catch(() => {});
+    const current = previous.then(async () => await sendBase(chatId, payload, opts));
+    sendChain = current.catch(() => {});
+    return await current;
+  }
+
   function shouldLogBlock(chatId) {
     const now = Date.now();
     const prev = Number(blockLogMap.get(chatId) || 0);
@@ -144,7 +153,7 @@ module.exports.init = async function init(meta) {
       meta.log('OutboundGatewayCV', 'og_senddirect chatId=' + outChatId + ' payloadType=' + (typeof payload === 'string' ? 'text' : 'media') + ' baseSend=' + baseSend);
     }
 
-    const res = await sendBase(outChatId, payload, opts);
+    const res = await runSerializedSend(outChatId, payload, opts);
 
     if (ratelimit && typeof ratelimit.commit === 'function' && !bypassRateLimit) {
       ratelimit.commit(outChatId, payload, opts);

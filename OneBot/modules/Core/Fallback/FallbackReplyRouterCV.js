@@ -594,6 +594,7 @@ function create(deps) {
 
     if (!result || !result.ok) {
       if (isMediaReply && result && (result.code === 'media_download_failed' || result.code === 'send_missing' || result.code === 'send_error')) {
+        await deps.sendStaffReply(ctx, cfg.replyMediaFailed);
         return;
       }
       if (result && result.code === 'group_only') {

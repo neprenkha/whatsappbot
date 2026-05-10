@@ -1,5 +1,7 @@
 'use strict';
 
+const crypto = require('crypto');
+
 function asText(value, fallback) {
   const text = String(value === undefined || value === null ? '' : value).trim();
   return text || String(fallback === undefined || fallback === null ? '' : fallback).trim();
@@ -46,13 +48,44 @@ function readSettingBool(conf, key) {
   throw new Error('config_invalid_' + key);
 }
 
+function hashText(value) {
+  return crypto.createHash('sha256').update(String(value === undefined || value === null ? '' : value)).digest('hex');
+}
+
 function payloadKey(payload) {
-  if (typeof payload === 'string') return payload.slice(0, 200);
-  try {
-    return JSON.stringify(payload).slice(0, 400);
-  } catch (err) {
-    return String(payload).slice(0, 400);
+  if (typeof payload === 'string') return 'text:' + hashText(payload);
+
+  if (payload && typeof payload === 'object') {
+    const parts = [
+      'object',
+      payload.constructor && payload.constructor.name ? payload.constructor.name : '',
+      payload.mimetype || '',
+      payload.filename || '',
+      payload.caption || '',
+      payload.type || '',
+      payload.mediaKey || '',
+      payload.directPath || '',
+      payload.clientUrl || '',
+      payload.id && payload.id._serialized ? payload.id._serialized : '',
+      payload._data && payload._data.id && payload._data.id._serialized ? payload._data.id._serialized : '',
+      payload._data && payload._data.type ? payload._data.type : '',
+      payload._data && payload._data.mimetype ? payload._data.mimetype : '',
+      payload._data && payload._data.filename ? payload._data.filename : '',
+    ];
+
+    if (typeof payload.data === 'string') {
+      parts.push('dataLen=' + String(payload.data.length));
+      parts.push('dataHash=' + hashText(payload.data));
+    }
+
+    try {
+      return 'media:' + hashText(parts.join('|'));
+    } catch (err) {
+      return 'object:' + hashText(String(payload));
+    }
   }
+
+  return 'other:' + hashText(String(payload));
 }
 
 function optionsKey(options) {
