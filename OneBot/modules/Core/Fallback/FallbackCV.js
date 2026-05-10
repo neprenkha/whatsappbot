@@ -168,7 +168,7 @@ function inferMediaKindFromDownloadedMedia(ctx, mediaObj, fallbackKind) {
 
 function canDownloadMedia(ctx) {
   const msg = messageObjFromCtx(ctx);
-  return !!(msg && typeof msg.downloadMedia === 'function' && hasMediaMarkersFromCtx(ctx));
+  return !!(msg && typeof msg.downloadMedia === 'function');
 }
 
 function idFromCtx(ctx) {

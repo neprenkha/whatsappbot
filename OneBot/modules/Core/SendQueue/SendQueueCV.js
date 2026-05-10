@@ -97,6 +97,16 @@ function optionsKey(options) {
   });
 }
 
+
+function classifyOptions(options) {
+  const opts = options && typeof options === 'object' ? options : {};
+  if (opts.manualReply === 1 || opts.manualReply === true) return 'manual';
+  if (opts.isAuto === 0 || opts.isAuto === false) return 'manual';
+  if (opts.bypassRateLimit === 1 || opts.bypassRateLimit === true) return 'manual';
+  if (opts.isAuto === 1 || opts.isAuto === true) return 'auto';
+  return 'unknown';
+}
+
 function errText(err) {
   if (!err) return '';
   if (typeof err === 'string') return err;
@@ -263,13 +273,13 @@ module.exports = {
       const opts = buildOptions(options);
       const priority = isPriorityOptions(opts);
 
-      if (dedupeMs > 0) {
+      if (dedupeMs > 0 && !priority) {
         const now = Date.now();
         pruneDedupe(now);
         const key = makeDedupe(chat, payload, opts);
         const seenAt = Number(dedupeMap.get(key) || 0);
         if (seenAt > 0 && now - seenAt < dedupeMs) {
-          if (dedupeLog && moduleLog) log(tag, 'dedupe.drop chatId=' + chat);
+          if (dedupeLog && moduleLog) log(tag, 'dedupe.drop chatId=' + chat + ' source=' + classifyOptions(opts));
           return 0;
         }
         dedupeMap.set(key, now);

@@ -69,6 +69,19 @@ function makeBlocked(reason, waitMs) {
   return err;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
+
+function errText(err) {
+  return String((err && (err.code || err.reason || err.message)) || err || '');
+}
+
+function isRetryableTransportError(err) {
+  const msg = errText(err).toLowerCase();
+  return msg.includes('runtime.callfunctionon') || msg.includes('promise was collected') || msg.includes('timed out') || msg.includes('target closed') || msg.includes('session closed');
+}
+
 module.exports.init = async function init(meta) {
   const cfg = meta && meta.implConf ? meta.implConf : {};
 
@@ -90,6 +103,9 @@ module.exports.init = async function init(meta) {
   const services = splitCsv(toStr(cfg.services, toStr(globalConf.sendPrefer, 'sendout,outsend')));
   const bypassChatIds = new Set(splitCsv(toStr(cfg.bypassChatIds, toStr(globalConf.controlGroupId, ''))));
   const rateLimitLogDebounceMs = Math.max(0, toInt(cfg.rateLimitLogDebounceMs, 30000));
+  const transportRetryMax = Math.max(1, toInt(cfg.transportRetryMax, 1));
+  const transportRetryDelayMs = Math.max(0, toInt(cfg.transportRetryDelayMs, 0));
+  const transportGapMs = Math.max(0, toInt(cfg.transportGapMs, 0));
 
   const sendBase = resolveSend(meta, baseSend);
   if (!sendBase) {
@@ -108,7 +124,24 @@ module.exports.init = async function init(meta) {
 
   async function runSerializedSend(chatId, payload, opts) {
     const previous = sendChain.catch(() => {});
-    const current = previous.then(async () => await sendBase(chatId, payload, opts));
+    const current = previous.then(async () => {
+      let lastErr = null;
+      for (let attempt = 1; attempt <= transportRetryMax; attempt += 1) {
+        try {
+          const res = await sendBase(chatId, payload, opts);
+          if (transportGapMs > 0) await sleep(transportGapMs);
+          return res;
+        } catch (err) {
+          lastErr = err;
+          if (attempt >= transportRetryMax || !isRetryableTransportError(err)) throw err;
+          if (detailLog || traceLog) {
+            meta.log('OutboundGatewayCV', 'transport_retry chatId=' + chatId + ' attempt=' + String(attempt + 1) + ' err=' + errText(err));
+          }
+          if (transportRetryDelayMs > 0) await sleep(transportRetryDelayMs);
+        }
+      }
+      throw lastErr || new Error('transport.send_failed');
+    });
     sendChain = current.catch(() => {});
     return await current;
   }
@@ -175,7 +208,7 @@ module.exports.init = async function init(meta) {
   }
 
   if (moduleLog) {
-    meta.log('OutboundGatewayCV', 'ready baseSend=' + baseSend + ' ratelimitService=' + ratelimitService + ' exportServices=' + published.join(','));
+    meta.log('OutboundGatewayCV', 'ready baseSend=' + baseSend + ' ratelimitService=' + ratelimitService + ' exportServices=' + published.join(',') + ' transportRetryMax=' + String(transportRetryMax) + ' transportGapMs=' + String(transportGapMs));
   }
 
   return { onMessage: async () => {}, onEvent: async () => {} };

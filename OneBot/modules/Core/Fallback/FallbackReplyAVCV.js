@@ -66,9 +66,7 @@ function avTypeOf(staffMsg) {
 }
 
 function hasDownloadableMedia(staffMsg) {
-  if (!staffMsg || typeof staffMsg.downloadMedia !== 'function') return false;
-  if (staffMsg.hasMedia === true) return true;
-  return !!avTypeOf(staffMsg);
+  return !!(staffMsg && typeof staffMsg.downloadMedia === 'function');
 }
 
 function normalizeSendKind(initialKind, mediaObj, staffMsg) {

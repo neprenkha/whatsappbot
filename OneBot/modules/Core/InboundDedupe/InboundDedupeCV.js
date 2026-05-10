@@ -220,6 +220,7 @@ module.exports.init = async function init(meta) {
   const keyMode = toStr(cfg.keyMode, 'all');
   const skipWhenFromMe = toBool(cfg.skipWhenFromMe, false);
   const skipWhenCommand = toBool(cfg.skipWhenCommand, false);
+  const requireRawIdForDedupe = toBool(cfg.requireRawIdForDedupe, false);
   const commandPrefixes = toList(cfg.commandPrefixes, ['!', '/', '#']);
 
   const seenMap = new Map();
@@ -262,6 +263,11 @@ module.exports.init = async function init(meta) {
   }
 
   function buildParts(ev) {
+    if (requireRawIdForDedupe) {
+      const rawId = normalizeValue(ev.rawId);
+      if (!rawId) return [];
+      return [normalizeValue(ev.chatId) || '-', normalizeValue(ev.senderId) || '-', normalizeValue(ev.fromMe) || '-', rawId];
+    }
     const parts = [];
     for (let i = 0; i < keyFields.length; i += 1) {
       const p = keyFields[i];
@@ -299,7 +305,7 @@ module.exports.init = async function init(meta) {
       const exp = Number(seenMap.get(key) || 0);
       if (exp > nowMs) {
         if (traceLog || detailLog) {
-          meta.log('InboundDedupeCV', 'dedupe_drop chatId=' + toStr(ev.chatId, '') + ' key=' + key.slice(0, 160));
+          meta.log('InboundDedupeCV', 'dedupe_drop chatId=' + toStr(ev.chatId, '') + ' source=rawId');
         }
         if (ctx && typeof ctx.stopPropagation === 'function') ctx.stopPropagation();
         return;
@@ -312,7 +318,7 @@ module.exports.init = async function init(meta) {
   }
 
   if (moduleLog) {
-    meta.log('InboundDedupeCV', 'ready dedupeMs=' + String(dedupeMs) + ' maxKeys=' + String(maxKeys) + ' keyMode=' + keyMode + ' keyFields=' + keyFields.join(','));
+    meta.log('InboundDedupeCV', 'ready dedupeMs=' + String(dedupeMs) + ' maxKeys=' + String(maxKeys) + ' keyMode=' + keyMode + ' keyFields=' + keyFields.join(',') + ' requireRawIdForDedupe=' + (requireRawIdForDedupe ? '1' : '0'));
   }
 
   return {

@@ -293,17 +293,26 @@ function mediaGroupKeyFromCtx(ctx) {
   );
 }
 
-function sessionKeyFromCtx(ctx) {
+function sessionKeysFromCtx(ctx) {
   const chatKey = chatKeyFromCtx(ctx);
   const senderKey = senderKeyFromCtx(ctx);
-  if (!chatKey || !senderKey) return '';
-  return `${chatKey}::${senderKey}`;
+  const mediaGroupKey = mediaGroupKeyFromCtx(ctx);
+  const keys = [];
+  if (chatKey && senderKey) keys.push({ key: `${chatKey}::sender::${senderKey}`, basis: 'sender' });
+  if (chatKey && mediaGroupKey) keys.push({ key: `${chatKey}::mediagroup::${keyText(mediaGroupKey)}`, basis: 'mediaGroup' });
+  if (chatKey) keys.push({ key: `${chatKey}::chatwindow`, basis: 'chatWindow' });
+  return keys;
+}
+
+function isContinuationAllowedMessage(ctx, parsed) {
+  if (parsed && (parsed.bindParsed || parsed.moveParsed || parsed.quickParsed || parsed.commandParsed || parsed.hasQuotedContext || parsed.explicitTicket)) return false;
+  return !!(hasMediaCtx(ctx) || messageTextFromCtx(ctx));
 }
 
 function create(deps) {
   const cfg = deps.cfg;
   const recentQuoteReplyMap = new Map();
-  const bulkWindowMs = Math.max(1000, toInt(cfg.replyMediaDownloadTimeoutMs, 15000));
+  const bulkWindowMs = Math.max(1000, toInt(cfg.replyBulkWindowMs, 15000));
 
   function cleanupReplySessions(nowMs) {
     for (const [key, value] of recentQuoteReplyMap.entries()) {
@@ -314,38 +323,47 @@ function create(deps) {
   }
 
   function rememberReplySession(ctx, ticketId) {
-    const key = sessionKeyFromCtx(ctx);
-    if (!key || !ticketId) return;
+    const keys = sessionKeysFromCtx(ctx);
+    if (!keys.length || !ticketId) return;
     const mediaGroupKey = mediaGroupKeyFromCtx(ctx);
-    recentQuoteReplyMap.set(key, {
+    const row = {
       ticketId: text(ticketId),
       chatKey: chatKeyFromCtx(ctx),
       senderKey: senderKeyFromCtx(ctx),
       mediaGroupKey: text(mediaGroupKey),
       expiresAtMs: Date.now() + bulkWindowMs,
-    });
+    };
+    for (const item of keys) recentQuoteReplyMap.set(item.key, Object.assign({ basis: item.basis }, row));
   }
 
-  function resolveContinuationTicketId(ctx) {
-    const key = sessionKeyFromCtx(ctx);
-    if (!key) return '';
-    const row = recentQuoteReplyMap.get(key);
-    if (!row) return '';
+  function resolveContinuation(ctx, parsed) {
+    if (!isContinuationAllowedMessage(ctx, parsed)) return { ticketId: '', basis: '' };
+
+    const keys = sessionKeysFromCtx(ctx);
+    if (!keys.length) return { ticketId: '', basis: '' };
 
     const nowMs = Date.now();
-    if (Number(row.expiresAtMs || 0) <= nowMs) {
-      recentQuoteReplyMap.delete(key);
-      return '';
-    }
-
     const currentMediaGroupKey = mediaGroupKeyFromCtx(ctx);
-    if (text(row.mediaGroupKey) && currentMediaGroupKey && text(row.mediaGroupKey) !== text(currentMediaGroupKey)) {
-      return '';
-    }
+    const currentSenderKey = senderKeyFromCtx(ctx);
+    const currentChatKey = chatKeyFromCtx(ctx);
 
-    row.expiresAtMs = nowMs + bulkWindowMs;
-    recentQuoteReplyMap.set(key, row);
-    return text(row.ticketId);
+    for (const item of keys) {
+      const row = recentQuoteReplyMap.get(item.key);
+      if (!row) continue;
+      if (Number(row.expiresAtMs || 0) <= nowMs) {
+        recentQuoteReplyMap.delete(item.key);
+        continue;
+      }
+      if (text(row.chatKey) && currentChatKey && text(row.chatKey) !== currentChatKey) continue;
+      if (text(row.senderKey) && currentSenderKey && text(row.senderKey) !== currentSenderKey) continue;
+      if (text(row.mediaGroupKey) && currentMediaGroupKey && text(row.mediaGroupKey) !== text(currentMediaGroupKey)) continue;
+      if (item.basis === 'chatWindow' && text(row.mediaGroupKey) && currentMediaGroupKey && text(row.mediaGroupKey) !== text(currentMediaGroupKey)) continue;
+
+      row.expiresAtMs = nowMs + bulkWindowMs;
+      recentQuoteReplyMap.set(item.key, row);
+      return { ticketId: text(row.ticketId), basis: item.basis || text(row.basis) || 'chatWindow' };
+    }
+    return { ticketId: '', basis: '' };
   }
 
   async function onGroupMessage(ctx) {
@@ -377,10 +395,20 @@ function create(deps) {
       contextQuotedText
     );
     const explicitTicket = explicitQuotedTicketId || text(commandParsed && commandParsed.ticketId) || text(quickParsed && quickParsed.ticketId);
-    const continuationTicketId = !explicitTicket && !hasQuotedContext && !bindParsed && !moveParsed && !quickParsed && !commandParsed && hasMediaCtx(ctx)
-      ? resolveContinuationTicketId(ctx)
-      : '';
+    const continuation = resolveContinuation(ctx, {
+      bindParsed,
+      moveParsed,
+      quickParsed,
+      commandParsed,
+      hasQuotedContext,
+      explicitTicket,
+    });
+    const continuationTicketId = text(continuation.ticketId);
+    const continuationBasis = text(continuation.basis);
     const hasTicket = !!(explicitTicket || continuationTicketId);
+    if (deps && (deps.detailLog || deps.traceLog) && typeof deps.log === 'function') {
+      deps.log('reply_route source=' + (continuationTicketId ? 'quote_bulk' : (hasQuotedContext ? 'quote' : 'none')) + ' ticketId=' + text(explicitTicket || continuationTicketId) + ' hasQuotedContext=' + (hasQuotedContext ? '1' : '0') + ' continuationHit=' + (continuationTicketId ? '1' : '0') + ' continuationBasis=' + (continuationBasis || 'none'));
+    }
     const attempted = !!(hasQuotedContext || hasTicket || bindParsed || moveParsed || quickParsed || commandParsed);
     if (!attempted) return;
 
@@ -529,6 +557,7 @@ function create(deps) {
       payload = {
         source: 'quote_bulk',
         ticketId: continuationTicketId,
+        continuationBasis,
         body: messageTextFromCtx(ctx),
       };
     }
@@ -621,9 +650,9 @@ function create(deps) {
       return;
     }
 
-    if (isMediaReply) {
+    if (payload.source === 'quote' || payload.source === 'quote_bulk') {
       rememberReplySession(ctx, ticketId);
-    } else {
+    } else if (!isMediaReply) {
       cleanupReplySessions(0);
     }
 
