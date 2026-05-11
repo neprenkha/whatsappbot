@@ -23,6 +23,25 @@ function toInt(value, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+async function withTimeout(promise, timeoutMs, code) {
+  const ms = Math.max(1, toInt(timeoutMs, 1));
+  let timer = null;
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          const err = new Error(text(code) || 'operation_timeout');
+          err.code = text(code) || 'operation_timeout';
+          reject(err);
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function parseTicketRef(spec) {
   const raw = text(spec);
   const parts = raw.split(':');
@@ -257,24 +276,40 @@ function buildControlGroupForwardOptions(lastInboundAtMs) {
   };
 }
 
-function buildInboundDisplayText(kind, captionText, fileName, bodyText) {
+function inboundMediaLabel(cfg, kind) {
   const mediaKind = text(kind).toLowerCase();
+  if (mediaKind === 'document') return text(cfg && cfg.inboundDocumentLabel);
+  if (mediaKind === 'image') return text(cfg && cfg.inboundImageLabel);
+  if (mediaKind === 'video') return text(cfg && cfg.inboundVideoLabel);
+  if (mediaKind === 'audio') return text(cfg && cfg.inboundAudioLabel);
+  if (mediaKind === 'ptt') return text(cfg && cfg.inboundPttLabel);
+  return text(cfg && cfg.inboundMediaLabel);
+}
+
+function inboundDownloadTimeoutMs(cfg, kind) {
+  const mediaKind = text(kind).toLowerCase();
+  if (mediaKind === 'audio' || mediaKind === 'video' || mediaKind === 'ptt') {
+    const av = toInt(cfg && cfg.replyAVDownloadTimeoutMs, 0);
+    if (av > 0) return av;
+  }
+  return Math.max(1, toInt(cfg && cfg.replyMediaDownloadTimeoutMs, 1));
+}
+
+function buildInboundDisplayText(cfg, kind, captionText, fileName, bodyText) {
   const caption = text(captionText);
   const name = text(fileName);
   const body = text(bodyText);
   if (caption) return caption;
   if (name) return name;
   if (body) return body;
-  if (mediaKind === 'document') return '[document]';
-  if (mediaKind === 'image') return '[image]';
-  if (mediaKind === 'video') return '[video]';
-  if (mediaKind === 'audio') return '[audio]';
-  if (mediaKind === 'ptt') return '[voice]';
-  return '[media]';
+  return inboundMediaLabel(cfg, kind) || text(cfg && cfg.inboundMediaLabel);
 }
 
-module.exports = {
-  init: async (meta) => {
+function mediaLogKind(kind) {
+  return text(kind) || 'none';
+}
+
+module.exports.init = async function init(meta) {
     const tag = 'FallbackCV';
     const cfg = meta && meta.implConf ? meta.implConf : {};
 
@@ -310,6 +345,13 @@ module.exports = {
       'replyMediaRetryJitterMs',
       'replyMediaGapMs',
       'replyMediaDownloadTimeoutMs',
+      'replyAVDownloadTimeoutMs',
+      'inboundImageLabel',
+      'inboundDocumentLabel',
+      'inboundAudioLabel',
+      'inboundVideoLabel',
+      'inboundPttLabel',
+      'inboundMediaLabel',
       'replyAudioAsVoice',
       'replyVideoAsDocument',
       'moduleLog',
@@ -324,7 +366,10 @@ module.exports = {
       if (typeof v === 'string' && v.trim() === '') return true;
       return false;
     });
+    const moduleLog = toBool(cfg.moduleLog);
     const bugLog = toBool(cfg.bugLog);
+    const detailLog = toBool(cfg.detailLog);
+    const traceLog = toBool(cfg.traceLog);
 
     if (missing.length) {
       if (bugLog) meta.log(tag, `disabled missing_keys=${missing.join(',')}`);
@@ -606,11 +651,16 @@ module.exports = {
           });
 
           const lastInboundAtMs = Number(entry.lastAt || (ticketRow && ticketRow.lastInboundAt) || 0);
+          if (moduleLog || detailLog || traceLog) {
+            meta.log(tag, `ticket_item_count ticketId=${entry.ticketId} chatId=${entry.chatId} count=${entry.messages.length}`);
+          }
           if (cardText) {
-            await sendFn(targetChat, cardText, buildControlGroupForwardOptions(lastInboundAtMs));
+            const cardResult = await sendFn(targetChat, cardText, buildControlGroupForwardOptions(lastInboundAtMs));
+            if (detailLog || traceLog) meta.log(tag, `forward_send_result ticketId=${entry.ticketId} chatId=${entry.chatId} kind=card result=${text(cardResult || 'ok')}`);
           }
           if (consolidated) {
-            await sendFn(targetChat, consolidated, buildControlGroupForwardOptions(lastInboundAtMs));
+            const batchResult = await sendFn(targetChat, consolidated, buildControlGroupForwardOptions(lastInboundAtMs));
+            if (detailLog || traceLog) meta.log(tag, `forward_send_result ticketId=${entry.ticketId} chatId=${entry.chatId} kind=batch result=${text(batchResult || 'ok')}`);
           }
         } catch (e) {
           if (bugLog) meta.log(tag, `bug burst_flush_forward_failed ticketId=${entry && entry.ticketId ? entry.ticketId : ''} chatId=${entry && entry.chatId ? entry.chatId : ''} groupKey=${entry && entry.groupKey ? entry.groupKey : ''} err=${text(e && e.message ? e.message : e)}`);
@@ -636,22 +686,31 @@ module.exports = {
       const captionText = captionTextFromCtx(ctx);
       let mediaObj = null;
       let inboundMediaKind = inferMediaKindFromCtx(ctx);
-      const shouldTryDownload = canDownloadMedia(ctx);
+      const hasMediaMarkers = hasMediaMarkersFromCtx(ctx);
+      const shouldTryDownload = hasMediaMarkers && canDownloadMedia(ctx);
+      if (detailLog || traceLog) {
+        meta.log(tag, `inbound_item_seen chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)} hasMediaMarkers=${hasMediaMarkers ? '1' : '0'} hasDownloadMedia=${shouldTryDownload ? '1' : '0'} bodyLen=${bodyText.length} captionLen=${captionText.length}`);
+      }
       if (shouldTryDownload) {
         try {
-          mediaObj = await ctx.message.downloadMedia();
+          mediaObj = await withTimeout(ctx.message.downloadMedia(), inboundDownloadTimeoutMs(cfg, inboundMediaKind), 'inbound_media_download_timeout');
         } catch (e) {
           mediaObj = null;
-          if (bugLog) meta.log(tag, `bug inbound_media_download_failed chatId=${chatId} err=${text(e && e.message ? e.message : e)}`);
+          if (bugLog) meta.log(tag, `bug inbound_item_download_failed chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)} err=${text((e && (e.code || e.message)) || e)}`);
         }
+      } else if (hasMediaMarkers && bugLog) {
+        meta.log(tag, `bug inbound_item_download_failed chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)} err=missing_downloadMedia`);
       }
 
       if (mediaObj) {
         inboundMediaKind = inferMediaKindFromDownloadedMedia(ctx, mediaObj, inboundMediaKind);
       }
 
-      const hasInboundMedia = !!mediaObj;
+      const hasInboundMedia = !!mediaObj || hasMediaMarkers;
       if (hasInboundMedia && !inboundMediaKind) inboundMediaKind = 'document';
+      if (detailLog || traceLog) {
+        meta.log(tag, `inbound_item_classified chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)} hasDownloadedMedia=${mediaObj ? '1' : '0'} hasMediaMarkers=${hasMediaMarkers ? '1' : '0'}`);
+      }
       if (!bodyText && !captionText && !hasInboundMedia) return;
 
       const tickets = await loadTicketState();
@@ -713,9 +772,12 @@ module.exports = {
       const resolvedFileName = text(mediaObj && mediaObj.filename) || mediaFileNameFromCtx(ctx);
       const resolvedMimeType = text(mediaObj && mediaObj.mimetype) || mediaMimeTypeFromCtx(ctx);
       const displayText = hasInboundMedia
-        ? buildInboundDisplayText(inboundMediaKind, captionText, resolvedFileName, bodyText)
+        ? buildInboundDisplayText(cfg, inboundMediaKind, captionText, resolvedFileName, bodyText)
         : bodyText;
       if (displayText) current.messages.push(displayText);
+      if (detailLog || traceLog) {
+        meta.log(tag, `inbound_item_buffered ticketId=${ticket.ticketId} chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)} count=${current.messages.length}`);
+      }
       if (current.messages.length > msgBufferMax) {
         current.messages = current.messages.slice(current.messages.length - msgBufferMax);
       }
@@ -723,23 +785,26 @@ module.exports = {
       burstState.set(burstKey, current);
       scheduleBurstFlush(chatId, ticket.ticketId);
 
-      if (hasInboundMedia) {
+      if (mediaObj) {
         try {
           const targetChat = await resolveTargetGroup(groupKey, ctx);
           if (targetChat) {
             if (!text(mediaObj.filename) && resolvedFileName) mediaObj.filename = resolvedFileName;
             if (!text(mediaObj.mimetype) && resolvedMimeType) mediaObj.mimetype = resolvedMimeType;
-            await sendFn(
+            const forwardResult = await sendFn(
               targetChat,
               mediaObj,
               buildInboundMediaOptions(cfg, inboundMediaKind, captionText, Number(current.lastAt || 0))
             );
+            if (detailLog || traceLog) meta.log(tag, `forward_send_result ticketId=${ticket.ticketId} chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)} result=${text(forwardResult || 'ok')}`);
           } else if (bugLog) {
             meta.log(tag, `bug inbound_media_forward_skipped ticketId=${ticket.ticketId} hasMedia=1 hasTarget=0`);
           }
         } catch (e) {
-          if (bugLog) meta.log(tag, `bug inbound_media_forward_failed ticketId=${ticket.ticketId} chatId=${chatId} groupKey=${groupKey} kind=${inboundMediaKind} err=${text(e && e.message ? e.message : e)}`);
+          if (bugLog) meta.log(tag, `bug inbound_media_forward_failed ticketId=${ticket.ticketId} chatId=${chatId} groupKey=${groupKey} kind=${mediaLogKind(inboundMediaKind)} err=${text(e && e.message ? e.message : e)}`);
         }
+      } else if (hasInboundMedia && bugLog) {
+        meta.log(tag, `bug inbound_media_forward_stub_only ticketId=${ticket.ticketId} chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)}`);
       }
 
       await sendFn(chatId, text(cfg.inboundAckTemplate), { isAuto: 1, manualReply: 0 });
@@ -887,5 +952,4 @@ module.exports = {
       },
       onEvent: async () => {},
     };
-  },
 };

@@ -77,7 +77,23 @@ function errText(err) {
   return String((err && (err.code || err.reason || err.message)) || err || '');
 }
 
+function readRequiredPositiveInt(cfg, key) {
+  if (!Object.prototype.hasOwnProperty.call(cfg || {}, key)) throw new Error('config_missing_' + key);
+  const n = toInt(cfg[key], NaN);
+  if (!Number.isFinite(n) || n <= 0) throw new Error('config_invalid_' + key);
+  return n;
+}
+
+function makeTransportTimeoutError(timeoutMs) {
+  const err = new Error('transport_timeout');
+  err.code = 'transport_timeout';
+  err.timeoutMs = timeoutMs;
+  return err;
+}
+
 function isRetryableTransportError(err) {
+  const code = String((err && err.code) || '').toLowerCase();
+  if (code === 'transport_timeout') return true;
   const msg = errText(err).toLowerCase();
   return msg.includes('runtime.callfunctionon') || msg.includes('promise was collected') || msg.includes('timed out') || msg.includes('target closed') || msg.includes('session closed');
 }
@@ -103,6 +119,13 @@ module.exports.init = async function init(meta) {
   const services = splitCsv(toStr(cfg.services, toStr(globalConf.sendPrefer, 'sendout,outsend')));
   const bypassChatIds = new Set(splitCsv(toStr(cfg.bypassChatIds, toStr(globalConf.controlGroupId, ''))));
   const rateLimitLogDebounceMs = Math.max(0, toInt(cfg.rateLimitLogDebounceMs, 30000));
+  let transportSendTimeoutMs = 0;
+  try {
+    transportSendTimeoutMs = readRequiredPositiveInt(cfg, 'transportSendTimeoutMs');
+  } catch (e) {
+    if (bugLog) meta.log('OutboundGatewayCV', 'config_validation_failed err=' + errText(e));
+    throw e;
+  }
   const transportRetryMax = Math.max(1, toInt(cfg.transportRetryMax, 1));
   const transportRetryDelayMs = Math.max(0, toInt(cfg.transportRetryDelayMs, 0));
   const transportGapMs = Math.max(0, toInt(cfg.transportGapMs, 0));
@@ -122,13 +145,27 @@ module.exports.init = async function init(meta) {
 
   let sendChain = Promise.resolve();
 
+  async function sendBaseWithTimeout(chatId, payload, opts) {
+    let timer = null;
+    try {
+      return await Promise.race([
+        sendBase(chatId, payload, opts),
+        new Promise((resolve, reject) => {
+          timer = setTimeout(() => reject(makeTransportTimeoutError(transportSendTimeoutMs)), transportSendTimeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
   async function runSerializedSend(chatId, payload, opts) {
     const previous = sendChain.catch(() => {});
     const current = previous.then(async () => {
       let lastErr = null;
       for (let attempt = 1; attempt <= transportRetryMax; attempt += 1) {
         try {
-          const res = await sendBase(chatId, payload, opts);
+          const res = await sendBaseWithTimeout(chatId, payload, opts);
           if (transportGapMs > 0) await sleep(transportGapMs);
           return res;
         } catch (err) {
@@ -183,7 +220,7 @@ module.exports.init = async function init(meta) {
     }
 
     if (traceLog || detailLog) {
-      meta.log('OutboundGatewayCV', 'og_senddirect chatId=' + outChatId + ' payloadType=' + (typeof payload === 'string' ? 'text' : 'media') + ' baseSend=' + baseSend);
+      meta.log('OutboundGatewayCV', 'og_senddirect chatId=' + outChatId + ' baseSend=' + baseSend);
     }
 
     const res = await runSerializedSend(outChatId, payload, opts);
@@ -208,7 +245,7 @@ module.exports.init = async function init(meta) {
   }
 
   if (moduleLog) {
-    meta.log('OutboundGatewayCV', 'ready baseSend=' + baseSend + ' ratelimitService=' + ratelimitService + ' exportServices=' + published.join(',') + ' transportRetryMax=' + String(transportRetryMax) + ' transportGapMs=' + String(transportGapMs));
+    meta.log('OutboundGatewayCV', 'ready baseSend=' + baseSend + ' ratelimitService=' + ratelimitService + ' exportServices=' + published.join(',') + ' transportRetryMax=' + String(transportRetryMax) + ' transportGapMs=' + String(transportGapMs) + ' transportSendTimeoutMs=' + String(transportSendTimeoutMs));
   }
 
   return { onMessage: async () => {}, onEvent: async () => {} };
