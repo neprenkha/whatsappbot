@@ -219,7 +219,7 @@ async function sendToCustomer(input) {
 
   for (let attempt = 1; attempt <= maxTries; attempt += 1) {
     try {
-      await send(customerChatId, mediaObj, outOptions);
+      const enqueueId = await send(customerChatId, mediaObj, outOptions);
       if (gapMs > 0) await sleep(gapMs);
       try {
         await markTicketReplied(store, ticketStoreKey, ticketId);
@@ -228,7 +228,7 @@ async function sendToCustomer(input) {
           meta.log('FallbackReplyMediaCV', 'bug ticket_update_failed err=' + text(e && e.message ? e.message : e));
         }
       }
-      return { ok: 1, code: 'sent', targetChatId: customerChatId };
+      return { ok: 1, code: 'sent', targetChatId: customerChatId, enqueueId };
     } catch (e) {
       if (attempt >= maxTries) {
         return { ok: 0, code: 'send_error', error: text(e && e.message ? e.message : e) };

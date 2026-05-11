@@ -305,8 +305,29 @@ function sessionKeysFromCtx(ctx) {
 }
 
 function isContinuationAllowedMessage(ctx, parsed) {
-  if (parsed && (parsed.bindParsed || parsed.moveParsed || parsed.quickParsed || parsed.commandParsed || parsed.hasQuotedContext || parsed.explicitTicket)) return false;
+  if (parsed && (parsed.bindParsed || parsed.moveParsed || parsed.quickParsed || parsed.commandParsed || parsed.explicitTicket)) return false;
   return !!(hasMediaCtx(ctx) || messageTextFromCtx(ctx));
+}
+
+function safeResultCode(result) {
+  if (!result) return 'none';
+  return text(result.code || (result.ok ? 'ok' : 'failed')) || 'none';
+}
+
+function logRoute(deps, detail) {
+  if (!deps || !(deps.detailLog || deps.traceLog || deps.bugLog) || typeof deps.log !== 'function') return;
+  const d = detail && typeof detail === 'object' ? detail : {};
+  deps.log('reply_route source=' + text(d.source || 'none') +
+    ' ticketId=' + text(d.ticketId) +
+    ' mediaKind=' + text(d.mediaKind || 'none') +
+    ' hasQuotedContext=' + (d.hasQuotedContext ? '1' : '0') +
+    ' explicitTicket=' + (d.explicitTicket ? '1' : '0') +
+    ' continuationHit=' + (d.continuationHit ? '1' : '0') +
+    ' continuationBasis=' + text(d.continuationBasis || 'none') +
+    ' handler=' + text(d.handler || 'none') +
+    ' handlerResult=' + text(d.handlerResult || 'none') +
+    ' enqueueId=' + text(d.enqueueId || 'none') +
+    ' sendResult=' + text(d.sendResult || 'none'));
 }
 
 function create(deps) {
@@ -406,9 +427,14 @@ function create(deps) {
     const continuationTicketId = text(continuation.ticketId);
     const continuationBasis = text(continuation.basis);
     const hasTicket = !!(explicitTicket || continuationTicketId);
-    if (deps && (deps.detailLog || deps.traceLog) && typeof deps.log === 'function') {
-      deps.log('reply_route source=' + (continuationTicketId ? 'quote_bulk' : (hasQuotedContext ? 'quote' : 'none')) + ' ticketId=' + text(explicitTicket || continuationTicketId) + ' hasQuotedContext=' + (hasQuotedContext ? '1' : '0') + ' continuationHit=' + (continuationTicketId ? '1' : '0') + ' continuationBasis=' + (continuationBasis || 'none'));
-    }
+    logRoute(deps, {
+      source: continuationTicketId ? 'quote_bulk' : (hasQuotedContext ? 'quote' : 'none'),
+      ticketId: explicitTicket || continuationTicketId,
+      hasQuotedContext,
+      explicitTicket: !!explicitTicket,
+      continuationHit: !!continuationTicketId,
+      continuationBasis,
+    });
     const attempted = !!(hasQuotedContext || hasTicket || bindParsed || moveParsed || quickParsed || commandParsed);
     if (!attempted) return;
 
@@ -537,20 +563,11 @@ function create(deps) {
     }
 
     let payload = null;
-    if (quoteParsed && (quoteParsed.quotedDetected || explicitQuotedTicketId)) {
+    if (quoteParsed && explicitQuotedTicketId) {
       payload = Object.assign({}, quoteParsed, {
         source: 'quote',
-        ticketId: explicitQuotedTicketId || text(quoteParsed.ticketId),
-      });
-    }
-    if (!payload && hasQuotedContext) {
-      payload = {
-        source: 'quote',
-        quotedDetected: true,
-        quotedText: contextQuotedText,
         ticketId: explicitQuotedTicketId,
-        body: messageTextFromCtx(ctx),
-      };
+      });
     }
     if (!payload && commandParsed) payload = commandParsed;
     if (!payload && continuationTicketId) {
@@ -558,6 +575,15 @@ function create(deps) {
         source: 'quote_bulk',
         ticketId: continuationTicketId,
         continuationBasis,
+        body: messageTextFromCtx(ctx),
+      };
+    }
+    if (!payload && hasQuotedContext) {
+      payload = {
+        source: 'quote',
+        quotedDetected: true,
+        quotedText: contextQuotedText,
+        ticketId: explicitQuotedTicketId,
         body: messageTextFromCtx(ctx),
       };
     }
@@ -593,6 +619,17 @@ function create(deps) {
     let result;
     const isMediaReply = !!mediaKind;
     const isAVReply = mediaKind === 'audio' || mediaKind === 'video' || mediaKind === 'ptt';
+    const handler = isMediaReply ? (isAVReply ? 'AV' : 'media') : 'text';
+    logRoute(deps, {
+      source: payload.source,
+      ticketId,
+      mediaKind: mediaKind || (body ? 'text' : 'none'),
+      hasQuotedContext,
+      explicitTicket: !!explicitTicket,
+      continuationHit: payload.source === 'quote_bulk',
+      continuationBasis: payload.continuationBasis || continuationBasis,
+      handler,
+    });
     if (isMediaReply && isAVReply) {
       result = await deps.sendReplyAV({
         ticketId,
@@ -620,6 +657,20 @@ function create(deps) {
         source: payload.source,
       });
     }
+
+    logRoute(deps, {
+      source: payload.source,
+      ticketId,
+      mediaKind: mediaKind || (body ? 'text' : 'none'),
+      hasQuotedContext,
+      explicitTicket: !!explicitTicket,
+      continuationHit: payload.source === 'quote_bulk',
+      continuationBasis: payload.continuationBasis || continuationBasis,
+      handler,
+      handlerResult: safeResultCode(result),
+      enqueueId: result && result.enqueueId,
+      sendResult: result && (result.sendResult || result.targetChatId),
+    });
 
     if (!result || !result.ok) {
       if (isMediaReply && result && (result.code === 'media_download_failed' || result.code === 'send_missing' || result.code === 'send_error')) {

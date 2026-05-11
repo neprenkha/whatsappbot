@@ -22,14 +22,17 @@ function bugEnabled(value) {
   return v === '1' || v === 'true' || v === 'yes' || v === 'on';
 }
 
-function resolveSend(meta, globalConf) {
-  const names = String(globalConf.sendPrefer || '')
+function resolveSend(meta, cfg, globalConf) {
+  const names = String(cfg.sendService || '')
     .split(',')
     .map((x) => text(x))
     .filter(Boolean);
 
-  if (!names.includes('send')) names.push('send');
-  if (!names.includes('outbox')) names.push('outbox');
+  if (!names.length) {
+    for (const name of String(globalConf.sendPrefer || '').split(',').map((x) => text(x)).filter(Boolean)) {
+      if (!names.includes(name)) names.push(name);
+    }
+  }
 
   for (const name of names) {
     const svc = meta.getService(name);
@@ -81,13 +84,14 @@ async function sendToCustomer(input) {
     globalConf = loaded && loaded.conf && typeof loaded.conf === 'object' ? loaded.conf : {};
   }
 
-  const send = resolveSend(meta, globalConf);
+  const send = resolveSend(meta, cfg, globalConf);
   if (!send) {
     return { ok: 0, code: 'send_missing' };
   }
 
+  let enqueueId = 0;
   try {
-    await send(customerChatId, bodyStripped, {
+    enqueueId = await send(customerChatId, bodyStripped, {
       isAuto: 0,
       manualReply: 1,
       bypassRateLimit: 1,
@@ -111,7 +115,7 @@ async function sendToCustomer(input) {
     }
   }
 
-  return { ok: 1, code: 'sent', targetChatId: customerChatId };
+  return { ok: 1, code: 'sent', targetChatId: customerChatId, enqueueId };
 }
 
 module.exports = {

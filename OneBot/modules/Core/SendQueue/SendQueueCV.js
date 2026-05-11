@@ -158,6 +158,7 @@ module.exports = {
     let dedupeLog;
     let defaultIsAuto;
     let defaultManualReply;
+    let manualImmediateEnabled;
 
     try {
       enabled = readSettingBool(conf, 'enabled');
@@ -179,6 +180,7 @@ module.exports = {
       dedupeLog = readSettingBool(conf, 'dedupeLog');
       defaultIsAuto = readSettingBool(conf, 'defaultIsAuto');
       defaultManualReply = readSettingBool(conf, 'defaultManualReply');
+      manualImmediateEnabled = readSettingBool(conf, 'manualImmediateEnabled');
     } catch (err) {
       log(tag, 'disabled config_error=' + errText(err));
       return { onMessage: async () => {}, onEvent: async () => {} };
@@ -297,10 +299,14 @@ module.exports = {
         lastError: '',
       });
 
-      if (priority) {
+      if (manualImmediateEnabled && priority && queue.length === 0 && !running) {
         try {
           const directId = await tryImmediate(chat, payload, opts);
-          return Number.isFinite(Number(directId)) && Number(directId) > 0 ? Number(directId) : item.id;
+          const enqueueId = Number.isFinite(Number(directId)) && Number(directId) > 0 ? Number(directId) : item.id;
+          if (detailLog || traceLog) {
+            log(tag, 'priority_direct_ok chatId=' + chat + ' enqueueId=' + enqueueId + ' source=' + classifyOptions(opts));
+          }
+          return enqueueId;
         } catch (err) {
           item.lastError = errText(err);
           if (detailLog || traceLog) {
@@ -315,6 +321,9 @@ module.exports = {
       }
 
       insertQueue(item, priority);
+      if (detailLog || traceLog) {
+        log(tag, 'enqueue_ok chatId=' + chat + ' enqueueId=' + item.id + ' source=' + classifyOptions(opts) + ' priority=' + (priority ? '1' : '0') + ' immediateAttempt=' + (manualImmediateEnabled && priority ? '1' : '0') + ' queued=' + queue.length);
+      }
       if (priority) schedulePumpSoon();
       return item.id;
     }
@@ -397,7 +406,7 @@ module.exports = {
     meta.registerService(serviceName, api);
 
     if (moduleLog) {
-      log(tag, 'ready enabled=' + (enabled ? '1' : '0') + ' serviceName=' + serviceName + ' baseSend=' + baseSend + ' delayMs=' + delayMs + ' batchMax=' + batchMax + ' maxQueue=' + maxQueue + ' minGapMsPerChat=' + minGapMsPerChat + ' maxAttempts=' + maxAttempts + ' retryDelayMs=' + retryDelayMs + ' deadMax=' + deadMax + ' detailLog=' + (detailLog ? '1' : '0') + ' traceLog=' + (traceLog ? '1' : '0'));
+      log(tag, 'ready enabled=' + (enabled ? '1' : '0') + ' serviceName=' + serviceName + ' baseSend=' + baseSend + ' delayMs=' + delayMs + ' batchMax=' + batchMax + ' maxQueue=' + maxQueue + ' minGapMsPerChat=' + minGapMsPerChat + ' maxAttempts=' + maxAttempts + ' retryDelayMs=' + retryDelayMs + ' deadMax=' + deadMax + ' manualImmediateEnabled=' + (manualImmediateEnabled ? '1' : '0') + ' detailLog=' + (detailLog ? '1' : '0') + ' traceLog=' + (traceLog ? '1' : '0'));
     }
 
     return {

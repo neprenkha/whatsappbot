@@ -45,6 +45,18 @@ function mediaMimeTypeOf(staffMsg) {
   return text(staffMsg && (staffMsg.mimetype || (staffMsg._data && staffMsg._data.mimetype) || ''));
 }
 
+function errText(err) {
+  if (!err) return '';
+  if (typeof err === 'string') return err;
+  return text(err.code || err.reason || err.message || err);
+}
+
+function avDownloadTimeoutMs(cfg) {
+  const av = toInt(cfg && cfg.replyAVDownloadTimeoutMs, 0);
+  if (av > 0) return av;
+  return toInt(cfg && cfg.replyMediaDownloadTimeoutMs, 1);
+}
+
 function inferKindFromMimeAndName(mimeType, fileName, isPtt) {
   const mime = text(mimeType).toLowerCase();
   const name = text(fileName);
@@ -168,7 +180,13 @@ async function sendToCustomer(input) {
   const ticketId = parseTicketId(ticketIdRaw, cfg.ticketIdRegex);
   if (!ticketId) return { ok: 0, code: 'need_ticket' };
 
-  if (!hasDownloadableMedia(staffMsg)) {
+  const kindBeforeDownload = avTypeOf(staffMsg);
+  const hasDownloadMedia = hasDownloadableMedia(staffMsg);
+
+  if (!hasDownloadMedia) {
+    if (bugEnabled(cfg.bugLog) && meta && typeof meta.log === 'function') {
+      meta.log('FallbackReplyAVCV', 'av_download_failed source=reply ticketId=' + ticketId + ' kindBeforeDownload=' + (kindBeforeDownload || 'none') + ' hasDownloadMedia=0 mimetype=' + mediaMimeTypeOf(staffMsg) + ' filename=' + mediaFileNameOf(staffMsg) + ' err=missing_downloadMedia');
+    }
     return { ok: 0, code: 'media_download_failed' };
   }
 
@@ -187,17 +205,29 @@ async function sendToCustomer(input) {
 
   let mediaObj;
   try {
-    mediaObj = await withTimeout(staffMsg.downloadMedia(), toInt(cfg.replyMediaDownloadTimeoutMs, 1));
+    mediaObj = await withTimeout(staffMsg.downloadMedia(), avDownloadTimeoutMs(cfg));
   } catch (e) {
-    return { ok: 0, code: 'media_download_failed', error: text(e && e.message ? e.message : e) };
+    const err = errText(e);
+    if (bugEnabled(cfg.bugLog) && meta && typeof meta.log === 'function') {
+      meta.log('FallbackReplyAVCV', 'av_download_failed source=reply ticketId=' + ticketId + ' kindBeforeDownload=' + (kindBeforeDownload || 'none') + ' hasDownloadMedia=1 mimetype=' + mediaMimeTypeOf(staffMsg) + ' filename=' + mediaFileNameOf(staffMsg) + ' err=' + err);
+    }
+    return { ok: 0, code: 'media_download_failed', error: err };
   }
 
-  if (!mediaObj) return { ok: 0, code: 'media_download_failed' };
+  if (!mediaObj) {
+    if (bugEnabled(cfg.bugLog) && meta && typeof meta.log === 'function') {
+      meta.log('FallbackReplyAVCV', 'av_download_failed source=reply ticketId=' + ticketId + ' kindBeforeDownload=' + (kindBeforeDownload || 'none') + ' hasDownloadMedia=1 mimetype=' + mediaMimeTypeOf(staffMsg) + ' filename=' + mediaFileNameOf(staffMsg) + ' err=empty_media');
+    }
+    return { ok: 0, code: 'media_download_failed' };
+  }
   if (!text(mediaObj.filename)) mediaObj.filename = mediaFileNameOf(staffMsg);
   if (!text(mediaObj.mimetype)) mediaObj.mimetype = mediaMimeTypeOf(staffMsg);
 
-  const kind = normalizeSendKind(avTypeOf(staffMsg), mediaObj, staffMsg);
+  const kind = normalizeSendKind(kindBeforeDownload, mediaObj, staffMsg);
   if (kind !== 'audio' && kind !== 'video' && kind !== 'ptt') {
+    if (bugEnabled(cfg.bugLog) && meta && typeof meta.log === 'function') {
+      meta.log('FallbackReplyAVCV', 'av_download_failed source=reply ticketId=' + ticketId + ' kindBeforeDownload=' + (kindBeforeDownload || 'none') + ' hasDownloadMedia=1 mimetype=' + text(mediaObj && mediaObj.mimetype) + ' filename=' + text(mediaObj && mediaObj.filename) + ' err=kind_unclassified');
+    }
     return { ok: 0, code: 'media_download_failed' };
   }
 
@@ -220,7 +250,7 @@ async function sendToCustomer(input) {
 
   for (let attempt = 1; attempt <= maxTries; attempt += 1) {
     try {
-      await sendFn(customerChatId, mediaObj, outOptions);
+      const enqueueId = await sendFn(customerChatId, mediaObj, outOptions);
       if (gapMs > 0) await sleep(gapMs);
       try {
         await markTicketReplied(store, ticketStoreKey, ticketId);
@@ -229,7 +259,7 @@ async function sendToCustomer(input) {
           meta.log('FallbackReplyAVCV', 'bug ticket_update_failed err=' + text(e && e.message ? e.message : e));
         }
       }
-      return { ok: 1, code: 'sent', targetChatId: customerChatId };
+      return { ok: 1, code: 'sent', targetChatId: customerChatId, enqueueId };
     } catch (e) {
       if (attempt >= maxTries) {
         return { ok: 0, code: 'send_error', error: text(e && e.message ? e.message : e) };
