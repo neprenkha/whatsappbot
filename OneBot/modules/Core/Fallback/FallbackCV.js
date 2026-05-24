@@ -286,13 +286,48 @@ function inboundMediaLabel(cfg, kind) {
   return text(cfg && cfg.inboundMediaLabel);
 }
 
-function inboundDownloadTimeoutMs(cfg, kind) {
+function isInboundAvKind(kind) {
   const mediaKind = text(kind).toLowerCase();
-  if (mediaKind === 'audio' || mediaKind === 'video' || mediaKind === 'ptt') {
-    const av = toInt(cfg && cfg.replyAVDownloadTimeoutMs, 0);
-    if (av > 0) return av;
+  return mediaKind === 'audio' || mediaKind === 'video' || mediaKind === 'ptt';
+}
+
+function inboundDownloadTimeoutMs(cfg, kind) {
+  if (isInboundAvKind(kind)) {
+    const inboundAv = toInt(cfg && cfg.inboundAVDownloadTimeoutMs, 0);
+    if (inboundAv > 0) return inboundAv;
+    const replyAv = toInt(cfg && cfg.replyAVDownloadTimeoutMs, 0);
+    if (replyAv > 0) return replyAv;
   }
   return Math.max(1, toInt(cfg && cfg.replyMediaDownloadTimeoutMs, 1));
+}
+
+function inboundDownloadMaxTries(cfg, kind) {
+  if (isInboundAvKind(kind)) return Math.max(1, toInt(cfg && cfg.inboundAVDownloadMaxTries, 1));
+  return 1;
+}
+
+function inboundDownloadRetryMs(cfg, kind) {
+  if (isInboundAvKind(kind)) return Math.max(0, toInt(cfg && cfg.inboundAVDownloadRetryMs, 0));
+  return 0;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
+
+async function downloadInboundMedia(ctx, cfg, kind) {
+  const tries = inboundDownloadMaxTries(cfg, kind);
+  const retryMs = inboundDownloadRetryMs(cfg, kind);
+  let lastErr = null;
+  for (let attempt = 1; attempt <= tries; attempt += 1) {
+    try {
+      return await withTimeout(ctx.message.downloadMedia(), inboundDownloadTimeoutMs(cfg, kind), 'inbound_media_download_timeout');
+    } catch (e) {
+      lastErr = e;
+      if (attempt < tries && retryMs > 0) await sleep(retryMs);
+    }
+  }
+  throw lastErr || new Error('inbound_media_download_failed');
 }
 
 function buildInboundDisplayText(cfg, kind, captionText, fileName, bodyText) {
@@ -321,6 +356,7 @@ module.exports.init = async function init(meta) {
       'ticketSeqKey',
       'msgBufferMax',
       'burstMs',
+      'inboundBulkWindowMs',
       'ticketStatusOpen',
       'ticketStatusClosed',
       'ticketIdRegex',
@@ -346,6 +382,9 @@ module.exports.init = async function init(meta) {
       'replyMediaGapMs',
       'replyMediaDownloadTimeoutMs',
       'replyAVDownloadTimeoutMs',
+      'inboundAVDownloadTimeoutMs',
+      'inboundAVDownloadMaxTries',
+      'inboundAVDownloadRetryMs',
       'inboundImageLabel',
       'inboundDocumentLabel',
       'inboundAudioLabel',
@@ -424,6 +463,7 @@ module.exports.init = async function init(meta) {
     const ticketCard = await FallbackTicketCardCV.init(meta, cfg);
 
     const burstMs = Math.max(1, toInt(cfg.burstMs, 1200));
+    const inboundBulkWindowMs = Math.max(burstMs, toInt(cfg.inboundBulkWindowMs, burstMs));
     const msgBufferMax = Math.max(1, toInt(cfg.msgBufferMax, 20));
     const tickMs = Math.max(1000, toInt(cfg.tickMs, 60000));
     const batchMax = Math.max(1, toInt(cfg.batchMax, 5));
@@ -665,7 +705,7 @@ module.exports.init = async function init(meta) {
         } catch (e) {
           if (bugLog) meta.log(tag, `bug burst_flush_forward_failed ticketId=${entry && entry.ticketId ? entry.ticketId : ''} chatId=${entry && entry.chatId ? entry.chatId : ''} groupKey=${entry && entry.groupKey ? entry.groupKey : ''} err=${text(e && e.message ? e.message : e)}`);
         }
-      }, burstMs);
+      }, inboundBulkWindowMs);
 
       burstState.set(key, current);
     }
@@ -691,22 +731,7 @@ module.exports.init = async function init(meta) {
       if (detailLog || traceLog) {
         meta.log(tag, `inbound_item_seen chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)} hasMediaMarkers=${hasMediaMarkers ? '1' : '0'} hasDownloadMedia=${shouldTryDownload ? '1' : '0'} bodyLen=${bodyText.length} captionLen=${captionText.length}`);
       }
-      if (shouldTryDownload) {
-        try {
-          mediaObj = await withTimeout(ctx.message.downloadMedia(), inboundDownloadTimeoutMs(cfg, inboundMediaKind), 'inbound_media_download_timeout');
-        } catch (e) {
-          mediaObj = null;
-          if (bugLog) meta.log(tag, `bug inbound_item_download_failed chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)} err=${text((e && (e.code || e.message)) || e)}`);
-        }
-      } else if (hasMediaMarkers && bugLog) {
-        meta.log(tag, `bug inbound_item_download_failed chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)} err=missing_downloadMedia`);
-      }
-
-      if (mediaObj) {
-        inboundMediaKind = inferMediaKindFromDownloadedMedia(ctx, mediaObj, inboundMediaKind);
-      }
-
-      const hasInboundMedia = !!mediaObj || hasMediaMarkers;
+      const hasInboundMedia = hasMediaMarkers;
       if (hasInboundMedia && !inboundMediaKind) inboundMediaKind = 'document';
       if (detailLog || traceLog) {
         meta.log(tag, `inbound_item_classified chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)} hasDownloadedMedia=${mediaObj ? '1' : '0'} hasMediaMarkers=${hasMediaMarkers ? '1' : '0'}`);
@@ -785,7 +810,19 @@ module.exports.init = async function init(meta) {
       burstState.set(burstKey, current);
       scheduleBurstFlush(chatId, ticket.ticketId);
 
+      if (shouldTryDownload) {
+        try {
+          mediaObj = await downloadInboundMedia(ctx, cfg, inboundMediaKind);
+        } catch (e) {
+          mediaObj = null;
+          if (bugLog) meta.log(tag, `bug inbound_item_download_failed chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)} err=${text((e && (e.code || e.message)) || e)}`);
+        }
+      } else if (hasMediaMarkers && bugLog) {
+        meta.log(tag, `bug inbound_item_download_failed chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)} err=missing_downloadMedia`);
+      }
+
       if (mediaObj) {
+        inboundMediaKind = inferMediaKindFromDownloadedMedia(ctx, mediaObj, inboundMediaKind);
         try {
           const targetChat = await resolveTargetGroup(groupKey, ctx);
           if (targetChat) {

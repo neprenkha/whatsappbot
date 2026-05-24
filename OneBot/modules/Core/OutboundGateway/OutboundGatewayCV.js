@@ -77,6 +77,15 @@ function errText(err) {
   return String((err && (err.code || err.reason || err.message)) || err || '');
 }
 
+function errDetailText(err) {
+  if (!err) return '';
+  if (typeof err === 'string') return err;
+  return [err.code, err.reason, err.message, err.name]
+    .map((x) => String(x || '').trim())
+    .filter(Boolean)
+    .join(' ');
+}
+
 function readRequiredPositiveInt(cfg, key) {
   if (!Object.prototype.hasOwnProperty.call(cfg || {}, key)) throw new Error('config_missing_' + key);
   const n = toInt(cfg[key], NaN);
@@ -93,8 +102,8 @@ function makeTransportTimeoutError(timeoutMs) {
 
 function isRetryableTransportError(err) {
   const code = String((err && err.code) || '').toLowerCase();
-  if (code === 'transport_timeout') return true;
-  const msg = errText(err).toLowerCase();
+  if (code === 'transport_timeout' || code === 'transport.send_failed') return true;
+  const msg = errDetailText(err).toLowerCase();
   return msg.includes('runtime.callfunctionon') || msg.includes('promise was collected') || msg.includes('timed out') || msg.includes('target closed') || msg.includes('session closed');
 }
 

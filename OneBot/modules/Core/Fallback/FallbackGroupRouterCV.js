@@ -10,14 +10,11 @@ function lower(value) {
 
 function isExternalCustomerCtx(ctx) {
   if (!ctx || ctx.isGroup) return false;
-  if (ctx && ctx.raw && ctx.raw.fromMe) return false;
+  if (ctx.fromMe || (ctx.raw && ctx.raw.fromMe)) return false;
   const chatId = lower(ctx.chatId);
-  const senderId = lower((ctx && (ctx.senderId || ctx.author || ctx.from)) || (ctx && ctx.raw && (ctx.raw.participant || ctx.raw.author || ctx.raw.from)) || '');
   if (!chatId) return false;
   if (chatId === 'status@broadcast') return false;
-  if (chatId.endsWith('@lid')) return false;
-  if (senderId.endsWith('@lid')) return false;
-  return chatId.endsWith('@c.us') || chatId.endsWith('@s.whatsapp.net');
+  return chatId.endsWith('@c.us') || chatId.endsWith('@s.whatsapp.net') || chatId.endsWith('@lid');
 }
 
 async function resolveTargetGroup(meta, cfg, globalConf, ctx) {
