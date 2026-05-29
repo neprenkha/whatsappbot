@@ -390,6 +390,11 @@ function create(deps) {
   async function onGroupMessage(ctx) {
     if (!ctx || !ctx.isGroup) return;
 
+    if (typeof deps.isAllowedGroupChat === 'function') {
+      const allowed = await deps.isAllowedGroupChat(ctx);
+      if (!allowed) return;
+    }
+
     cleanupReplySessions(Date.now());
 
     const quoteParsedRaw = await deps.parseQuote(ctx, cfg);
@@ -439,7 +444,6 @@ function create(deps) {
     if (!attempted) return;
 
     if (!(await deps.canReply(ctx))) {
-      await deps.sendStaffReply(ctx, cfg.replyNoAccess);
       return;
     }
 

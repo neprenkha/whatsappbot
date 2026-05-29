@@ -119,6 +119,32 @@ module.exports.init = async function init(meta) {
     return String(chatId || '').trim() === controlGroupId;
   }
 
+  async function isAllowedGroupChat(chatId) {
+    if (isControlGroup(chatId)) return true;
+    const workgroups = meta.getService('workgroups');
+    if (!workgroups) return false;
+
+    let list = [];
+    if (typeof workgroups.list === 'function') {
+      const got = await workgroups.list();
+      list = Array.isArray(got) ? got : [];
+    } else {
+      for (const fnName of ['resolve', 'getByKey', 'get']) {
+        if (typeof workgroups[fnName] !== 'function') continue;
+        for (const key of ['ops', 'default']) {
+          const got = await workgroups[fnName](key);
+          if (got) list.push(got);
+        }
+      }
+    }
+
+    const probe = String(chatId || '').trim();
+    return list.some(function hasChatId(row) {
+      const c = String((row && (row.groupChatId || row.chatId || row.id)) || row || '').trim();
+      return c && c === probe;
+    });
+  }
+
   function shouldIgnoreUnknown(cmdName) {
     const key = normalizeName(cmdName);
     if (!key) return false;
@@ -141,6 +167,7 @@ module.exports.init = async function init(meta) {
       const isGroup = !!(ctx && ctx.isGroup);
       if (isGroup && !allowInGroups) return;
       if (!isGroup && !allowInDm) return;
+      if (isGroup && !(await isAllowedGroupChat(ctx && ctx.chatId))) return;
 
       const rawText = textFromCtx(ctx);
       if (!rawText) return;

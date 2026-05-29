@@ -52,11 +52,83 @@ function parseTicketRef(spec) {
   return { kind, key };
 }
 
-function nowPeriodUTC() {
-  const d = new Date();
-  const yy = String(d.getUTCFullYear()).slice(-2);
-  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-  return `${yy}${mm}`;
+function configuredTimeZone(globalConf) {
+  return text(globalConf && globalConf.timeZone) || 'Asia/Kuala_Lumpur';
+}
+
+function configuredLocale(globalConf) {
+  return text(globalConf && globalConf.locale) || 'en-MY';
+}
+
+function configuredHour12(globalConf) {
+  return toBool(globalConf && globalConf.hour12);
+}
+
+function zonedParts(value, globalConf) {
+  const d = value instanceof Date ? value : new Date(value || Date.now());
+  if (Number.isNaN(d.getTime())) return null;
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: configuredTimeZone(globalConf),
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).formatToParts(d);
+    return parts.reduce((acc, part) => {
+      if (part && part.type && part.type !== 'literal') acc[part.type] = part.value;
+      return acc;
+    }, {});
+  } catch (e) {
+    return null;
+  }
+}
+
+function nowPeriod(globalConf) {
+  const parts = zonedParts(Date.now(), globalConf);
+  if (!parts || !parts.year || !parts.month) {
+    const fallback = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kuala_Lumpur',
+      year: 'numeric',
+      month: '2-digit',
+    }).formatToParts(new Date()).reduce((acc, part) => {
+      if (part && part.type && part.type !== 'literal') acc[part.type] = part.value;
+      return acc;
+    }, {});
+    return `${String(fallback.year || '').slice(-2)}${String(fallback.month || '').padStart(2, '0')}`;
+  }
+  return `${String(parts.year).slice(-2)}${String(parts.month).padStart(2, '0')}`;
+}
+
+function formatHumanTime(value, globalConf) {
+  const d = value instanceof Date ? value : new Date(value || Date.now());
+  if (Number.isNaN(d.getTime())) return '';
+  try {
+    return new Intl.DateTimeFormat(configuredLocale(globalConf), {
+      timeZone: configuredTimeZone(globalConf),
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: configuredHour12(globalConf),
+    }).format(d);
+  } catch (e) {
+    return new Intl.DateTimeFormat('en-MY', {
+      timeZone: 'Asia/Kuala_Lumpur',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).format(d);
+  }
 }
 
 function messageObjFromCtx(ctx) {
@@ -363,11 +435,9 @@ module.exports.init = async function init(meta) {
       'defaultGroupKey',
       'forwardTextPrefixTemplate',
       'forwardTextMaxLen',
-      'inboundAckTemplate',
       'ticketCardTemplate',
       'cmdReply',
       'minRoleTicketReply',
-      'replyNoAccess',
       'replyGroupOnly',
       'replyNeedTicket',
       'replyNeedText',
@@ -419,7 +489,7 @@ module.exports.init = async function init(meta) {
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
 
-    if (text(cfg.inboundAckTemplate).includes('{TICKETID}')) {
+    if (text(cfg.inboundAckTemplate) && text(cfg.inboundAckTemplate).includes('{TICKETID}')) {
       if (bugLog) meta.log(tag, 'disabled inboundAckTemplate_must_not_include_ticketid');
       return { onMessage: async () => {}, onEvent: async () => {} };
     }
@@ -473,6 +543,7 @@ module.exports.init = async function init(meta) {
     const escalationAfterMs = Math.max(reminderAfterMs, toInt(cfg.escalationAfterMs, 1800000));
     const reminderTemplate = text(cfg.reminderTemplate);
     const escalationTemplate = text(cfg.escalationTemplate);
+    const antiMissEnabled = !!(reminderTemplate || escalationTemplate);
 
     const burstState = new Map();
     let antiMissRunning = false;
@@ -559,8 +630,8 @@ module.exports.init = async function init(meta) {
             TICKETID: text(ticket.ticketId),
             CHATID: text(ticket.customerChatId),
             STATUS: text(ticket.status),
-            LASTINBOUNDAT: String(asMs(ticket.lastInboundAt)),
-            LASTSTAFFREPLYAT: String(asMs(ticket.lastStaffReplyAt)),
+            LASTINBOUNDAT: formatHumanTime(asMs(ticket.lastInboundAt), globalConf),
+            LASTSTAFFREPLYAT: formatHumanTime(asMs(ticket.lastStaffReplyAt), globalConf),
           });
           if (!payload) continue;
 
@@ -613,7 +684,7 @@ module.exports.init = async function init(meta) {
     }
 
     async function nextTicketId() {
-      const period = nowPeriodUTC();
+      const period = nowPeriod(globalConf);
       const seqRaw = await store.get(text(cfg.ticketSeqKey), { period: '', value: 0 });
       const current = text(seqRaw.period) === period ? Number(seqRaw.value || 0) : 0;
       const next = current + 1;
@@ -638,6 +709,24 @@ module.exports.init = async function init(meta) {
       if (fromWorkgroups) return fromWorkgroups;
       const fallback = await FallbackGroupRouterCV.resolveTargetGroup(meta, cfg, globalConf, ctx);
       return text(fallback);
+    }
+
+    async function isAllowedGroupChat(chatId) {
+      const probe = text(chatId);
+      if (!probe) return false;
+      if (probe === text(globalConf.controlGroupId)) return true;
+
+      const workgroups = meta.getService('workgroups');
+      if (workgroups && typeof workgroups.list === 'function') {
+        try {
+          const arr = await workgroups.list();
+          if (Array.isArray(arr) && arr.some((row) => text((row && (row.groupChatId || row.chatId || row.id)) || row) === probe)) return true;
+        } catch (e) {
+          if (bugLog) meta.log(tag, `bug group_firewall_workgroups_list_failed err=${text(e && e.message ? e.message : e)}`);
+        }
+      }
+
+      return false;
     }
 
     function scheduleBurstFlush(chatId, ticketId) {
@@ -672,7 +761,7 @@ module.exports.init = async function init(meta) {
               customerChatId: entry.chatId,
               customerName: entry.customerName,
               status: entry.status,
-              time: new Date(entry.lastAt).toISOString(),
+              time: formatHumanTime(entry.lastAt, globalConf),
               messageCount: entry.messages.length,
               lastText: entry.messages[entry.messages.length - 1] || '',
               qr1: text(quickReplies['1']),
@@ -701,6 +790,21 @@ module.exports.init = async function init(meta) {
           if (consolidated) {
             const batchResult = await sendFn(targetChat, consolidated, buildControlGroupForwardOptions(lastInboundAtMs));
             if (detailLog || traceLog) meta.log(tag, `forward_send_result ticketId=${entry.ticketId} chatId=${entry.chatId} kind=batch result=${text(batchResult || 'ok')}`);
+          }
+          const mediaItems = Array.isArray(entry.mediaItems) ? entry.mediaItems : [];
+          for (let i = 0; i < mediaItems.length; i += 1) {
+            const item = mediaItems[i] || {};
+            if (!item.mediaObj) continue;
+            try {
+              const mediaResult = await sendFn(
+                targetChat,
+                item.mediaObj,
+                buildInboundMediaOptions(cfg, item.kind, item.captionText, Number(item.lastInboundAtMs || lastInboundAtMs || 0))
+              );
+              if (detailLog || traceLog) meta.log(tag, `forward_send_result ticketId=${entry.ticketId} chatId=${entry.chatId} kind=${mediaLogKind(item.kind)} result=${text(mediaResult || 'ok')}`);
+            } catch (e) {
+              if (bugLog) meta.log(tag, `bug inbound_media_forward_failed ticketId=${entry.ticketId} chatId=${entry.chatId} groupKey=${entry.groupKey || ''} kind=${mediaLogKind(item.kind)} err=${text(e && e.message ? e.message : e)}`);
+            }
           }
         } catch (e) {
           if (bugLog) meta.log(tag, `bug burst_flush_forward_failed ticketId=${entry && entry.ticketId ? entry.ticketId : ''} chatId=${entry && entry.chatId ? entry.chatId : ''} groupKey=${entry && entry.groupKey ? entry.groupKey : ''} err=${text(e && e.message ? e.message : e)}`);
@@ -782,6 +886,7 @@ module.exports.init = async function init(meta) {
         customerName: buildCustomerLabel(ctx),
         status: text(ticket.status),
         messages: [],
+        mediaItems: [],
         lastAt: Date.now(),
         ctx,
         groupKey,
@@ -807,8 +912,11 @@ module.exports.init = async function init(meta) {
         current.messages = current.messages.slice(current.messages.length - msgBufferMax);
       }
 
+      if (current.timer) {
+        clearTimeout(current.timer);
+        current.timer = null;
+      }
       burstState.set(burstKey, current);
-      scheduleBurstFlush(chatId, ticket.ticketId);
 
       if (shouldTryDownload) {
         try {
@@ -823,28 +931,22 @@ module.exports.init = async function init(meta) {
 
       if (mediaObj) {
         inboundMediaKind = inferMediaKindFromDownloadedMedia(ctx, mediaObj, inboundMediaKind);
-        try {
-          const targetChat = await resolveTargetGroup(groupKey, ctx);
-          if (targetChat) {
-            if (!text(mediaObj.filename) && resolvedFileName) mediaObj.filename = resolvedFileName;
-            if (!text(mediaObj.mimetype) && resolvedMimeType) mediaObj.mimetype = resolvedMimeType;
-            const forwardResult = await sendFn(
-              targetChat,
-              mediaObj,
-              buildInboundMediaOptions(cfg, inboundMediaKind, captionText, Number(current.lastAt || 0))
-            );
-            if (detailLog || traceLog) meta.log(tag, `forward_send_result ticketId=${ticket.ticketId} chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)} result=${text(forwardResult || 'ok')}`);
-          } else if (bugLog) {
-            meta.log(tag, `bug inbound_media_forward_skipped ticketId=${ticket.ticketId} hasMedia=1 hasTarget=0`);
-          }
-        } catch (e) {
-          if (bugLog) meta.log(tag, `bug inbound_media_forward_failed ticketId=${ticket.ticketId} chatId=${chatId} groupKey=${groupKey} kind=${mediaLogKind(inboundMediaKind)} err=${text(e && e.message ? e.message : e)}`);
-        }
+        if (!text(mediaObj.filename) && resolvedFileName) mediaObj.filename = resolvedFileName;
+        if (!text(mediaObj.mimetype) && resolvedMimeType) mediaObj.mimetype = resolvedMimeType;
+        current.mediaItems = Array.isArray(current.mediaItems) ? current.mediaItems : [];
+        current.mediaItems.push({
+          mediaObj,
+          kind: inboundMediaKind,
+          captionText,
+          lastInboundAtMs: Number(current.lastAt || 0),
+        });
+        if (detailLog || traceLog) meta.log(tag, `inbound_media_buffered ticketId=${ticket.ticketId} chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)} count=${current.mediaItems.length}`);
+        burstState.set(burstKey, current);
       } else if (hasInboundMedia && bugLog) {
         meta.log(tag, `bug inbound_media_forward_stub_only ticketId=${ticket.ticketId} chatId=${chatId} kind=${mediaLogKind(inboundMediaKind)}`);
       }
 
-      await sendFn(chatId, text(cfg.inboundAckTemplate), { isAuto: 1, manualReply: 0 });
+      scheduleBurstFlush(chatId, ticket.ticketId);
       if (typeof ctx.stopPropagation === 'function') ctx.stopPropagation();
     }
 
@@ -940,6 +1042,9 @@ module.exports.init = async function init(meta) {
           return { ok: 0, code: 'need_text' };
         }
       },
+      isAllowedGroupChat: async (ctx) => {
+        return await isAllowedGroupChat(ctx && ctx.chatId);
+      },
       canReply: async (ctx) => canAccess(access, ctx, cfg.minRoleTicketReply),
       sendStaffReply: async (ctx, message) => {
         const chatId = text(ctx && ctx.chatId);
@@ -976,15 +1081,18 @@ module.exports.init = async function init(meta) {
       });
     }
 
-    setInterval(() => {
-      runAntiMissTick().catch((e) => {
-        if (bugLog) meta.log(tag, `bug anti_miss_loop err=${text(e && e.message ? e.message : e)}`);
-      });
-    }, tickMs);
+    if (antiMissEnabled) {
+      setInterval(() => {
+        runAntiMissTick().catch((e) => {
+          if (bugLog) meta.log(tag, `bug anti_miss_loop err=${text(e && e.message ? e.message : e)}`);
+        });
+      }, tickMs);
+    }
 
     return {
       onMessage: async (ctx) => {
         await onDmMessage(ctx);
+        if (ctx && ctx.isGroup && !(await isAllowedGroupChat(ctx.chatId))) return;
         await replyRouter.onGroupMessage(ctx);
       },
       onEvent: async () => {},
